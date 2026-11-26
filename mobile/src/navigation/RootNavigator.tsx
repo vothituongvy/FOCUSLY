@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Animated, View } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,8 +17,9 @@ import { JournalScreen } from '../screens/JournalScreen';
 import { LearnScreen, QuizTakeScreen, ReviewScreen } from '../screens/LearnScreens';
 import { AIChatScreen, AnalyticsScreen, MaterialsScreen, NotificationsScreen } from '../screens/MoreScreens';
 import { ProfileScreen } from '../screens/ProfileScreen';
+import { OnboardingScreen, SplashScreen } from '../screens/OnboardingScreen';
 import type { AppStackParams, AuthStackParams, TabParams } from './types';
-import { tr } from '../i18n';
+import { prefGet, prefSet, tr } from '../i18n';
 import { SessionBar } from '../components/SessionBar';
 
 const AuthStack = createNativeStackNavigator<AuthStackParams>();
@@ -89,7 +90,17 @@ function Tabs() {
 
 export function RootNavigator() {
   const status = useAuth((s) => s.status);
-  if (status === 'loading') return <Loading />;
+  const [onboarded, setOnboarded] = useState(() => prefGet('onboarded') === '1');
+  if (status === 'loading') return <SplashScreen />;
+  if (status !== 'authed' && !onboarded)
+    return (
+      <OnboardingScreen
+        onDone={() => {
+          prefSet('onboarded', '1');
+          setOnboarded(true);
+        }}
+      />
+    );
   return (
     <NavigationContainer theme={{ ...DefaultTheme, colors: { ...DefaultTheme.colors, background: colors.bg, primary: colors.primary } }}>
       {status === 'authed' ? (

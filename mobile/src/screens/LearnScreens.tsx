@@ -5,7 +5,7 @@ import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-n
 import { useData } from '../store/data';
 import { review, cardStage } from '../offline/srs';
 import { uid } from '../offline/db';
-import { colors } from '../theme';
+import { colors, tints } from '../theme';
 import type { Card, Question, Quiz } from '../types';
 import type { AppStackParams } from '../navigation/types';
 import { Button, Card as Box, Chip, Chips, Empty, H1, H3, Muted, ProgressBar, Row, Screen, s } from '../components/ui';
@@ -89,6 +89,7 @@ const GRADES = [
   { label: tr('Nhớ'), grade: 4, color: '#15803d' },
   { label: tr('Dễ'), grade: 5, color: '#1d4ed8' },
 ];
+const GRADE_TINT: Record<number, { bg: string; border: string }> = { 1: tints.peach, 3: tints.lemon, 4: tints.mint, 5: tints.sky };
 
 export function ReviewScreen({ route, navigation }: NativeStackScreenProps<AppStackParams, 'Review'>) {
   const { cards, patchLocal, queueCustom } = useData();
@@ -137,7 +138,7 @@ export function ReviewScreen({ route, navigation }: NativeStackScreenProps<AppSt
       </Muted>
       <ProgressBar value={i / queue.length} />
       <Pressable onPress={() => setFlipped(!flipped)}>
-        <Box style={{ minHeight: 280, justifyContent: 'center', alignItems: 'center', backgroundColor: flipped ? '#fbfbff' : colors.surface }}>
+        <Box style={{ minHeight: 280, justifyContent: 'center', alignItems: 'center', backgroundColor: flipped ? tints.lemon.bg : colors.card, borderColor: flipped ? tints.lemon.border : colors.cardBorder }}>
           <Muted>{flipped ? tr('Mặt sau') : tr('Mặt trước')}</Muted>
           <Text style={{ fontSize: 20, textAlign: 'center', color: colors.text }}>{flipped ? card.back : card.front}</Text>
           {!flipped && !!card.hint && <Muted>{card.hint}</Muted>}
@@ -148,7 +149,7 @@ export function ReviewScreen({ route, navigation }: NativeStackScreenProps<AppSt
       ) : (
         <Row>
           {GRADES.map((g) => (
-            <Pressable key={g.label} onPress={() => grade(g.grade)} style={{ flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, alignItems: 'center', backgroundColor: colors.surface }}>
+            <Pressable key={g.label} onPress={() => grade(g.grade)} style={{ flex: 1, borderWidth: 1, borderColor: GRADE_TINT[g.grade]?.border ?? colors.border, borderRadius: 12, padding: 12, alignItems: 'center', backgroundColor: GRADE_TINT[g.grade]?.bg ?? colors.card }}>
               <Text style={{ color: g.color, fontWeight: '800' }}>{g.label}</Text>
             </Pressable>
           ))}

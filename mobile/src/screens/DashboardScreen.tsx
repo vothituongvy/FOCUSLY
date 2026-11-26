@@ -8,7 +8,7 @@ import { kvGet, kvSet } from '../offline/db';
 import { useAuth } from '../store/auth';
 import { useData } from '../store/data';
 import { useSession } from '../store/session';
-import { colors } from '../theme';
+import { colors, tints } from '../theme';
 import type { Dashboard, FocusSession } from '../types';
 import type { TabParams } from '../navigation/types';
 import { AppHeader } from '../components/AppHeader';
@@ -25,6 +25,9 @@ function spoken(minutes: number) {
   if (!h) return tr('{0} phút', r);
   return r ? tr('{0} giờ {1} phút', h, r) : tr('{0} giờ', h);
 }
+
+/** Thẻ đầu trang: tím chàm, chữ trắng, điểm nhấn vàng */
+const HERO = { bg: '#4f46c8', muted: '#d4d1fb' };
 
 function spokenShort(minutes: number) {
   const m = Math.max(0, Math.round(minutes));
@@ -107,7 +110,7 @@ function Metric({
   noteColor,
 }: {
   icon: IconName;
-  tint: string;
+  tint: { bg: string; border: string; ink: string };
   label: string;
   value: string;
   unit?: string;
@@ -115,10 +118,10 @@ function Metric({
   noteColor?: string;
 }) {
   return (
-    <Paper style={{ backgroundColor: colors.surface, borderRadius: 14, borderWidth: 1, borderColor: colors.border, padding: 14, gap: 8 }} radius={14}>
+    <Paper style={{ backgroundColor: tint.bg, borderRadius: 14, borderWidth: 1, borderColor: tint.border, padding: 14, gap: 8 }} radius={14}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: tint, alignItems: 'center', justifyContent: 'center' }}>
-          <Icon name={icon} size={18} color={colors.text} />
+        <View style={{ width: 34, height: 34, borderRadius: 11, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' }}>
+          <Icon name={icon} size={19} color={tint.ink} />
         </View>
         <Text style={{ flex: 1, fontSize: 13, color: colors.text2, fontWeight: '600' }} numberOfLines={2}>
           {label}
@@ -198,21 +201,21 @@ export function DashboardScreen() {
         {offline && <Muted style={{ color: colors.warning }}>{tr('Đang hiển thị dữ liệu đã lưu vì không có mạng.')}</Muted>}
 
         <FadeIn>
-        <Card style={{ padding: 18, gap: 14 }}>
+        <Card style={{ padding: 18, gap: 14, backgroundColor: HERO.bg, borderColor: HERO.bg }}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
             <View>
-              <Text style={{ fontSize: 13, color: colors.muted, fontWeight: '600' }}>{tr('Thời gian tập trung hôm nay')}</Text>
-              <Text style={{ fontSize: 34, fontWeight: '800', color: colors.text, letterSpacing: -1, marginTop: 2 }}>
+              <Text style={{ fontSize: 13, color: HERO.muted, fontWeight: '600' }}>{tr('Thời gian tập trung hôm nay')}</Text>
+              <Text style={{ fontSize: 34, fontWeight: '800', color: '#ffffff', letterSpacing: -1, marginTop: 2 }}>
                 {spokenShort(focusMin)}
-                <Text style={{ fontSize: 16, color: colors.muted, fontWeight: '600' }}> / {spokenShort(target)}</Text>
+                <Text style={{ fontSize: 16, color: HERO.muted, fontWeight: '600' }}> / {spokenShort(target)}</Text>
               </Text>
             </View>
-            <Text style={{ fontSize: 15, fontWeight: '800', color: focusMin >= target ? colors.success : colors.text2 }}>
+            <Text style={{ fontSize: 15, fontWeight: '800', color: focusMin >= target ? '#7fd1a6' : colors.marker }}>
               {Math.min(100, Math.round((focusMin / Math.max(1, target)) * 100))}%
             </Text>
           </View>
-          <ProgressBar value={focusMin / Math.max(1, target)} />
-          <Text style={{ fontSize: 15, lineHeight: 22, color: colors.text2 }}>{headline}</Text>
+          <ProgressBar value={focusMin / Math.max(1, target)} track="rgba(255,255,255,0.22)" />
+          <Text style={{ fontSize: 15, lineHeight: 22, color: '#ffffff' }}>{headline}</Text>
           <DayRuler sessions={todaySessions} />
           {active ? (
             <Pressable onPress={() => nav.navigate('Focus')} accessibilityRole="button" style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}>
@@ -237,16 +240,16 @@ export function DashboardScreen() {
           <>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 10 }}>
               <FadeIn delay={80} style={{ width: '48.5%' }}>
-                <Metric icon="check" tint={colors.successSoft} label={tr('Nhiệm vụ xong')} value={String(data.tasks.completed)} unit={`/${data.tasks.total}`} note={data.tasks.overdue ? tr('{0} việc quá hạn', data.tasks.overdue) : undefined} noteColor={colors.danger} />
+                <Metric icon="check" tint={tints.mint} label={tr('Nhiệm vụ xong')} value={String(data.tasks.completed)} unit={`/${data.tasks.total}`} note={data.tasks.overdue ? tr('{0} việc quá hạn', data.tasks.overdue) : undefined} noteColor={colors.danger} />
               </FadeIn>
               <FadeIn delay={140} style={{ width: '48.5%' }}>
-                <Metric icon="flame" tint={colors.markerSoft} label={tr('Chuỗi ngày học')} value={String(data.streak.current)} unit={tr(' ngày')} note={tr('Dài nhất {0} ngày', data.streak.best)} />
+                <Metric icon="flame" tint={tints.lemon} label={tr('Chuỗi ngày học')} value={String(data.streak.current)} unit={tr(' ngày')} note={tr('Dài nhất {0} ngày', data.streak.best)} />
               </FadeIn>
               <FadeIn delay={200} style={{ width: '48.5%' }}>
-                <Metric icon="zap" tint={colors.dangerSoft} label={tr('Lần phân tâm')} value={String(data.distractionsToday.manual)} note={tr('Rời app {0} lần', data.distractionsToday.appLeaves)} />
+                <Metric icon="zap" tint={tints.peach} label={tr('Lần phân tâm')} value={String(data.distractionsToday.manual)} note={tr('Rời app {0} lần', data.distractionsToday.appLeaves)} />
               </FadeIn>
               <FadeIn delay={260} style={{ width: '48.5%' }}>
-                <Metric icon="focus" tint="#e6ecfb" label={tr('Điểm tập trung')} value={String(data.focusScore.score)} unit="/100" note={tr('Chỉ để tham khảo')} />
+                <Metric icon="focus" tint={tints.sky} label={tr('Điểm tập trung')} value={String(data.focusScore.score)} unit="/100" note={tr('Chỉ để tham khảo')} />
               </FadeIn>
             </View>
 

@@ -947,5 +947,14 @@
  "Trang sẽ tải lại để áp dụng ngôn ngữ mới.": "The page will reload to apply the new language.",
  "{0}p": "{0}m",
  "{0}g {1}p": "{0}h {1}m",
- "{0}g": "{0}h"
+ "{0}g": "{0}h",
+ "Lên kế hoạch rõ ràng": "Plan with clarity",
+ "Chia việc học thành môn học, mục tiêu và những nhiệm vụ nhỏ vừa sức. Biết hôm nay cần học gì.": "Break your studies into subjects, goals and small, doable tasks. Always know what to study today.",
+ "Tập trung thật sự": "Truly focus",
+ "Bật phiên học, chặn ứng dụng gây xao nhãng. Đồng hồ chỉ tính lúc bạn thật sự học.": "Start a session and block distracting apps. The timer only counts the time you really study.",
+ "Ôn tập và nhìn lại": "Review and reflect",
+ "Flashcard nhắc đúng lúc sắp quên, biểu đồ cho thấy bạn tiến bộ mỗi ngày.": "Flashcards come back right before you forget, and charts show your progress every day.",
+ "Trang {0}/{1}": "Page {0}/{1}",
+ "Bắt đầu": "Get started",
+ "Tiếp": "Next"
 }

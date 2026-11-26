@@ -1,4 +1,5 @@
 import React, { ReactNode } from 'react';
+import { useRoute } from '@react-navigation/native';
 import {
   ActivityIndicator,
   Animated,
@@ -13,7 +14,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, radius } from '../theme';
+import { colors, radius, tints } from '../theme';
 import { useData } from '../store/data';
 import { Icon, type IconName } from './Icon';
 import { tr } from '../i18n';
@@ -86,8 +87,31 @@ export function Paper({ children, style, radius: r = radius + 2, depth = 4 }: { 
   );
 }
 
+/** Mỗi khu vực của app một màu thẻ riêng, nhìn là biết đang ở đâu */
+const ROUTE_TONE: Record<string, keyof typeof tints> = {
+  Dashboard: 'sky',
+  Notifications: 'sky',
+  Analytics: 'sky',
+  Plan: 'mint',
+  TaskEdit: 'mint',
+  SubjectEdit: 'mint',
+  Materials: 'mint',
+  Focus: 'lilac',
+  AIChat: 'lilac',
+  Learn: 'peach',
+  Review: 'peach',
+  QuizTake: 'peach',
+  Journal: 'peach',
+  Profile: 'lemon',
+};
+export function useTone() {
+  const route = useRoute();
+  return tints[ROUTE_TONE[route.name] ?? 'sky'];
+}
+
 export function Card({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
-  return <Paper style={[s.card, style]}>{children}</Paper>;
+  const tone = useTone();
+  return <Paper style={[s.card, { backgroundColor: tone.bg, borderColor: tone.border }, style]}>{children}</Paper>;
 }
 
 /** Tiêu đề nhóm nội dung trên nền bàn (không đóng khung) */
@@ -191,15 +215,21 @@ export function Chip({ label, active, onPress }: { label: string; active?: boole
   );
 }
 
-export function Chips({ children }: { children: ReactNode }) {
-  return <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>{children}</View>;
+/** Hàng chip lướt ngang (không xuống dòng). Truyền `wrap` nếu muốn xuống dòng. */
+export function Chips({ children, wrap }: { children: ReactNode; wrap?: boolean }) {
+  if (wrap) return <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>{children}</View>;
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 6, paddingRight: 8 }} style={{ flexGrow: 0 }}>
+      {children}
+    </ScrollView>
+  );
 }
 
-export function ProgressBar({ value, color = colors.marker }: { value: number; color?: string }) {
+export function ProgressBar({ value, color = colors.marker, track = colors.track }: { value: number; color?: string; track?: string }) {
   const pct = Math.min(100, Math.max(0, value * 100));
   const w = useAnimatedNumber(pct, 700);
   return (
-    <View style={{ height: 10, backgroundColor: colors.surface2, borderRadius: 5, overflow: 'hidden', borderWidth: 1, borderColor: colors.border }}>
+    <View style={{ height: 10, backgroundColor: track, borderRadius: 5, overflow: 'hidden' }}>
       <Animated.View
         style={{
           width: w.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] }),
@@ -244,11 +274,11 @@ export const s = StyleSheet.create({
   muted: { color: colors.muted, fontSize: 13 },
   label: { fontSize: 13, fontWeight: '600', color: colors.text2 },
   card: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     borderRadius: radius + 2,
     padding: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.cardBorder,
     gap: 10,
   },
   btn: { borderRadius: 11, paddingVertical: 12, paddingHorizontal: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
@@ -264,7 +294,7 @@ export const s = StyleSheet.create({
     color: colors.text,
     backgroundColor: colors.surface,
   },
-  chip: { borderWidth: 1, borderColor: colors.borderStrong, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: colors.surface },
+  chip: { borderWidth: 1, borderColor: colors.borderStrong, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: '#ffffff' },
   sheet: {
     backgroundColor: colors.surface,
     borderRadius: 18,

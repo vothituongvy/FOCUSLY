@@ -25,6 +25,22 @@ function detect(): Lang {
 }
 
 export let LANG: Lang = detect();
+
+/** Đọc/ghi cài đặt nhỏ trên máy (đồng bộ, đọc được ngay lúc mở app) */
+export function prefGet(key: string): string | undefined {
+  try {
+    return store?.getItemSync(key) ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+export function prefSet(key: string, value: string) {
+  try {
+    store?.setItemSync(key, value);
+  } catch {
+    /* bỏ qua */
+  }
+}
 export let LOCALE = LANG === 'en' ? 'en-GB' : 'vi-VN';
 
 const dict = EN as Record<string, string>;

@@ -54,10 +54,14 @@ export function AppHeader({ title, subtitle, right }: { title: string; subtitle?
       }}
     >
       <View style={{ flex: 1 }}>
-        {!!subtitle && <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 2 }}>{subtitle}</Text>}
         <Text style={{ fontSize: 24, fontWeight: '800', color: colors.text, letterSpacing: -0.6 }} numberOfLines={1}>
           {title}
         </Text>
+        {!!subtitle && (
+          <Text style={{ fontSize: 13, color: colors.muted, marginTop: 2 }} numberOfLines={1}>
+            {subtitle}
+          </Text>
+        )}
       </View>
       {right}
       <IconButton name="bell" label={tr('Thông báo')} badge={unread} onPress={() => nav.navigate('Notifications')} />

@@ -6,7 +6,7 @@ import { useAuth } from '../store/auth';
 import { useData } from '../store/data';
 import { useSession } from '../store/session';
 import { fmtClock, fmtDuration, timerInfo } from '../offline/sessionLogic';
-import { colors } from '../theme';
+import { colors, tints } from '../theme';
 import { REASONS, type DistractionReason, type FocusSession, type Pomodoro } from '../types';
 import type { TabParams } from '../navigation/types';
 import { Button, Card, Chip, Chips, Field, H1, Muted, Row, Screen, s } from '../components/ui';
@@ -24,6 +24,7 @@ const LEVELS: { id: Level; name: string; line: string; icon: IconName }[] = [
   { id: 'shield', name: 'Focus Shield', line: tr('Nhắc khi rời app'), icon: 'shield' },
   { id: 'strict', name: tr('Nghiêm ngặt'), line: tr('Ghim app, khó thoát'), icon: 'lock' },
 ];
+const LEVEL_TINT = { off: tints.sky, shield: tints.mint, strict: tints.lilac };
 const RULES: { text: string; levels: Level[] }[] = [
   { text: tr('Màn hình tối giản, ghi lại mỗi lần bạn rời app'), levels: ['shield', 'strict'] },
   { text: tr('Máy tính có tiện ích FOCUSLY sẽ chặn trang gây xao nhãng'), levels: ['shield', 'strict'] },
@@ -154,14 +155,13 @@ function Setup() {
                   gap: 6,
                   padding: 12,
                   borderRadius: 10,
-                  borderWidth: 1,
-                  borderColor: on ? colors.text : colors.borderStrong,
-                  borderBottomWidth: on ? 4 : 1,
-                  borderBottomColor: on ? colors.marker : colors.borderStrong,
-                  backgroundColor: colors.surface,
+                  borderColor: on ? LEVEL_TINT[l.id].ink : LEVEL_TINT[l.id].border,
+                  borderWidth: on ? 2 : 1,
+                  backgroundColor: LEVEL_TINT[l.id].bg,
+                  opacity: on ? 1 : 0.85,
                 }}
               >
-                <Icon name={l.icon} size={18} color={on ? colors.text : colors.muted} />
+                <Icon name={l.icon} size={20} color={LEVEL_TINT[l.id].ink} />
                 <Text style={{ fontWeight: '800', color: colors.text, fontSize: 14 }}>{l.name}</Text>
                 <Text style={{ color: colors.text2, fontSize: 12, lineHeight: 16 }}>{l.line}</Text>
               </Pressable>
@@ -169,7 +169,7 @@ function Setup() {
           })}
         </View>
         {level !== 'off' && (
-          <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 10, backgroundColor: colors.surface, padding: 12, gap: 7 }}>
+          <View style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 10, backgroundColor: colors.card, padding: 12, gap: 7 }}>
             {RULES.map((r) => {
               const has = r.levels.includes(level);
               return (
