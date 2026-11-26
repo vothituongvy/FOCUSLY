@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { tr } from '@/lib/i18n';
 
 export function Modal({
@@ -56,7 +56,10 @@ export function Spinner() {
 }
 
 export function Avatar({ name, url, size }: { name: string; url?: string | null; size?: 'lg' }) {
-  if (url) return <img className={`avatar ${size ?? ''}`} src={url} alt={name} />;
+  // Ảnh lỗi (link hết hạn, file đã mất trên máy chủ…) thì quay về chữ cái đầu thay vì hiện ô vàng trống
+  const [broken, setBroken] = useState(false);
+  useEffect(() => setBroken(false), [url]);
+  if (url && !broken) return <img className={`avatar ${size ?? ''}`} src={url} alt={name} onError={() => setBroken(true)} />;
   const initials = name
     .split(' ')
     .filter(Boolean)
