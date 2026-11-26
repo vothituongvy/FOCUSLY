@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL, PLATFORM } from '../config';
+import { LANG, tr } from '../i18n';
 
 const ACCESS = 'focusly.access';
 const REFRESH = 'focusly.refresh';
@@ -69,7 +70,7 @@ type Opts = { method?: string; body?: unknown; auth?: boolean; timeoutMs?: numbe
 export async function api<T = unknown>(path: string, opts: Opts = {}, retry = true): Promise<T> {
   const { method = 'GET', body, auth = true, timeoutMs = 15000 } = opts;
   const isForm = body instanceof FormData;
-  const headers: Record<string, string> = { 'X-Client-Platform': PLATFORM };
+  const headers: Record<string, string> = { 'X-Client-Platform': PLATFORM, 'X-Lang': LANG };
   if (body !== undefined && !isForm) headers['Content-Type'] = 'application/json';
   if (auth && accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
@@ -97,7 +98,7 @@ export async function api<T = unknown>(path: string, opts: Opts = {}, retry = tr
   }
   const text = await res.text();
   const data = text ? JSON.parse(text) : null;
-  if (!res.ok) throw new ApiError(res.status, data?.error?.message ?? `Lỗi ${res.status}`, data?.error?.code, data);
+  if (!res.ok) throw new ApiError(res.status, data?.error?.message ?? tr('Lỗi {0}', res.status), data?.error?.code, data);
   return data as T;
 }
 
@@ -106,6 +107,6 @@ export const isNetworkError = (e: unknown) => !(e instanceof ApiError);
 
 export function errorMessage(e: unknown): string {
   if (e instanceof ApiError) return e.message;
-  if (e instanceof Error) return e.name === 'AbortError' || e.message.includes('Network') ? 'Không kết nối được máy chủ' : e.message;
-  return 'Đã có lỗi xảy ra';
+  if (e instanceof Error) return e.name === 'AbortError' || e.message.includes('Network') ? tr('Không kết nối được máy chủ') : e.message;
+  return tr('Đã có lỗi xảy ra');
 }

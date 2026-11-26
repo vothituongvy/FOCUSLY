@@ -8,6 +8,7 @@ import { useData } from '../store/data';
 import { colors } from '../theme';
 import { REASON_LABEL, REASONS, type DistractionReason, type DistractionStats } from '../types';
 import { Button, Card, Chip, Chips, Empty, Field, H1, H3, Muted, ProgressBar, Row, SyncBar, s } from '../components/ui';
+import { LOCALE, tr } from '../i18n';
 
 const ICON: Record<string, string> = { ...Object.fromEntries(REASONS.map((r) => [r.value, r.icon])), left_app: '' };
 
@@ -53,7 +54,7 @@ export function JournalScreen() {
         }
       >
         <Row style={{ justifyContent: 'space-between' }}>
-          <H1>Nhật ký phân tâm</H1>
+          <H1>{tr('Nhật ký phân tâm')}</H1>
           <Button title="+ Ghi" small onPress={() => setAdding(true)} />
         </Row>
 
@@ -61,9 +62,9 @@ export function JournalScreen() {
           <>
             <Row>
               {[
-                ['Ghi nhận', String(stats.manualCount)],
-                ['Rời app', String(stats.autoCount)],
-                ['Mỗi giờ', stats.perFocusHour != null ? String(stats.perFocusHour) : '—'],
+                [tr('Ghi nhận'), String(stats.manualCount)],
+                [tr('Rời app'), String(stats.autoCount)],
+                [tr('Mỗi giờ'), stats.perFocusHour != null ? String(stats.perFocusHour) : '—'],
               ].map(([l, v]) => (
                 <Card key={l} style={{ flex: 1, gap: 2, padding: 12 }}>
                   <Muted>{l}</Muted>
@@ -73,7 +74,7 @@ export function JournalScreen() {
             </Row>
             {stats.insights.length > 0 && (
               <Card style={{ backgroundColor: colors.markerSoft, borderColor: '#f0d77a' }}>
-                <H3>Gợi ý</H3>
+                <H3>{tr('Gợi ý')}</H3>
                 {stats.insights.map((i) => (
                   <Text key={i} style={{ color: colors.text }}>
                     • {i}
@@ -82,8 +83,8 @@ export function JournalScreen() {
               </Card>
             )}
             <Card>
-              <H3>Nguyên nhân (30 ngày)</H3>
-              {stats.byReason.length === 0 && <Empty text="Chưa có dữ liệu." />}
+              <H3>{tr('Nguyên nhân (30 ngày)')}</H3>
+              {stats.byReason.length === 0 && <Empty text={tr('Chưa có dữ liệu.')} />}
               {stats.byReason.map((r) => (
                 <View key={r.reason} style={{ gap: 4 }}>
                   <Row style={{ justifyContent: 'space-between' }}>
@@ -100,17 +101,17 @@ export function JournalScreen() {
         )}
 
         <Card>
-          <H3>Lịch sử</H3>
-          {distractions.length === 0 && <Empty text="Chưa có ghi nhận nào " />}
+          <H3>{tr('Lịch sử')}</H3>
+          {distractions.length === 0 && <Empty text={tr('Chưa có ghi nhận nào ')} />}
           {distractions.slice(0, 50).map((d) => {
             const subj = subjects.find((x) => x.id === d.subject);
             return (
               <Pressable
                 key={d.id}
                 onLongPress={() =>
-                  Alert.alert('Xoá ghi nhận?', REASON_LABEL[d.reason], [
-                    { text: 'Huỷ', style: 'cancel' },
-                    { text: 'Xoá', style: 'destructive', onPress: () => void remove('distractions', d.id) },
+                  Alert.alert(tr('Xoá ghi nhận?'), REASON_LABEL[d.reason], [
+                    { text: tr('Huỷ'), style: 'cancel' },
+                    { text: tr('Xoá'), style: 'destructive', onPress: () => void remove('distractions', d.id) },
                   ])
                 }
               >
@@ -118,12 +119,12 @@ export function JournalScreen() {
                   <View style={{ width: 4, alignSelf: 'stretch', borderRadius: 2, backgroundColor: d.source === 'auto' ? colors.borderStrong : colors.danger }} />
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontWeight: '600', color: colors.text }}>
-                      {REASON_LABEL[d.reason]} {d.source === 'auto' ? '(tự động)' : ''}
+                      {REASON_LABEL[d.reason]} {d.source === 'auto' ? tr('(tự động)') : ''}
                     </Text>
                     <Muted>
-                      {new Date(d.occurredAt).toLocaleString('vi-VN')}
+                      {new Date(d.occurredAt).toLocaleString(LOCALE)}
                       {subj ? ` · ${subj.name}` : ''}
-                      {d.minuteIntoSession != null ? ` · phút ${Math.round(d.minuteIntoSession)}` : ''}
+                      {d.minuteIntoSession != null ? tr(' · phút {0}', Math.round(d.minuteIntoSession)) : ''}
                       {d.note ? ` · ${d.note}` : ''}
                     </Muted>
                   </View>
@@ -147,22 +148,22 @@ function AddDistraction({ visible, onClose }: { visible: boolean; onClose: () =>
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,.45)' }} onPress={onClose} />
       <View style={{ backgroundColor: colors.surface, padding: 20, gap: 12, borderTopLeftRadius: 20, borderTopRightRadius: 20 }}>
-        <Text style={[s.h3, { fontSize: 18 }]}>Ghi nhận phân tâm</Text>
+        <Text style={[s.h3, { fontSize: 18 }]}>{tr('Ghi nhận phân tâm')}</Text>
         <Chips>
           {REASONS.map((r) => (
             <Chip key={r.value} label={`${r.icon} ${r.label}`} active={reason === r.value} onPress={() => setReason(r.value)} />
           ))}
         </Chips>
-        <Text style={s.label}>Môn học</Text>
+        <Text style={s.label}>{tr('Môn học')}</Text>
         <Chips>
-          <Chip label="Không" active={!subject} onPress={() => setSubject(null)} />
+          <Chip label={tr('Không')} active={!subject} onPress={() => setSubject(null)} />
           {subjects.map((x) => (
             <Chip key={x.id} label={x.name} active={subject === x.id} onPress={() => setSubject(x.id)} />
           ))}
         </Chips>
-        <Field label="Ghi chú" value={note} onChangeText={setNote} />
+        <Field label={tr('Ghi chú')} value={note} onChangeText={setNote} />
         <Button
-          title="Lưu"
+          title={tr('Lưu')}
           disabled={!reason}
           onPress={async () => {
             await create('distractions', { reason, subject, note, device: 'android', occurredAt: new Date().toISOString() });

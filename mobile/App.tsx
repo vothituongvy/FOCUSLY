@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { RootNavigator } from './src/navigation/RootNavigator';
@@ -9,6 +9,7 @@ import { connectSocket, disconnectSocket } from './src/socket';
 import { registerPush } from './src/push';
 import { Alert } from 'react-native';
 import type { FocusSession, User } from './src/types';
+import { onLangChange } from './src/i18n';
 
 /** Khởi động đồng bộ khi đã đăng nhập: SQLite -> push/pull -> realtime socket */
 function useSyncEngine() {
@@ -70,10 +71,13 @@ export default function App() {
     void bootstrap();
   }, [bootstrap]);
   useSyncEngine();
+  // Đổi ngôn ngữ: dựng lại toàn bộ màn hình để chữ đổi ngay
+  const [langVersion, setLangVersion] = useState(0);
+  useEffect(() => onLangChange(() => setLangVersion((v) => v + 1)), []);
 
   return (
     <SafeAreaProvider>
-      <RootNavigator />
+      <RootNavigator key={langVersion} />
     </SafeAreaProvider>
   );
 }

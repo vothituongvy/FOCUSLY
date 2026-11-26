@@ -5,6 +5,7 @@ import { GOOGLE_WEB_CLIENT_ID } from '../config';
 import { kvGet, kvSet, wipeAll, initDb } from '../offline/db';
 import { disconnectSocket } from '../socket';
 import type { User } from '../types';
+import { tr } from '../i18n';
 
 interface AuthRes {
   user: User;
@@ -66,11 +67,11 @@ export const useAuth = create<AuthState>((set) => {
     },
 
     googleLogin: async () => {
-      if (!GOOGLE_WEB_CLIENT_ID) throw new Error('Chưa cấu hình GOOGLE_WEB_CLIENT_ID trong src/config.ts');
+      if (!GOOGLE_WEB_CLIENT_ID) throw new Error(tr('Chưa cấu hình GOOGLE_WEB_CLIENT_ID trong src/config.ts'));
       await GoogleSignin.hasPlayServices();
       const res = (await GoogleSignin.signIn()) as unknown as { idToken?: string; data?: { idToken?: string } };
       const idToken = res.data?.idToken ?? res.idToken;
-      if (!idToken) throw new Error('Không lấy được Google ID token');
+      if (!idToken) throw new Error(tr('Không lấy được Google ID token'));
       await finish(await api<AuthRes>('/auth/google', { method: 'POST', body: { idToken }, auth: false }));
     },
 

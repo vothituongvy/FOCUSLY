@@ -9,6 +9,7 @@ import { PRIORITY_LABEL, type Priority, type Recurrence, type Task } from '../ty
 import type { AppStackParams } from '../navigation/types';
 import { Button, Card, Chip, Chips, Empty, Field, IconButton, Muted, Row, Screen, SyncBar, s } from '../components/ui';
 import { AppHeader } from '../components/AppHeader';
+import { LOCALE, tr } from '../i18n';
 
 const PRIORITY_COLOR: Record<Priority, string> = { low: '#3f7a45', medium: '#4a48c4', high: '#b45309', urgent: '#b91c1c' };
 
@@ -52,14 +53,14 @@ export function PlanScreen() {
           </Pressable>
           <View style={{ flex: 1 }}>
             <Text style={{ fontWeight: '600', color: done ? colors.muted : colors.text, textDecorationLine: done ? 'line-through' : 'none' }} numberOfLines={1}>
-              {t.title}{t.recurrence?.freq && t.recurrence.freq !== 'none' ? ' (lặp lại)' : ''}
+              {t.title}{t.recurrence?.freq && t.recurrence.freq !== 'none' ? tr(' (lặp lại)') : ''}
             </Text>
             <Muted>
               {subj ? `${subj.icon} ${subj.name}${course ? ` › ${course.name}` : ''} · ` : ''}
               {t.estimatedMinutes}p
-              {t.deadline ? ` · ${new Date(t.deadline).toLocaleDateString('vi-VN')}` : ''}
+              {t.deadline ? ` · ${new Date(t.deadline).toLocaleDateString(LOCALE)}` : ''}
             </Muted>
-            {overdue && <Text style={{ color: colors.danger, fontSize: 12 }}>Quá hạn</Text>}
+            {overdue && <Text style={{ color: colors.danger, fontSize: 12 }}>{tr('Quá hạn')}</Text>}
           </View>
           <Text style={{ fontSize: 11, fontWeight: '700', color: PRIORITY_COLOR[t.priority] }}>{PRIORITY_LABEL[t.priority]}</Text>
         </Card>
@@ -69,37 +70,37 @@ export function PlanScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
-      <AppHeader title="Kế hoạch" subtitle={`${list.length} nhiệm vụ`} right={<IconButton name="plus" label="Thêm nhiệm vụ" onPress={() => nav.navigate('TaskEdit', { subjectId })} />} />
+      <AppHeader title={tr('Kế hoạch')} subtitle={tr('{0} nhiệm vụ', list.length)} right={<IconButton name="plus" label={tr('Thêm nhiệm vụ')} onPress={() => nav.navigate('TaskEdit', { subjectId })} />} />
       <SyncBar />
       <View style={{ paddingHorizontal: 16, paddingBottom: 12, gap: 10 }}>
         <Chips>
-          <Chip label="Tất cả" active={!subjectId} onPress={() => setSubjectId(null)} />
+          <Chip label={tr('Tất cả')} active={!subjectId} onPress={() => setSubjectId(null)} />
           {subjects.map((sub) => (
             <Pressable key={sub.id} onLongPress={() => nav.navigate('SubjectEdit', { subjectId: sub.id })}>
               <Chip label={`${sub.icon} ${sub.name}`} active={subjectId === sub.id} onPress={() => setSubjectId(sub.id)} />
             </Pressable>
           ))}
-          <Chip label="＋ Môn học" onPress={() => nav.navigate('SubjectEdit')} />
+          <Chip label={tr('＋ Môn học')} onPress={() => nav.navigate('SubjectEdit')} />
         </Chips>
         <Chips>
           {(
             [
-              ['open', 'Chưa xong'],
-              ['done', 'Hoàn thành'],
-              ['all', 'Tất cả'],
+              ['open', tr('Chưa xong')],
+              ['done', tr('Hoàn thành')],
+              ['all', tr('Tất cả')],
             ] as const
           ).map(([k, l]) => (
             <Chip key={k} label={l} active={filter === k} onPress={() => setFilter(k)} />
           ))}
         </Chips>
-        <Muted style={{ fontSize: 11 }}>Nhấn giữ một môn học để sửa.</Muted>
+        <Muted style={{ fontSize: 11 }}>{tr('Nhấn giữ một môn học để sửa.')}</Muted>
       </View>
       <FlatList
         data={list}
         keyExtractor={(t) => t.id}
         renderItem={renderTask}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40, gap: 8 }}
-        ListEmptyComponent={<Empty text="Không có nhiệm vụ nào." />}
+        ListEmptyComponent={<Empty text={tr('Không có nhiệm vụ nào.')} />}
       />
     </SafeAreaView>
   );
@@ -129,7 +130,7 @@ export function TaskEditScreen({ route, navigation }: NativeStackScreenProps<App
   const [error, setError] = useState('');
 
   const save = async () => {
-    if (!title.trim()) return setError('Nhập tên nhiệm vụ');
+    if (!title.trim()) return setError(tr('Nhập tên nhiệm vụ'));
     const data = {
       title: title.trim(),
       subject,
@@ -152,10 +153,10 @@ export function TaskEditScreen({ route, navigation }: NativeStackScreenProps<App
 
   return (
     <Screen>
-      <Field label="Nhiệm vụ" value={title} onChangeText={setTitle} placeholder="VD: Tìm hiểu useEffect" />
-      <Text style={s.label}>Môn học</Text>
+      <Field label={tr('Nhiệm vụ')} value={title} onChangeText={setTitle} placeholder={tr('VD: Ôn thì hiện tại hoàn thành')} />
+      <Text style={s.label}>{tr('Môn học')}</Text>
       <Chips>
-        <Chip label="Không" active={!subject} onPress={() => setSubject(null)} />
+        <Chip label={tr('Không')} active={!subject} onPress={() => setSubject(null)} />
         {subjects.map((x) => (
           <Chip
             key={x.id}
@@ -170,7 +171,7 @@ export function TaskEditScreen({ route, navigation }: NativeStackScreenProps<App
       </Chips>
       {subject && courses.some((c) => c.subject === subject) && (
         <>
-          <Text style={s.label}>Chủ đề</Text>
+          <Text style={s.label}>{tr('Chủ đề')}</Text>
           <Chips>
             {courses
               .filter((c) => c.subject === subject)
@@ -180,45 +181,45 @@ export function TaskEditScreen({ route, navigation }: NativeStackScreenProps<App
           </Chips>
         </>
       )}
-      <Text style={s.label}>Ưu tiên</Text>
+      <Text style={s.label}>{tr('Ưu tiên')}</Text>
       <Chips>
         {(Object.keys(PRIORITY_LABEL) as Priority[]).map((p) => (
           <Chip key={p} label={PRIORITY_LABEL[p]} active={priority === p} onPress={() => setPriority(p)} />
         ))}
       </Chips>
-      <Field label="Thời lượng dự kiến (phút)" value={minutes} onChangeText={setMinutes} keyboardType="number-pad" />
-      <Field label="Ngày học (YYYY-MM-DD)" value={scheduled} onChangeText={setScheduled} />
+      <Field label={tr('Thời lượng dự kiến (phút)')} value={minutes} onChangeText={setMinutes} keyboardType="number-pad" />
+      <Field label={tr('Ngày học (YYYY-MM-DD)')} value={scheduled} onChangeText={setScheduled} />
       <Chips>
-        <Chip label="Hôm nay" active={scheduled === isoDay(new Date())} onPress={() => setScheduled(isoDay(new Date()))} />
-        <Chip label="Ngày mai" active={scheduled === isoDay(tomorrow)} onPress={() => setScheduled(isoDay(tomorrow))} />
+        <Chip label={tr('Hôm nay')} active={scheduled === isoDay(new Date())} onPress={() => setScheduled(isoDay(new Date()))} />
+        <Chip label={tr('Ngày mai')} active={scheduled === isoDay(tomorrow)} onPress={() => setScheduled(isoDay(tomorrow))} />
       </Chips>
-      <Field label="Deadline (YYYY-MM-DD)" value={deadline} onChangeText={setDeadline} placeholder="Để trống nếu không có" />
-      <Text style={s.label}>Lặp lại</Text>
+      <Field label="Deadline (YYYY-MM-DD)" value={deadline} onChangeText={setDeadline} placeholder={tr('Để trống nếu không có')} />
+      <Text style={s.label}>{tr('Lặp lại')}</Text>
       <Chips>
         {(
           [
-            ['none', 'Không'],
-            ['daily', 'Hằng ngày'],
-            ['weekly', 'Hằng tuần'],
-            ['monthly', 'Hằng tháng'],
+            ['none', tr('Không')],
+            ['daily', tr('Hằng ngày')],
+            ['weekly', tr('Hằng tuần')],
+            ['monthly', tr('Hằng tháng')],
           ] as const
         ).map(([k, l]) => (
           <Chip key={k} label={l} active={freq === k} onPress={() => setFreq(k)} />
         ))}
       </Chips>
-      <Field label="Kết quả mong muốn" value={outcome} onChangeText={setOutcome} />
-      <Field label="Ghi chú" value={desc} onChangeText={setDesc} multiline />
+      <Field label={tr('Kết quả mong muốn')} value={outcome} onChangeText={setOutcome} />
+      <Field label={tr('Ghi chú')} value={desc} onChangeText={setDesc} multiline />
       {!!error && <Text style={s.error}>{error}</Text>}
-      <Button title={task ? 'Lưu thay đổi' : 'Tạo nhiệm vụ'} onPress={save} />
+      <Button title={task ? tr('Lưu thay đổi') : tr('Tạo nhiệm vụ')} onPress={save} />
       {task && (
         <Button
-          title="Xoá nhiệm vụ"
+          title={tr('Xoá nhiệm vụ')}
           variant="ghost"
           onPress={() =>
-            Alert.alert('Xoá nhiệm vụ?', task.title, [
-              { text: 'Huỷ', style: 'cancel' },
+            Alert.alert(tr('Xoá nhiệm vụ?'), task.title, [
+              { text: tr('Huỷ'), style: 'cancel' },
               {
-                text: 'Xoá',
+                text: tr('Xoá'),
                 style: 'destructive',
                 onPress: async () => {
                   await remove('tasks', task.id);
@@ -253,14 +254,14 @@ export function SubjectEditScreen({ route, navigation }: NativeStackScreenProps<
 
   return (
     <Screen>
-      <Field label="Tên môn học" value={name} onChangeText={setName} placeholder="VD: React Native" />
-      <Text style={s.label}>Biểu tượng</Text>
+      <Field label={tr('Tên môn học')} value={name} onChangeText={setName} placeholder={tr('VD: Tiếng Anh')} />
+      <Text style={s.label}>{tr('Biểu tượng')}</Text>
       <Chips>
         {ICONS.map((i) => (
           <Chip key={i} label={i} active={icon === i} onPress={() => setIcon(i)} />
         ))}
       </Chips>
-      <Text style={s.label}>Màu</Text>
+      <Text style={s.label}>{tr('Màu')}</Text>
       <Row style={{ flexWrap: 'wrap' }}>
         {COLORS.map((c) => (
           <Pressable
@@ -270,16 +271,16 @@ export function SubjectEditScreen({ route, navigation }: NativeStackScreenProps<
           />
         ))}
       </Row>
-      <Button title="Lưu" onPress={save} />
+      <Button title={tr('Lưu')} onPress={save} />
       {subject && (
         <Button
-          title="Xoá môn học"
+          title={tr('Xoá môn học')}
           variant="ghost"
           onPress={() =>
-            Alert.alert('Xoá môn học?', 'Nhiệm vụ thuộc môn sẽ được giữ lại.', [
-              { text: 'Huỷ', style: 'cancel' },
+            Alert.alert(tr('Xoá môn học?'), tr('Nhiệm vụ thuộc môn sẽ được giữ lại.'), [
+              { text: tr('Huỷ'), style: 'cancel' },
               {
-                text: 'Xoá',
+                text: tr('Xoá'),
                 style: 'destructive',
                 onPress: async () => {
                   await remove('subjects', subject.id);

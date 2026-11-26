@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, radius } from '../theme';
 import { useData } from '../store/data';
 import { Icon, type IconName } from './Icon';
+import { tr } from '../i18n';
 
 /**
  * Khung màn hình: header cố định phía trên (nếu có) + nội dung cuộn.
@@ -44,7 +45,7 @@ export function SyncBar() {
     <View style={[s.syncBar, { backgroundColor: online ? colors.markerSoft : colors.dangerSoft }]}>
       <Icon name="sync" size={13} color={online ? colors.text : colors.danger} />
       <Text style={{ fontSize: 12, color: online ? colors.text : colors.danger, fontWeight: '600' }}>
-        {online ? (syncing ? 'Đang đồng bộ…' : `${pending} thay đổi chờ đồng bộ`) : `Đang offline, ${pending} thay đổi sẽ gửi khi có mạng`}
+        {online ? (syncing ? tr('Đang đồng bộ…') : tr('{0} thay đổi chờ đồng bộ', pending)) : tr('Đang offline, {0} thay đổi sẽ gửi khi có mạng', pending)}
       </Text>
     </View>
   );

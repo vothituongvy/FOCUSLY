@@ -14,6 +14,23 @@ import { QuickReset } from '../components/QuickReset';
 import { PLATFORM } from '../config';
 import { focusLockAvailable, isScreenLocked, lockScreen } from '../focusLock';
 import { AppHeader } from '../components/AppHeader';
+import { Icon, type IconName } from '../components/Icon';
+import { TranslateSheet } from '../components/TranslateSheet';
+import { tr } from '../i18n';
+
+type Level = 'off' | 'shield' | 'strict';
+const LEVELS: { id: Level; name: string; line: string; icon: IconName }[] = [
+  { id: 'off', name: tr('Không chặn'), line: tr('Học bình thường'), icon: 'play' },
+  { id: 'shield', name: 'Focus Shield', line: tr('Nhắc khi rời app'), icon: 'shield' },
+  { id: 'strict', name: tr('Nghiêm ngặt'), line: tr('Ghim app, khó thoát'), icon: 'lock' },
+];
+const RULES: { text: string; levels: Level[] }[] = [
+  { text: tr('Màn hình tối giản, ghi lại mỗi lần bạn rời app'), levels: ['shield', 'strict'] },
+  { text: tr('Máy tính có tiện ích FOCUSLY sẽ chặn trang gây xao nhãng'), levels: ['shield', 'strict'] },
+  { text: tr('Ghim FOCUSLY lên màn hình, không mở được app khác'), levels: ['strict'] },
+  { text: tr('Đồng hồ dừng khi bạn rời app, chỉ tính lúc bạn thật sự học'), levels: ['strict'] },
+  { text: tr('Muốn dừng sớm phải giữ nút 3 giây'), levels: ['strict'] },
+];
 
 export function FocusScreen() {
   const session = useSession((st) => st.session);
@@ -37,6 +54,7 @@ function Setup() {
   const [custom, setCustom] = useState(String(initialTask?.estimatedMinutes ?? 45));
   const [shield, setShield] = useState(user?.shield.autoEnableOnSession ?? true);
   const [strict, setStrict] = useState(user?.shield.strictByDefault ?? false);
+  const level: Level = strict ? 'strict' : shield ? 'shield' : 'off';
   const [goal, setGoal] = useState(initialTask ? initialTask.expectedOutcome || initialTask.title : '');
 
   useEffect(() => {
@@ -52,11 +70,11 @@ function Setup() {
   const openTasks = tasks.filter((t) => ['todo', 'in_progress'].includes(t.status) && (!subject || t.subject === subject));
 
   return (
-    <Screen header={<AppHeader title="Tập trung" subtitle="Chọn việc cần học rồi bắt đầu" />}>
+    <Screen header={<AppHeader title={tr('Tập trung')} subtitle={tr('Chọn việc cần học rồi bắt đầu')} />}>
       <Card>
-        <Text style={s.label}>1. Môn học</Text>
+        <Text style={s.label}>{tr('1. Môn học')}</Text>
         <Chips>
-          <Chip label="Không" active={!subject} onPress={() => setSubject(null)} />
+          <Chip label={tr('Không')} active={!subject} onPress={() => setSubject(null)} />
           {subjects.map((x) => (
             <Chip
               key={x.id}
@@ -69,7 +87,7 @@ function Setup() {
             />
           ))}
         </Chips>
-        <Text style={s.label}>2. Nhiệm vụ</Text>
+        <Text style={s.label}>{tr('2. Nhiệm vụ')}</Text>
         <Chips>
           {openTasks.slice(0, 12).map((t) => (
             <Chip
@@ -83,24 +101,24 @@ function Setup() {
               }}
             />
           ))}
-          {openTasks.length === 0 && <Muted>Không có nhiệm vụ mở.</Muted>}
+          {openTasks.length === 0 && <Muted>{tr('Không có nhiệm vụ mở.')}</Muted>}
         </Chips>
       </Card>
       <Card>
-        <Text style={s.label}>3. Thời gian tập trung</Text>
+        <Text style={s.label}>{tr('3. Thời gian tập trung')}</Text>
         <Chips>
           <Chip label="Pomodoro" active={mode === 'pomodoro'} onPress={() => setMode('pomodoro')} />
-          <Chip label="Tuỳ chỉnh" active={mode === 'custom'} onPress={() => setMode('custom')} />
-          <Chip label="∞ Tự do" active={mode === 'free'} onPress={() => setMode('free')} />
+          <Chip label={tr('Tuỳ chỉnh')} active={mode === 'custom'} onPress={() => setMode('custom')} />
+          <Chip label={tr('∞ Tự do')} active={mode === 'free'} onPress={() => setMode('free')} />
         </Chips>
         {mode === 'pomodoro' && (
           <Row style={{ flexWrap: 'wrap' }}>
             {(
               [
-                ['focusMinutes', 'Tập trung'],
-                ['breakMinutes', 'Nghỉ'],
-                ['longBreakMinutes', 'Nghỉ dài'],
-                ['cyclesBeforeLongBreak', 'Vòng'],
+                ['focusMinutes', tr('Tập trung')],
+                ['breakMinutes', tr('Nghỉ')],
+                ['longBreakMinutes', tr('Nghỉ dài')],
+                ['cyclesBeforeLongBreak', tr('Vòng')],
               ] as const
             ).map(([k, l]) => (
               <View key={k} style={{ width: '22%', flexGrow: 1 }}>
@@ -115,56 +133,68 @@ function Setup() {
             ))}
           </Row>
         )}
-        {mode === 'custom' && <Field label="Thời lượng (phút)" value={custom} onChangeText={setCustom} keyboardType="number-pad" />}
+        {mode === 'custom' && <Field label={tr('Thời lượng (phút)')} value={custom} onChangeText={setCustom} keyboardType="number-pad" />}
       </Card>
       <View style={{ gap: 8 }}>
-        <Text style={s.label}>4. Mức bảo vệ khỏi xao nhãng</Text>
-        {(
-          [
-            [false, 'Focus Shield', 'Màn hình tối giản, ghi lại khi bạn rời app. Vẫn thoát ra app khác được.'],
-            [true, 'Phiên nghiêm ngặt', `Ghim FOCUSLY lên màn hình${focusLockAvailable() ? '' : ' (cần build lại app)'}, không mở được app khác. Đồng hồ chỉ chạy khi bạn ở đây. Kết thúc sớm phải giữ nút 3 giây. Máy tính có extension cũng bị khoá tab.`],
-          ] as const
-        ).map(([value, title, desc]) => (
-          <Pressable
-            key={title}
-            onPress={() => {
-              setStrict(value);
-              setShield(true);
-            }}
-            accessibilityRole="radio"
-            accessibilityState={{ selected: strict === value }}
-            style={{
-              borderWidth: 1,
-              borderRadius: 12,
-              padding: 14,
-              gap: 4,
-              backgroundColor: strict === value ? colors.markerSoft : colors.surface,
-              borderColor: strict === value ? colors.text : colors.borderStrong,
-              borderLeftWidth: strict === value ? 4 : 1,
-              borderLeftColor: strict === value ? colors.marker : colors.borderStrong,
-            }}
-          >
-            <Text style={{ fontWeight: '800', color: colors.text }}>{title}</Text>
-            <Muted>{desc}</Muted>
-          </Pressable>
-        ))}
-        {!strict && (
-          <Row>
-            <Switch value={!shield} onValueChange={(v) => setShield(!v)} trackColor={{ true: colors.text }} />
-            <Muted>Không bật bảo vệ cho phiên này</Muted>
-          </Row>
+        <Text style={s.label}>{tr('4. Mức bảo vệ khỏi xao nhãng')}</Text>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {LEVELS.map((l) => {
+            const on = level === l.id;
+            return (
+              <Pressable
+                key={l.id}
+                onPress={() => {
+                  setShield(l.id !== 'off');
+                  setStrict(l.id === 'strict');
+                }}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: on }}
+                style={{
+                  flex: 1,
+                  gap: 6,
+                  padding: 12,
+                  borderRadius: 10,
+                  borderWidth: 1,
+                  borderColor: on ? colors.text : colors.borderStrong,
+                  borderBottomWidth: on ? 4 : 1,
+                  borderBottomColor: on ? colors.marker : colors.borderStrong,
+                  backgroundColor: colors.surface,
+                }}
+              >
+                <Icon name={l.icon} size={18} color={on ? colors.text : colors.muted} />
+                <Text style={{ fontWeight: '800', color: colors.text, fontSize: 14 }}>{l.name}</Text>
+                <Text style={{ color: colors.text2, fontSize: 12, lineHeight: 16 }}>{l.line}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        {level !== 'off' && (
+          <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 10, backgroundColor: colors.surface, padding: 12, gap: 7 }}>
+            {RULES.map((r) => {
+              const has = r.levels.includes(level);
+              return (
+                <View key={r.text} style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-start' }}>
+                  <Icon name={has ? 'check' : 'x'} size={15} color={has ? colors.success : colors.muted} />
+                  <Text style={{ flex: 1, fontSize: 13.5, lineHeight: 19, color: has ? colors.text : colors.muted, textDecorationLine: has ? 'none' : 'line-through' }}>{r.text}</Text>
+                </View>
+              );
+            })}
+            {level === 'strict' && !focusLockAvailable() && (
+              <Muted>{tr('Cần build lại app để ghim được màn hình. Đồng hồ vẫn dừng khi bạn rời app.')}</Muted>
+            )}
+          </View>
         )}
       </View>
-      <Field label="5. Mục tiêu của phiên học" value={goal} onChangeText={setGoal} placeholder="VD: Hiểu useEffect chạy khi nào" />
+      <Field label={tr('5. Mục tiêu của phiên học')} value={goal} onChangeText={setGoal} placeholder={tr('VD: Làm xong 20 câu trắc nghiệm chương 3')} />
       <Button
-        title="Bắt đầu phiên học"
+        title={tr('Bắt đầu phiên học')}
         icon="play"
         variant="marker"
         onPress={() =>
           start({
             subject,
             task: taskId,
-            goal: goal.trim() || 'Tập trung học',
+            goal: goal.trim() || tr('Tập trung học'),
             mode,
             plannedMinutes: mode === 'custom' ? Number(custom) || 25 : mode === 'pomodoro' ? pomo.focusMinutes * pomo.cyclesBeforeLongBreak : 0,
             pomodoro: pomo,
@@ -183,6 +213,7 @@ function Running({ session }: { session: FocusSession }) {
   const subjects = useData((st) => st.subjects);
   const [now, setNow] = useState(Date.now());
   const [showDistraction, setShowDistraction] = useState(false);
+  const [showTranslate, setShowTranslate] = useState(false);
   const [showEnd, setShowEnd] = useState(false);
   const [recover, setRecover] = useState<null | 'manual' | 'distraction' | 'app_leave'>(null);
   const autoKey = useRef('');
@@ -213,7 +244,7 @@ function Running({ session }: { session: FocusSession }) {
     if (autoKey.current === key) return;
     autoKey.current = key;
     if (session.status === 'active' && session.mode === 'pomodoro') void takeBreak();
-    else if (session.status === 'on_break') Alert.alert('Hết giờ nghỉ ', `Quay lại mục tiêu: ${session.goal}`, [{ text: 'Tiếp tục học', onPress: () => void resume() }, { text: 'Để sau' }]);
+    else if (session.status === 'on_break') Alert.alert(tr('Hết giờ nghỉ '), tr('Quay lại mục tiêu: {0}', session.goal), [{ text: tr('Tiếp tục học'), onPress: () => void resume() }, { text: tr('Để sau') }]);
     else if (session.status === 'active' && session.mode === 'custom') setShowEnd(true);
   }, [info.done, session.status, session.segments.length, session.mode, session.goal, takeBreak, resume]);
 
@@ -236,15 +267,15 @@ function Running({ session }: { session: FocusSession }) {
         if (secs >= (session.strict ? 2 : 10)) {
           void appLeave(new Date(left + offsetMs), new Date(Date.now() + offsetMs));
           if (session.strict) {
-            Alert.alert('Đồng hồ đã dừng', `Bạn đã rời FOCUSLY ${fmtDuration(secs)}. Thời gian đó không được tính.`, [
-              { text: 'Học tiếp', onPress: () => void resume() },
+            Alert.alert(tr('Đồng hồ đã dừng'), tr('Bạn đã rời FOCUSLY {0}. Thời gian đó không được tính.', fmtDuration(secs)), [
+              { text: tr('Học tiếp'), onPress: () => void resume() },
               { text: 'Quick Reset', onPress: () => setRecover('app_leave') },
             ]);
           } else {
-            Alert.alert('Bạn vừa rời ứng dụng', `Bạn đã rời ${fmtDuration(secs)}. Có phải bạn bị phân tâm?`, [
-              { text: 'Ghi nguyên nhân', onPress: () => setShowDistraction(true) },
+            Alert.alert(tr('Bạn vừa rời ứng dụng'), tr('Bạn đã rời {0}. Có phải bạn bị phân tâm?', fmtDuration(secs)), [
+              { text: tr('Ghi nguyên nhân'), onPress: () => setShowDistraction(true) },
               { text: 'Quick Reset', onPress: () => setRecover('app_leave') },
-              { text: 'Không', style: 'cancel' },
+              { text: tr('Không'), style: 'cancel' },
             ]);
           }
         }
@@ -269,13 +300,13 @@ function Running({ session }: { session: FocusSession }) {
   // Chặn nút Back khi đang học
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      Alert.alert('Đang trong phiên học', 'Kết thúc phiên trước khi thoát nhé.');
+      Alert.alert(tr('Đang trong phiên học'), tr('Kết thúc phiên trước khi thoát nhé.'));
       return true;
     });
     return () => sub.remove();
   }, []);
 
-  const statusText = session.status === 'paused' ? 'Tạm dừng' : session.status === 'on_break' ? 'Nghỉ giải lao' : info.target ? 'còn lại' : 'đã tập trung';
+  const statusText = session.status === 'paused' ? tr('Tạm dừng') : session.status === 'on_break' ? tr('Nghỉ giải lao') : info.target ? tr('còn lại') : tr('đã tập trung');
   const barColor = session.status === 'on_break' ? '#4cc38a' : session.status === 'paused' ? '#8a93a8' : colors.marker;
 
   return (
@@ -286,11 +317,11 @@ function Running({ session }: { session: FocusSession }) {
           {subj && <Text style={{ color: mutedC }}>{subj.icon} {subj.name}</Text>}
           <Text style={{ color: mutedC }}>· {info.label}</Text>
           {session.shieldEnabled && <Text style={{ color: mutedC }}>· Shield</Text>}
-          {session.device === 'web' && <Text style={{ color: mutedC }}>· bắt đầu từ Web</Text>}
+          {session.device === 'web' && <Text style={{ color: mutedC }}>{tr('· bắt đầu từ Web')}</Text>}
         </Row>
         <Text style={{ color: fg, fontSize: 18, fontWeight: '700', textAlign: 'center' }}>{session.goal}</Text>
         {session.autoPausedAt && session.status === 'paused' && (
-          <Text style={{ color: '#ffc7bc', textAlign: 'center' }}>Phiên đã tự tạm dừng do ứng dụng bị đóng/mất kết nối.</Text>
+          <Text style={{ color: '#ffc7bc', textAlign: 'center' }}>{tr('Phiên đã tự tạm dừng do ứng dụng bị đóng/mất kết nối.')}</Text>
         )}
         <Text style={{ color: fg, fontSize: 76, fontWeight: '800', fontVariant: ['tabular-nums'] }}>{fmtClock(info.display)}</Text>
         <Text style={{ color: mutedC, marginTop: -14 }}>{statusText}</Text>
@@ -299,9 +330,9 @@ function Running({ session }: { session: FocusSession }) {
         </View>
         <Row style={{ gap: 22 }}>
           {[
-            ['Tập trung', fmtClock(info.total)],
-            ['Phân tâm', String(session.distractionCount)],
-            ['Rời app', String(session.appLeaveCount)],
+            [tr('Tập trung'), fmtClock(info.total)],
+            [tr('Phân tâm'), String(session.distractionCount)],
+            [tr('Rời app'), String(session.appLeaveCount)],
           ].map(([l, v]) => (
             <View key={l} style={{ alignItems: 'center' }}>
               <Text style={{ color: mutedC, fontSize: 12 }}>{l}</Text>
@@ -310,30 +341,34 @@ function Running({ session }: { session: FocusSession }) {
           ))}
         </Row>
         <Row style={{ flexWrap: 'wrap', justifyContent: 'center' }}>
-          {session.status === 'active' && <Button title="Tạm dừng" icon="pause" variant="secondary" onPress={() => void pause()} />}
-          {session.status !== 'active' && <Button title={session.status === 'on_break' ? 'Kết thúc nghỉ' : 'Tiếp tục'} icon="play" variant="marker" onPress={resume} />}
-          {session.status === 'active' && session.mode !== 'custom' && <Button title="Nghỉ" icon="coffee" variant="secondary" onPress={takeBreak} />}
+          {session.status === 'active' && <Button title={tr('Tạm dừng')} icon="pause" variant="secondary" onPress={() => void pause()} />}
+          {session.status !== 'active' && <Button title={session.status === 'on_break' ? tr('Kết thúc nghỉ') : tr('Tiếp tục')} icon="play" variant="marker" onPress={resume} />}
+          {session.status === 'active' && session.mode !== 'custom' && <Button title={tr('Nghỉ')} icon="coffee" variant="secondary" onPress={takeBreak} />}
           {session.strict && (session.mode !== 'custom' || info.total < session.plannedMinutes * 60) ? (
             <HoldToEnd onDone={() => setShowEnd(true)} />
           ) : (
-            <Button title="Kết thúc" icon="stop" variant="danger" onPress={() => setShowEnd(true)} />
+            <Button title={tr('Kết thúc')} icon="stop" variant="danger" onPress={() => setShowEnd(true)} />
           )}
         </Row>
         {session.strict && (
           <Text style={{ color: mutedC, fontSize: 12, textAlign: 'center', paddingHorizontal: 24 }}>
             {pinned
-              ? 'Phiên nghiêm ngặt: FOCUSLY đang được ghim. Rời app thì đồng hồ dừng.'
-              : 'Phiên nghiêm ngặt: rời app thì đồng hồ dừng. Bật "Ghim ứng dụng" trong Cài đặt Android để khoá màn hình.'}
+              ? tr('Phiên nghiêm ngặt: FOCUSLY đang được ghim. Rời app thì đồng hồ dừng.')
+              : tr('Phiên nghiêm ngặt: rời app thì đồng hồ dừng. Bật "Ghim ứng dụng" trong Cài đặt Android để khoá màn hình.')}
           </Text>
         )}
-        <Row>
+        <Row style={{ flexWrap: 'wrap', justifyContent: 'center' }}>
           <Pressable onPress={() => setShowDistraction(true)}>
-            <Text style={{ color: mutedC, fontWeight: '600', padding: 10 }}>Tôi đang bị phân tâm</Text>
+            <Text style={{ color: mutedC, fontWeight: '600', padding: 10 }}>{tr('Tôi đang bị phân tâm')}</Text>
           </Pressable>
           <Pressable onPress={() => setRecover('manual')}>
             <Text style={{ color: mutedC, fontWeight: '600', padding: 10 }}>Quick Reset</Text>
           </Pressable>
+          <Pressable onPress={() => setShowTranslate(true)}>
+            <Text style={{ color: mutedC, fontWeight: '600', padding: 10 }}>{tr('Dịch Anh ⇄ Việt')}</Text>
+          </Pressable>
         </Row>
+        <TranslateSheet visible={showTranslate} onClose={() => setShowTranslate(false)} />
       </ScrollView>
       <DistractionSheet
         visible={showDistraction}
@@ -387,13 +422,13 @@ function DistractionSheet({ visible, session, onClose, onSaved }: { visible: boo
     onClose();
   };
   return (
-    <Sheet visible={visible} onClose={close} title={saved ? 'Quay lại mục tiêu nhé ' : 'Điều gì làm bạn phân tâm?'}>
+    <Sheet visible={visible} onClose={close} title={saved ? tr('Quay lại mục tiêu nhé ') : tr('Điều gì làm bạn phân tâm?')}>
       {saved ? (
         <>
-          <Muted>Đã ghi vào Nhật ký phân tâm. Mục tiêu của bạn:</Muted>
+          <Muted>{tr('Đã ghi vào Nhật ký phân tâm. Mục tiêu của bạn:')}</Muted>
           <Text style={{ fontSize: 17, fontWeight: '700', textAlign: 'center', color: colors.text }}>“{session.goal}”</Text>
-          <Muted>Hít thở sâu 3 lần rồi tiếp tục.</Muted>
-          <Button title="Tiếp tục học" onPress={close} />
+          <Muted>{tr('Hít thở sâu 3 lần rồi tiếp tục.')}</Muted>
+          <Button title={tr('Tiếp tục học')} onPress={close} />
         </>
       ) : (
         <>
@@ -402,9 +437,9 @@ function DistractionSheet({ visible, session, onClose, onSaved }: { visible: boo
               <Chip key={r.value} label={`${r.icon} ${r.label}`} active={reason === r.value} onPress={() => setReason(r.value)} />
             ))}
           </Chips>
-          <Field label="Ghi chú" value={note} onChangeText={setNote} multiline />
+          <Field label={tr('Ghi chú')} value={note} onChangeText={setNote} multiline />
           <Button
-            title="Ghi nhận"
+            title={tr('Ghi nhận')}
             disabled={!reason}
             onPress={async () => {
               await create('distractions', { session: session.id, reason, note, device: session.device === 'ios' ? 'ios' : 'android', occurredAt: new Date().toISOString() });
@@ -430,42 +465,42 @@ function EndSheet({ visible, session, onClose }: { visible: boolean; session: Fo
   const focus = useMemo(() => timerInfo(session, Date.now()).total, [session, visible]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <Sheet visible={visible} onClose={onClose} title="Kết thúc phiên học">
-      <Muted>Bạn đã tập trung {fmtDuration(focus)}. Mục tiêu: “{session.goal}”</Muted>
-      <Text style={s.label}>Đạt mục tiêu chưa?</Text>
+    <Sheet visible={visible} onClose={onClose} title={tr('Kết thúc phiên học')}>
+      <Muted>{tr('Bạn đã tập trung {0}. Mục tiêu: “{1}”', fmtDuration(focus), session.goal)}</Muted>
+      <Text style={s.label}>{tr('Đạt mục tiêu chưa?')}</Text>
       <Chips>
-        <Chip label="Đã đạt" active={goalAchieved === true} onPress={() => setGoalAchieved(true)} />
-        <Chip label="Chưa đạt" active={goalAchieved === false} onPress={() => setGoalAchieved(false)} />
+        <Chip label={tr('Đã đạt')} active={goalAchieved === true} onPress={() => setGoalAchieved(true)} />
+        <Chip label={tr('Chưa đạt')} active={goalAchieved === false} onPress={() => setGoalAchieved(false)} />
       </Chips>
-      <Text style={s.label}>Tự đánh giá mức tập trung</Text>
+      <Text style={s.label}>{tr('Tự đánh giá mức tập trung')}</Text>
       <Chips>
         {[1, 2, 3, 4, 5].map((n) => (
           <Chip key={n} label={'★'.repeat(n)} active={rating === n} onPress={() => setRating(n)} />
         ))}
       </Chips>
-      <Field label="Ghi chú kết quả" value={note} onChangeText={setNote} multiline />
+      <Field label={tr('Ghi chú kết quả')} value={note} onChangeText={setNote} multiline />
       {!!session.task && (
         <Row>
           <Switch value={markTaskDone} onValueChange={setMarkTaskDone} trackColor={{ true: colors.primary }} />
-          <Text style={{ color: colors.text }}>Đánh dấu nhiệm vụ hoàn thành</Text>
+          <Text style={{ color: colors.text }}>{tr('Đánh dấu nhiệm vụ hoàn thành')}</Text>
         </Row>
       )}
       <Button
-        title="Lưu kết quả"
+        title={tr('Lưu kết quả')}
         onPress={async () => {
           onClose();
           await end({ goalAchieved, rating, note, markTaskDone });
         }}
       />
       <Button
-        title="Huỷ phiên"
+        title={tr('Huỷ phiên')}
         variant="ghost"
         onPress={async () => {
           onClose();
           await end({ abandon: true });
         }}
       />
-      <Button title="Học tiếp" variant="secondary" onPress={onClose} />
+      <Button title={tr('Học tiếp')} variant="secondary" onPress={onClose} />
     </Sheet>
   );
 }
@@ -474,17 +509,17 @@ function EndSheet({ visible, session, onClose }: { visible: boolean; session: Fo
 function Summary({ session }: { session: FocusSession }) {
   const clearEnded = useSession((st) => st.clearEnded);
   const rows: [string, string][] = [
-    ['Tập trung thực tế', fmtDuration(session.actualFocusSeconds)],
-    ['Dự kiến', session.plannedMinutes ? `${session.plannedMinutes} phút` : '—'],
-    ['Nghỉ', fmtDuration(session.breakSeconds)],
-    ['Tạm dừng', String(session.pauseCount)],
-    ['Phân tâm ghi nhận', String(session.distractionCount)],
-    ['Rời ứng dụng', String(session.appLeaveCount)],
+    [tr('Tập trung thực tế'), fmtDuration(session.actualFocusSeconds)],
+    [tr('Dự kiến'), session.plannedMinutes ? tr('{0} phút', session.plannedMinutes) : '—'],
+    [tr('Nghỉ'), fmtDuration(session.breakSeconds)],
+    [tr('Tạm dừng'), String(session.pauseCount)],
+    [tr('Phân tâm ghi nhận'), String(session.distractionCount)],
+    [tr('Rời ứng dụng'), String(session.appLeaveCount)],
   ];
   return (
     <Screen>
       <View style={{ alignItems: 'center', gap: 6 }}>
-        <H1>{session.status === 'abandoned' ? 'Đã huỷ phiên' : 'Tổng kết phiên học'}</H1>
+        <H1>{session.status === 'abandoned' ? tr('Đã huỷ phiên') : tr('Tổng kết phiên học')}</H1>
         <Muted>{session.goal}</Muted>
       </View>
       <Card>
@@ -496,13 +531,13 @@ function Summary({ session }: { session: FocusSession }) {
         ))}
         {session.summary.goalAchieved !== null && (
           <Text style={{ color: session.summary.goalAchieved ? colors.success : colors.warning, fontWeight: '700' }}>
-            {session.summary.goalAchieved ? 'Đã đạt mục tiêu' : 'Chưa đạt mục tiêu – lần sau sẽ tốt hơn'}
+            {session.summary.goalAchieved ? tr('Đã đạt mục tiêu') : tr('Chưa đạt mục tiêu – lần sau sẽ tốt hơn')}
           </Text>
         )}
         {!!session.summary.note && <Text style={{ color: colors.text }}>{session.summary.note}</Text>}
       </Card>
-      <Muted>Kết quả sẽ được đồng bộ lên server và hiển thị trên Web.</Muted>
-      <Button title="Bắt đầu phiên mới" icon="play" variant="marker" onPress={clearEnded} />
+      <Muted>{tr('Kết quả sẽ được đồng bộ lên server và hiển thị trên Web.')}</Muted>
+      <Button title={tr('Bắt đầu phiên mới')} icon="play" variant="marker" onPress={clearEnded} />
     </Screen>
   );
 }
@@ -520,7 +555,7 @@ function HoldToEnd({ onDone }: { onDone: () => void }) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Giữ 3 giây để kết thúc sớm"
+      accessibilityLabel={tr('Giữ 3 giây để kết thúc sớm')}
       onPressIn={() => {
         const t0 = Date.now();
         timer.current = setInterval(() => {
@@ -535,7 +570,7 @@ function HoldToEnd({ onDone }: { onDone: () => void }) {
       style={{ borderRadius: 12, borderWidth: 1.5, borderColor: colors.danger, overflow: 'hidden', minHeight: 48, justifyContent: 'center', paddingHorizontal: 18 }}
     >
       <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${progress * 100}%`, backgroundColor: 'rgba(184,64,47,0.3)' }} />
-      <Text style={{ color: colors.danger, fontWeight: '800', textAlign: 'center' }}>{progress > 0 ? 'Giữ tiếp…' : 'Giữ 3 giây để kết thúc'}</Text>
+      <Text style={{ color: colors.danger, fontWeight: '800', textAlign: 'center' }}>{progress > 0 ? tr('Giữ tiếp…') : tr('Giữ 3 giây để kết thúc')}</Text>
     </Pressable>
   );
 }

@@ -1,4 +1,5 @@
 import type { FocusSession, Segment } from '../types';
+import { tr } from '../i18n';
 
 /**
  * Logic phiên học chạy cục bộ (giống hệt server) để UI phản hồi tức thì và hoạt động khi offline.
@@ -84,10 +85,10 @@ export function timerInfo(s: FocusSession, nowMs: number) {
 
   let target = 0;
   let elapsed = total;
-  let label = 'Tập trung';
+  let label = tr('Tập trung');
   if (s.status === 'on_break') {
     elapsed = curSecs;
-    label = longBreak ? 'Nghỉ dài' : 'Nghỉ ngắn';
+    label = longBreak ? tr('Nghỉ dài') : tr('Nghỉ ngắn');
     if (s.mode === 'pomodoro') target = (longBreak ? p.longBreakMinutes : p.breakMinutes) * 60;
   } else if (s.mode === 'pomodoro') {
     target = p.focusMinutes * 60;
@@ -95,7 +96,7 @@ export function timerInfo(s: FocusSession, nowMs: number) {
     label = `Pomodoro ${cycles + 1}`;
   } else if (s.mode === 'custom') {
     target = s.plannedMinutes * 60;
-    label = 'Phiên tuỳ chỉnh';
+    label = tr('Phiên tuỳ chỉnh');
   }
   const display = target ? Math.max(0, target - elapsed) : elapsed;
   const ratio = target ? Math.min(1, elapsed / target) : (elapsed % 3600) / 3600;

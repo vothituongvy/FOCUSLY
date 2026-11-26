@@ -11,6 +11,7 @@ import type { Analytics, AppNotification, Conversation, Insight } from '../types
 import type { AppStackParams } from '../navigation/types';
 import { Button, Card, Chip, Chips, Empty, H1, H3, Muted, ProgressBar, Row, Screen, s } from '../components/ui';
 import { Icon, type IconName } from '../components/Icon';
+import { LOCALE, tr } from '../i18n';
 
 /* ======================= Tài liệu (bản Mobile cơ bản) ======================= */
 const TYPE_ICON: Record<string, IconName> = { pdf: 'materials', image: 'materials', text: 'journal', link: 'link', document: 'materials' };
@@ -23,13 +24,13 @@ export function MaterialsScreen() {
   const list = materials.filter((m) => (!onlyBookmarked || m.bookmarked) && (!q || m.title.toLowerCase().includes(q.toLowerCase())));
   return (
     <Screen>
-      <H1>Tài liệu</H1>
-      <Muted>Xem nhanh trên điện thoại. Tải lên & ghi chú đầy đủ trên Web.</Muted>
-      <TextInput style={s.input} value={q} onChangeText={setQ} placeholder="Tìm tài liệu..." placeholderTextColor="#a0a5c0" />
+      <H1>{tr('Tài liệu')}</H1>
+      <Muted>{tr('Xem nhanh trên điện thoại. Tải lên & ghi chú đầy đủ trên Web.')}</Muted>
+      <TextInput style={s.input} value={q} onChangeText={setQ} placeholder={tr('Tìm tài liệu...')} placeholderTextColor="#a0a5c0" />
       <Chips>
-        <Chip label="★ Đã đánh dấu" active={onlyBookmarked} onPress={() => setOnlyBookmarked(!onlyBookmarked)} />
+        <Chip label={tr('★ Đã đánh dấu')} active={onlyBookmarked} onPress={() => setOnlyBookmarked(!onlyBookmarked)} />
       </Chips>
-      {list.length === 0 && <Empty text="Chưa có tài liệu." />}
+      {list.length === 0 && <Empty text={tr('Chưa có tài liệu.')} />}
       {list.map((m) => (
         <Card key={m.id}>
           <Row>
@@ -51,7 +52,7 @@ export function MaterialsScreen() {
           <Row>
             {!!m.url && (
               <Button
-                title="Mở"
+                title={tr('Mở')}
                 small
                 onPress={() => {
                   void update('materials', m.id, { lastOpenedAt: new Date().toISOString() });
@@ -59,8 +60,8 @@ export function MaterialsScreen() {
                 }}
               />
             )}
-            {!!m.aiSummary && <Muted style={{ flex: 1 }}>Có tóm tắt AI</Muted>}
-            {m.hasText && <Button title="Hỏi AI" small variant="secondary" onPress={() => nav.navigate('AIChat', { materialId: m.id })} />}
+            {!!m.aiSummary && <Muted style={{ flex: 1 }}>{tr('Có tóm tắt AI')}</Muted>}
+            {m.hasText && <Button title={tr('Hỏi AI')} small variant="secondary" onPress={() => nav.navigate('AIChat', { materialId: m.id })} />}
           </Row>
           {!!m.aiSummary && (
             <Text style={{ color: colors.text, fontSize: 13 }} numberOfLines={6}>
@@ -108,13 +109,13 @@ export function AIChatScreen({ route }: { route: { params?: { materialId?: strin
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['bottom']}>
       <ScrollView ref={scroll as never} contentContainerStyle={{ padding: 16, gap: 10 }}>
-        {material && <Muted>Đang hỏi về: {material.title}</Muted>}
+        {material && <Muted>{tr('Đang hỏi về: {0}', material.title)}</Muted>}
         {!conv?.messages?.length && (
           <View style={{ alignItems: 'center', gap: 10, paddingVertical: 30 }}>
             <Text style={{ fontSize: 40 }}></Text>
-            <Muted>Hỏi bất cứ điều gì bạn đang học. AI chỉ gợi ý – hãy kiểm chứng lại.</Muted>
+            <Muted>{tr('Hỏi bất cứ điều gì bạn đang học. AI chỉ gợi ý – hãy kiểm chứng lại.')}</Muted>
             <Chips>
-              {(material ? ['Tóm tắt ý chính', 'Giải thích phần khó nhất', 'Hỏi tôi 3 câu kiểm tra'] : ['useEffect chạy khi nào?', 'Giải thích Promise bằng ví dụ']).map((t) => (
+              {(material ? [tr('Tóm tắt ý chính'), tr('Giải thích phần khó nhất'), tr('Hỏi tôi 3 câu kiểm tra')] : [tr('Giải thích đạo hàm bằng ví dụ'), tr('Phân biệt hiện tại hoàn thành và quá khứ đơn')]).map((t) => (
                 <Chip key={t} label={t} onPress={() => send(t)} />
               ))}
             </Chips>
@@ -140,8 +141,8 @@ export function AIChatScreen({ route }: { route: { params?: { materialId?: strin
         {!!error && <Text style={s.error}>{error}</Text>}
       </ScrollView>
       <Row style={{ padding: 12, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface }}>
-        <TextInput style={[s.input, { flex: 1 }]} value={input} onChangeText={setInput} placeholder="Nhập câu hỏi..." placeholderTextColor="#a0a5c0" multiline />
-        <Button title="Gửi" small disabled={busy || !input.trim()} onPress={() => send()} />
+        <TextInput style={[s.input, { flex: 1 }]} value={input} onChangeText={setInput} placeholder={tr('Nhập câu hỏi...')} placeholderTextColor="#a0a5c0" multiline />
+        <Button title={tr('Gửi')} small disabled={busy || !input.trim()} onPress={() => send()} />
       </Row>
     </SafeAreaView>
   );
@@ -187,7 +188,7 @@ export function NotificationsScreen() {
       }
     >
       <Button
-        title="Đánh dấu tất cả đã đọc"
+        title={tr('Đánh dấu tất cả đã đọc')}
         variant="secondary"
         small
         onPress={async () => {
@@ -196,7 +197,7 @@ export function NotificationsScreen() {
         }}
       />
       {items === null && <ActivityIndicator color={colors.primary} />}
-      {items?.length === 0 && <Empty text="Chưa có thông báo." />}
+      {items?.length === 0 && <Empty text={tr('Chưa có thông báo.')} />}
       {items?.map((n) => (
         <Pressable
           key={n.id}
@@ -209,7 +210,7 @@ export function NotificationsScreen() {
           <Card style={{ backgroundColor: n.readAt ? colors.surface : colors.primary50 }}>
             <Text style={{ fontWeight: '700', color: colors.text }}>{n.title}</Text>
             <Muted>{n.body}</Muted>
-            <Muted style={{ fontSize: 11 }}>{new Date(n.createdAt).toLocaleString('vi-VN')}</Muted>
+            <Muted style={{ fontSize: 11 }}>{new Date(n.createdAt).toLocaleString(LOCALE)}</Muted>
           </Card>
         </Pressable>
       ))}
@@ -250,21 +251,21 @@ export function AnalyticsScreen() {
   return (
     <Screen>
       <Chips>
-        <Chip label="Hôm nay" active={range === 'day'} onPress={() => setRange('day')} />
-        <Chip label="7 ngày" active={range === 'week'} onPress={() => setRange('week')} />
-        <Chip label="30 ngày" active={range === 'month'} onPress={() => setRange('month')} />
+        <Chip label={tr('Hôm nay')} active={range === 'day'} onPress={() => setRange('day')} />
+        <Chip label={tr('7 ngày')} active={range === 'week'} onPress={() => setRange('week')} />
+        <Chip label={tr('30 ngày')} active={range === 'month'} onPress={() => setRange('month')} />
       </Chips>
-      {offline && <Muted style={{ color: colors.warning }}>Dữ liệu đã lưu (offline)</Muted>}
+      {offline && <Muted style={{ color: colors.warning }}>{tr('Dữ liệu đã lưu (offline)')}</Muted>}
       {!m ? (
         <ActivityIndicator color={colors.primary} />
       ) : (
         <>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
             {[
-              ['Tập trung thực tế', `${m.actualFocusMinutes}p`, `dự kiến ${m.plannedMinutes}p`],
-              ['Hoàn thành', pct(m.completionRate), `${m.tasksDone}/${m.tasksTotal} nhiệm vụ`],
-              ['Phân tâm', String(m.distractionCount), `${m.distractionsPerHour ?? '—'}/giờ`],
-              ['Quiz', pct(m.quizAccuracy), `${m.quizAttempts} bài`],
+              [tr('Tập trung thực tế'), `${m.actualFocusMinutes}p`, tr('dự kiến {0}p', m.plannedMinutes)],
+              [tr('Hoàn thành'), pct(m.completionRate), tr('{0}/{1} nhiệm vụ', m.tasksDone, m.tasksTotal)],
+              [tr('Phân tâm'), String(m.distractionCount), tr('{0}/giờ', m.distractionsPerHour ?? '—')],
+              ['Quiz', pct(m.quizAccuracy), tr('{0} bài', m.quizAttempts)],
             ].map(([l, v, sub]) => (
               <Card key={l} style={{ width: '48%', flexGrow: 1, gap: 2 }}>
                 <Muted>{l}</Muted>
@@ -275,7 +276,7 @@ export function AnalyticsScreen() {
           </View>
           {a!.series.length > 1 && (
             <Card>
-              <H3>Dự kiến vs thực tế</H3>
+              <H3>{tr('Dự kiến vs thực tế')}</H3>
               <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: 120, gap: 3 }}>
                 {a!.series.map((x) => (
                   <View key={x.date} style={{ flex: 1, flexDirection: 'row', alignItems: 'flex-end', height: '100%', gap: 1 }}>
@@ -288,17 +289,17 @@ export function AnalyticsScreen() {
           )}
           {a!.bestFocusTimes.length > 0 && (
             <Card>
-              <H3>Khung giờ hiệu quả</H3>
+              <H3>{tr('Khung giờ hiệu quả')}</H3>
               {a!.bestFocusTimes.map((b) => (
                 <Text key={b.hour} style={{ color: colors.text }}>
-                  {String(b.hour).padStart(2, '0')}:00 – {b.focusMinutes} phút · {b.distractionsPerHour ?? 0} phân tâm/giờ
+                  {tr('{0}:00 – {1} phút · {2} phân tâm/giờ', String(b.hour).padStart(2, '0'), b.focusMinutes, b.distractionsPerHour ?? 0)}
                 </Text>
               ))}
             </Card>
           )}
           <Card>
-            <H3>Theo môn học</H3>
-            {a!.bySubject.length === 0 && <Muted>Chưa có dữ liệu.</Muted>}
+            <H3>{tr('Theo môn học')}</H3>
+            {a!.bySubject.length === 0 && <Muted>{tr('Chưa có dữ liệu.')}</Muted>}
             {a!.bySubject.map((x) => (
               <Row key={x.subjectId} style={{ justifyContent: 'space-between' }}>
                 <Text style={{ color: colors.text }}>
@@ -312,7 +313,7 @@ export function AnalyticsScreen() {
           </Card>
         </>
       )}
-      <H3>Gợi ý cải thiện</H3>
+      <H3>{tr('Gợi ý cải thiện')}</H3>
       {insights.map((i) => (
         <Card key={i.id} style={{ borderLeftWidth: 4, borderLeftColor: i.kind === 'warning' ? colors.warning : i.kind === 'praise' ? colors.success : colors.primary }}>
           <Text style={{ fontWeight: '700', color: colors.text }}>{i.title}</Text>

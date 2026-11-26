@@ -7,6 +7,7 @@ import { useAuth } from '../store/auth';
 import { colors } from '../theme';
 import type { AppStackParams } from '../navigation/types';
 import { IconButton } from './ui';
+import { tr } from '../i18n';
 
 /**
  * Thanh tiêu đề trên cùng của mỗi tab: tên màn hình + thông báo + ảnh đại diện.
@@ -54,11 +55,11 @@ export function AppHeader({ title, subtitle, right }: { title: string; subtitle?
         </Text>
       </View>
       {right}
-      <IconButton name="bell" label="Thông báo" badge={unread} onPress={() => nav.navigate('Notifications')} />
+      <IconButton name="bell" label={tr('Thông báo')} badge={unread} onPress={() => nav.navigate('Notifications')} />
       <Pressable
         onPress={() => nav.navigate('Tabs', { screen: 'Profile' } as never)}
         accessibilityRole="button"
-        accessibilityLabel="Trang cá nhân"
+        accessibilityLabel={tr('Trang cá nhân')}
         hitSlop={6}
         style={{ marginLeft: 2 }}
       >

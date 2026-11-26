@@ -10,6 +10,7 @@ import type { Card, Question, Quiz } from '../types';
 import type { AppStackParams } from '../navigation/types';
 import { Button, Card as Box, Chip, Chips, Empty, H1, H3, Muted, ProgressBar, Row, Screen, s } from '../components/ui';
 import { AppHeader } from '../components/AppHeader';
+import { tr } from '../i18n';
 
 /* ======================================================================
  * PHASE 2 trên Mobile: Flashcard (Spaced Repetition) & Quiz – chạy được OFFLINE
@@ -24,13 +25,13 @@ export function LearnScreen() {
   const due = cards.filter((c) => isDue(c, now));
 
   return (
-    <Screen header={<AppHeader title="Ôn tập" subtitle={due.length ? `${due.length} thẻ đến hạn hôm nay` : 'Không có thẻ đến hạn'} />}>
-      <Button title={due.length ? `Ôn ${due.length} thẻ ngay` : 'Đã ôn xong hôm nay'} icon="cards" variant={due.length ? 'marker' : 'secondary'} disabled={!due.length} onPress={() => nav.navigate('Review', {})} />
+    <Screen header={<AppHeader title={tr('Ôn tập')} subtitle={due.length ? tr('{0} thẻ đến hạn hôm nay', due.length) : tr('Không có thẻ đến hạn')} />}>
+      <Button title={due.length ? tr('Ôn {0} thẻ ngay', due.length) : tr('Đã ôn xong hôm nay')} icon="cards" variant={due.length ? 'marker' : 'secondary'} disabled={!due.length} onPress={() => nav.navigate('Review', {})} />
       <Row>
         {[
-          ['Cần ôn', String(due.length)],
-          ['Tổng thẻ', String(cards.length)],
-          ['Bài đã làm', String(quizAttempts.length)],
+          [tr('Cần ôn'), String(due.length)],
+          [tr('Tổng thẻ'), String(cards.length)],
+          [tr('Bài đã làm'), String(quizAttempts.length)],
         ].map(([l, v]) => (
           <Box key={l} style={{ flex: 1, gap: 2, padding: 12 }}>
             <Muted>{l}</Muted>
@@ -39,8 +40,8 @@ export function LearnScreen() {
         ))}
       </Row>
 
-      <H3>🃏 Bộ flashcard</H3>
-      {decks.length === 0 && <Empty text="Chưa có bộ thẻ – tạo trên Web hoặc dùng AI." />}
+      <H3>{tr('🃏 Bộ flashcard')}</H3>
+      {decks.length === 0 && <Empty text={tr('Chưa có bộ thẻ – tạo trên Web hoặc dùng AI.')} />}
       {decks.map((d) => {
         const list = cards.filter((c) => c.deck === d.id && !c.suspended);
         const dDue = list.filter((c) => isDue(c, now)).length;
@@ -50,10 +51,10 @@ export function LearnScreen() {
             <Box style={{ borderLeftWidth: 4, borderLeftColor: d.color }}>
               <Row style={{ justifyContent: 'space-between' }}>
                 <Text style={{ fontWeight: '700', color: colors.text, flex: 1 }}>{d.title}</Text>
-                <Text style={{ color: dDue ? colors.warning : colors.success, fontWeight: '700' }}>{dDue ? `${dDue} cần ôn` : '✓'}</Text>
+                <Text style={{ color: dDue ? colors.warning : colors.success, fontWeight: '700' }}>{dDue ? tr('{0} cần ôn', dDue) : '✓'}</Text>
               </Row>
               <Muted>
-                {list.length} thẻ · đã thuộc lâu {mature}
+                {tr('{0} thẻ · đã thuộc lâu {1}', list.length, mature)}
               </Muted>
               <ProgressBar value={list.length ? mature / list.length : 0} color={colors.success} />
             </Box>
@@ -61,8 +62,8 @@ export function LearnScreen() {
         );
       })}
 
-      <H3>Bộ câu hỏi</H3>
-      {quizzes.length === 0 && <Empty text="Chưa có bộ câu hỏi." />}
+      <H3>{tr('Bộ câu hỏi')}</H3>
+      {quizzes.length === 0 && <Empty text={tr('Chưa có bộ câu hỏi.')} />}
       {quizzes.map((q) => {
         const last = quizAttempts.find((a) => (typeof a.quiz === 'string' ? a.quiz : a.quiz?.id ?? a.quiz?._id) === q.id);
         return (
@@ -70,8 +71,8 @@ export function LearnScreen() {
             <Box>
               <Text style={{ fontWeight: '700', color: colors.text }}>{q.title}</Text>
               <Muted>
-                {q.questions.length} câu{q.source === 'ai' ? ' · AI' : ''}
-                {last ? ` · lần gần nhất ${Math.round(last.accuracy * 100)}%` : ''}
+                {tr('{0} câu', q.questions.length)}{q.source === 'ai' ? ' · AI' : ''}
+                {last ? tr(' · lần gần nhất {0}%', Math.round(last.accuracy * 100)) : ''}
               </Muted>
             </Box>
           </Pressable>
@@ -83,10 +84,10 @@ export function LearnScreen() {
 
 /* ---------------- Ôn flashcard ---------------- */
 const GRADES = [
-  { label: 'Quên', grade: 1, color: '#b91c1c' },
-  { label: 'Khó', grade: 3, color: '#b45309' },
-  { label: 'Nhớ', grade: 4, color: '#15803d' },
-  { label: 'Dễ', grade: 5, color: '#1d4ed8' },
+  { label: tr('Quên'), grade: 1, color: '#b91c1c' },
+  { label: tr('Khó'), grade: 3, color: '#b45309' },
+  { label: tr('Nhớ'), grade: 4, color: '#15803d' },
+  { label: tr('Dễ'), grade: 5, color: '#1d4ed8' },
 ];
 
 export function ReviewScreen({ route, navigation }: NativeStackScreenProps<AppStackParams, 'Review'>) {
@@ -121,9 +122,9 @@ export function ReviewScreen({ route, navigation }: NativeStackScreenProps<AppSt
       <Screen>
         <View style={{ alignItems: 'center', gap: 10, paddingVertical: 40 }}>
           <Text style={{ fontSize: 46 }}></Text>
-          <H1>{count ? 'Hoàn thành!' : 'Không có thẻ cần ôn'}</H1>
-          {!!count && <Muted>{count} lượt ôn – kết quả được đồng bộ khi có mạng.</Muted>}
-          <Button title="Quay lại" onPress={() => navigation.goBack()} />
+          <H1>{count ? tr('Hoàn thành!') : tr('Không có thẻ cần ôn')}</H1>
+          {!!count && <Muted>{tr('{0} lượt ôn – kết quả được đồng bộ khi có mạng.', count)}</Muted>}
+          <Button title={tr('Quay lại')} onPress={() => navigation.goBack()} />
         </View>
       </Screen>
     );
@@ -132,18 +133,18 @@ export function ReviewScreen({ route, navigation }: NativeStackScreenProps<AppSt
   return (
     <Screen>
       <Muted>
-        Thẻ {i + 1}/{queue.length}
+        {tr('Thẻ {0}/{1}', i + 1, queue.length)}
       </Muted>
       <ProgressBar value={i / queue.length} />
       <Pressable onPress={() => setFlipped(!flipped)}>
         <Box style={{ minHeight: 280, justifyContent: 'center', alignItems: 'center', backgroundColor: flipped ? '#fbfbff' : colors.surface }}>
-          <Muted>{flipped ? 'Mặt sau' : 'Mặt trước'}</Muted>
+          <Muted>{flipped ? tr('Mặt sau') : tr('Mặt trước')}</Muted>
           <Text style={{ fontSize: 20, textAlign: 'center', color: colors.text }}>{flipped ? card.back : card.front}</Text>
           {!flipped && !!card.hint && <Muted>{card.hint}</Muted>}
         </Box>
       </Pressable>
       {!flipped ? (
-        <Button title="Hiện đáp án" onPress={() => setFlipped(true)} />
+        <Button title={tr('Hiện đáp án')} onPress={() => setFlipped(true)} />
       ) : (
         <Row>
           {GRADES.map((g) => (
@@ -153,7 +154,7 @@ export function ReviewScreen({ route, navigation }: NativeStackScreenProps<AppSt
           ))}
         </Row>
       )}
-      <Muted>Tự trả lời trong đầu trước khi lật thẻ (Active Recall).</Muted>
+      <Muted>{tr('Tự trả lời trong đầu trước khi lật thẻ (Active Recall).')}</Muted>
     </Screen>
   );
 }
@@ -171,7 +172,7 @@ const norm = (x: string) =>
 
 function localGrade(q: Question, a: unknown) {
   if (q.type === 'mcq') return { correct: a === q.correctIndex, correctAnswer: q.options[q.correctIndex ?? 0] ?? '' };
-  if (q.type === 'true_false') return { correct: a === q.correctBoolean, correctAnswer: q.correctBoolean ? 'Đúng' : 'Sai' };
+  if (q.type === 'true_false') return { correct: a === q.correctBoolean, correctAnswer: q.correctBoolean ? tr('Đúng') : 'Sai' };
   const n = norm(String(a ?? ''));
   return { correct: Boolean(n) && q.acceptedAnswers.some((x) => norm(x) === n || (norm(x).length >= 4 && n.includes(norm(x)))), correctAnswer: q.acceptedAnswers[0] ?? '' };
 }
@@ -187,7 +188,7 @@ export function QuizTakeScreen({ route, navigation }: NativeStackScreenProps<App
     navigation.setOptions({ title: quiz?.title ?? 'Quiz' });
   }, [navigation, quiz?.title]);
 
-  if (!quiz) return <Screen><Empty text="Không tìm thấy bộ câu hỏi." /></Screen>;
+  if (!quiz) return <Screen><Empty text={tr('Không tìm thấy bộ câu hỏi.')} /></Screen>;
 
   const submit = async () => {
     const items = quiz.questions.map((q) => ({ q, answer: answers[q.qid!] ?? null, ...localGrade(q, answers[q.qid!]) }));
@@ -218,20 +219,20 @@ export function QuizTakeScreen({ route, navigation }: NativeStackScreenProps<App
       <Screen>
         <View style={{ alignItems: 'center', gap: 6 }}>
           <H1>
-            {result.score}/{result.total} câu đúng
+            {tr('{0}/{1} câu đúng', result.score, result.total)}
           </H1>
         </View>
         {result.items.map(({ q, correct, correctAnswer }, i) => (
           <Box key={q.qid} style={{ borderColor: correct ? colors.success : colors.danger }}>
             <Text style={{ fontWeight: '700', color: colors.text }}>
-              {correct ? 'Đúng' : 'Sai'} · Câu {i + 1}. {q.prompt}
+              {correct ? tr('Đúng') : 'Sai'}{' '}{tr('· Câu {0}. {1}', i + 1, q.prompt)}
             </Text>
-            {!correct && <Text style={{ color: colors.success }}>Đáp án: {correctAnswer}</Text>}
+            {!correct && <Text style={{ color: colors.success }}>{tr('Đáp án: {0}', correctAnswer)}</Text>}
             {!!q.explanation && <Muted>{q.explanation}</Muted>}
           </Box>
         ))}
         <Button
-          title="Làm lại"
+          title={tr('Làm lại')}
           onPress={() => {
             setAnswers({});
             setResult(null);
@@ -267,16 +268,16 @@ export function QuizTakeScreen({ route, navigation }: NativeStackScreenProps<App
           )}
           {q.type === 'true_false' && (
             <Chips>
-              <Chip label="Đúng" active={answers[q.qid!] === true} onPress={() => setAnswers({ ...answers, [q.qid!]: true })} />
+              <Chip label={tr('Đúng')} active={answers[q.qid!] === true} onPress={() => setAnswers({ ...answers, [q.qid!]: true })} />
               <Chip label="Sai" active={answers[q.qid!] === false} onPress={() => setAnswers({ ...answers, [q.qid!]: false })} />
             </Chips>
           )}
           {q.type === 'short' && (
-            <TextInput style={s.input} value={String(answers[q.qid!] ?? '')} onChangeText={(t) => setAnswers({ ...answers, [q.qid!]: t })} placeholder="Câu trả lời" placeholderTextColor="#a0a5c0" />
+            <TextInput style={s.input} value={String(answers[q.qid!] ?? '')} onChangeText={(t) => setAnswers({ ...answers, [q.qid!]: t })} placeholder={tr('Câu trả lời')} placeholderTextColor="#a0a5c0" />
           )}
         </Box>
       ))}
-      <Button title="Nộp bài" onPress={submit} />
+      <Button title={tr('Nộp bài')} onPress={submit} />
     </Screen>
   );
 }

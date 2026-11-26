@@ -14,6 +14,7 @@ import type { TabParams } from '../navigation/types';
 import { AppHeader } from '../components/AppHeader';
 import { Icon } from '../components/Icon';
 import { Button, Card, Empty, Muted, Row, Section, SyncBar } from '../components/ui';
+import { LOCALE, tr } from '../i18n';
 
 const WD = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 
@@ -21,12 +22,12 @@ function spoken(minutes: number) {
   const m = Math.max(0, Math.round(minutes));
   const h = Math.floor(m / 60);
   const r = m % 60;
-  if (!h) return `${r} phút`;
-  return r ? `${h} giờ ${r} phút` : `${h} giờ`;
+  if (!h) return tr('{0} phút', r);
+  return r ? tr('{0} giờ {1} phút', h, r) : tr('{0} giờ', h);
 }
 
 function todayLabel() {
-  const s = new Date().toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long' });
+  const s = new Date().toLocaleDateString(LOCALE, { weekday: 'long', day: 'numeric', month: 'long' });
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
@@ -47,7 +48,7 @@ function DayRuler({ sessions }: { sessions: FocusSession[] }) {
     <View
       onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
       style={{ height: 58, borderWidth: 1, borderColor: colors.text, borderRadius: 8, backgroundColor: colors.surface, overflow: 'hidden' }}
-      accessibilityLabel="Các khoảng thời gian bạn đã tập trung hôm nay"
+      accessibilityLabel={tr('Các khoảng thời gian bạn đã tập trung hôm nay')}
     >
       {width > 0 &&
         hours.map((h) => {
@@ -142,19 +143,19 @@ export function DashboardScreen() {
   const left = target - focusMin;
   const headline =
     focusMin < 1
-      ? `Hôm nay chưa có phiên học nào. Mục tiêu là ${spoken(target)}.`
+      ? tr('Hôm nay chưa có phiên học nào. Mục tiêu là {0}.', spoken(target))
       : left > 0
-        ? `Đã tập trung ${spoken(focusMin)}, còn ${spoken(left)} nữa là đạt mục tiêu.`
-        : `Đã tập trung ${spoken(focusMin)}, vượt mục tiêu ${spoken(target)}.`;
+        ? tr('Đã tập trung {0}, còn {1} nữa là đạt mục tiêu.', spoken(focusMin), spoken(left))
+        : tr('Đã tập trung {0}, vượt mục tiêu {1}.', spoken(focusMin), spoken(target));
   const max = Math.max(target, ...(data?.weeklyProgress.map((d) => d.focusMinutes) ?? [1]), 1);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
-      <AppHeader title={`Chào ${user?.name.split(' ').slice(-1)[0] ?? 'bạn'}`} subtitle={todayLabel()} />
+      <AppHeader title={tr('Chào {0}', user?.name.split(' ').slice(-1)[0] ?? tr('bạn'))} subtitle={todayLabel()} />
       <SyncBar />
       <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 4, gap: 18, paddingBottom: 32 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
         <Text style={{ fontSize: 17, lineHeight: 24, color: colors.text2 }}>{headline}</Text>
-        {offline && <Muted style={{ color: colors.warning }}>Đang hiển thị dữ liệu đã lưu vì không có mạng.</Muted>}
+        {offline && <Muted style={{ color: colors.warning }}>{tr('Đang hiển thị dữ liệu đã lưu vì không có mạng.')}</Muted>}
 
         <DayRuler sessions={todaySessions} />
 
@@ -164,7 +165,7 @@ export function DashboardScreen() {
               <Icon name="focus" size={22} />
               <View style={{ flex: 1 }}>
                 <Text style={{ fontWeight: '700', color: colors.text }}>
-                  {active.status === 'active' ? 'Phiên học đang chạy' : active.status === 'on_break' ? 'Đang nghỉ giữa phiên' : 'Phiên học đang tạm dừng'}
+                  {active.status === 'active' ? tr('Phiên học đang chạy') : active.status === 'on_break' ? tr('Đang nghỉ giữa phiên') : tr('Phiên học đang tạm dừng')}
                 </Text>
                 <Muted>{active.goal}</Muted>
               </View>
@@ -172,21 +173,21 @@ export function DashboardScreen() {
             </Card>
           </Pressable>
         ) : (
-          <Button title="Bắt đầu tập trung" icon="play" variant="marker" onPress={() => nav.navigate('Focus')} />
+          <Button title={tr('Bắt đầu tập trung')} icon="play" variant="marker" onPress={() => nav.navigate('Focus')} />
         )}
 
         {data && (
           <>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.borderStrong }}>
-              <Metric label="Nhiệm vụ xong" value={String(data.tasks.completed)} unit={`/${data.tasks.total}`} note={data.tasks.overdue ? `${data.tasks.overdue} việc quá hạn` : undefined} noteColor={colors.danger} />
-              <Metric label="Chuỗi ngày học" value={String(data.streak.current)} unit=" ngày" note={`Dài nhất ${data.streak.best} ngày`} />
-              <Metric label="Lần phân tâm" value={String(data.distractionsToday.manual)} note={`Rời app ${data.distractionsToday.appLeaves} lần`} />
-              <Metric label="Điểm tập trung" value={String(data.focusScore.score)} unit="/100" note="Chỉ để tham khảo" />
+              <Metric label={tr('Nhiệm vụ xong')} value={String(data.tasks.completed)} unit={`/${data.tasks.total}`} note={data.tasks.overdue ? tr('{0} việc quá hạn', data.tasks.overdue) : undefined} noteColor={colors.danger} />
+              <Metric label={tr('Chuỗi ngày học')} value={String(data.streak.current)} unit={tr(' ngày')} note={tr('Dài nhất {0} ngày', data.streak.best)} />
+              <Metric label={tr('Lần phân tâm')} value={String(data.distractionsToday.manual)} note={tr('Rời app {0} lần', data.distractionsToday.appLeaves)} />
+              <Metric label={tr('Điểm tập trung')} value={String(data.focusScore.score)} unit="/100" note={tr('Chỉ để tham khảo')} />
             </View>
 
-            <Section title="Việc tiếp theo">
+            <Section title={tr('Việc tiếp theo')}>
               <Card style={{ paddingVertical: 4, gap: 0 }}>
-                {data.upcomingTasks.length === 0 && <Empty text="Chưa có nhiệm vụ. Thêm ở tab Kế hoạch." />}
+                {data.upcomingTasks.length === 0 && <Empty text={tr('Chưa có nhiệm vụ. Thêm ở tab Kế hoạch.')} />}
                 {data.upcomingTasks.map((t, i) => (
                   <Row key={t.id} style={{ paddingVertical: 11, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border }}>
                     <View style={{ width: 9, height: 9, borderRadius: 3, backgroundColor: t.subject?.color ?? colors.borderStrong }} />
@@ -196,16 +197,16 @@ export function DashboardScreen() {
                       </Text>
                       <Muted>
                         {t.subject ? `${t.subject.name}, ` : ''}
-                        {t.estimatedMinutes} phút{t.deadline ? `, hạn ${new Date(t.deadline).toLocaleDateString('vi-VN')}` : ''}
+                        {tr('{0} phút', t.estimatedMinutes)}{t.deadline ? tr(', hạn {0}', new Date(t.deadline).toLocaleDateString(LOCALE)) : ''}
                       </Muted>
                     </View>
-                    <Button title="Học" icon="play" small variant="secondary" onPress={() => nav.navigate('Focus', { taskId: t.id })} />
+                    <Button title={tr('Học')} icon="play" small variant="secondary" onPress={() => nav.navigate('Focus', { taskId: t.id })} />
                   </Row>
                 ))}
               </Card>
             </Section>
 
-            <Section title="Bảy ngày qua" action={<Muted>Mục tiêu {target} phút</Muted>}>
+            <Section title={tr('Bảy ngày qua')} action={<Muted>{tr('Mục tiêu {0} phút', target)}</Muted>}>
               <Card>
                 <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: 120, gap: 8 }}>
                   {data.weeklyProgress.map((d) => {
@@ -230,7 +231,7 @@ export function DashboardScreen() {
                     );
                   })}
                 </View>
-                <Muted>Cột vàng là ngày đạt mục tiêu.</Muted>
+                <Muted>{tr('Cột vàng là ngày đạt mục tiêu.')}</Muted>
               </Card>
             </Section>
           </>
