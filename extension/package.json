@@ -1,0 +1,14 @@
+{
+  "name": "focusly-extension",
+  "version": "2.0.0",
+  "private": true,
+  "description": "FOCUSLY Focus Shield – Chrome Extension (Manifest V3, TypeScript)",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node build.mjs",
+    "watch": "tsc -p tsconfig.json --watch"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.287",
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="popup">
+    <header><img src="icons/icon32.png" width="24" height="24" alt="" /> <b>FOCUSLY Shield</b></header>
+    <div id="status" class="status">…</div>
+    <div id="goal" class="goal"></div>
+    <div id="domains" class="chips"></div>
+    <hr />
+    <div class="row">
+      <select id="minutes">
+        <option value="25">25 phút</option>
+        <option value="45">45 phút</option>
+        <option value="60">60 phút</option>
+      </select>
+      <button id="manual-start">Chặn ngay</button>
+      <button id="manual-stop" class="secondary" hidden>Dừng chặn thủ công</button>
+    </div>
+    <div id="manual-info" class="muted small"></div>
+    <hr />
+    <div id="connection" class="muted small"></div>
+    <div id="error" class="error small"></div>
+    <div class="row">
+      <a id="open-web" target="_blank" class="link">Mở FOCUSLY</a>
+      <button id="refresh" class="secondary small-btn">Làm mới</button>
+    </div>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

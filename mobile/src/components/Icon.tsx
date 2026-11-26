@@ -1,0 +1,75 @@
+import React from 'react';
+import { View } from 'react-native';
+
+/**
+ * Icon nét mảnh dùng chung với Web.
+ * Dùng react-native-svg nếu đã cài (npm install react-native-svg), nếu chưa thì hiển thị ô trống
+ * để app vẫn chạy được (Metro: allowOptionalDependencies).
+ */
+const PATHS = {
+  home: 'M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1z',
+  plan: 'M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2',
+  focus: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 12h.01',
+  history: 'M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2',
+  journal: 'M6 3h11a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6zM6 3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2M10 8h5M10 12h5',
+  materials: 'M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 13h6M9 17h4',
+  learn: 'M4 7h12a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1zM7 4h13a1 1 0 0 1 1 1v12',
+  ai: 'M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z',
+  analytics: 'M4 20V10M10 20V4M16 20v-7M22 20H2',
+  settings:
+    'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z',
+  bell: 'M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0',
+  logout: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9',
+  play: 'M7 4.5v15l12-7.5z',
+  pause: 'M8 5v14M16 5v14',
+  stop: 'M6 6h12v12H6z',
+  coffee: 'M17 8h1a3 3 0 0 1 0 6h-1M3 8h14v6a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5zM7 2v2M11 2v2M15 2v2',
+  wind: 'M3 8h11a3 3 0 1 0-3-3M3 16h14a3 3 0 1 1-3 3M3 12h17',
+  zap: 'M13 2 4 14h7l-1 8 9-12h-7z',
+  plus: 'M12 5v14M5 12h14',
+  search: 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM21 21l-5-5',
+  star: 'M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2-5.5-2.9-5.5 2.9 1-6.2L3 9.6l6.2-.9z',
+  trash: 'M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3',
+  edit: 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4',
+  check: 'M5 12.5l4.5 4.5L19 7.5',
+  x: 'M6 6l12 12M18 6 6 18',
+  upload: 'M12 16V4M7 9l5-5 5 5M4 20h16',
+  link: 'M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1',
+  flame: 'M12 21c4 0 7-2.7 7-6.5 0-4-3-6-4.5-9.5-1 2.5-2.5 3.5-4 4C9.5 7.5 9 6 9 4.5 6.5 6.5 5 9.5 5 14.5 5 18.3 8 21 12 21z',
+  bookmark: 'M6 3h12v18l-6-4-6 4z',
+  shield: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z',
+  calendar: 'M4 6h16v15H4zM4 10h16M8 3v4M16 3v4',
+  arrowLeft: 'M19 12H5M11 18l-6-6 6-6',
+  chevronRight: 'M9 6l6 6-6 6',
+  chevronLeft: 'M15 6l-6 6 6 6',
+  repeat: 'M17 3l3 3-3 3M4 11V9a3 3 0 0 1 3-3h13M7 21l-3-3 3-3M20 13v2a3 3 0 0 1-3 3H4',
+  download: 'M12 4v12M7 11l5 5 5-5M4 20h16',
+  maximize: 'M8 3H4v4M16 3h4v4M8 21H4v-4M16 21h4v-4',
+  send: 'M21 3 10 14M21 3l-7 18-4-7-7-4z',
+  cards: 'M4 7h12a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1zM7 4h13a1 1 0 0 1 1 1v12',
+  quiz: 'M9 9a3 3 0 1 1 4.5 2.6c-.9.5-1.5 1.2-1.5 2.4M12 17.5h.01M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z',
+  sync: 'M20 11a8 8 0 0 0-14.5-4.5L3 9M3 4v5h5M4 13a8 8 0 0 0 14.5 4.5L21 15M21 20v-5h-5',
+} as const;
+
+export type IconName = keyof typeof PATHS;
+
+type SvgModule = { default: React.ComponentType<Record<string, unknown>>; Path: React.ComponentType<Record<string, unknown>> };
+let Svg: SvgModule | null = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  Svg = require('react-native-svg');
+} catch {
+  Svg = null;
+}
+
+export function Icon({ name, size = 20, color = '#16203a', strokeWidth = 1.75 }: { name: IconName; size?: number; color?: string; strokeWidth?: number }) {
+  if (!Svg) return <View style={{ width: size, height: size }} />;
+  const Root = Svg.default;
+  const P = Svg.Path;
+  const filled = name === 'play' || name === 'stop';
+  return (
+    <Root width={size} height={size} viewBox="0 0 24 24" fill={filled ? color : 'none'} stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+      <P d={PATHS[name]} />
+    </Root>
+  );
+}
