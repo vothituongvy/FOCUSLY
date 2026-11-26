@@ -3,19 +3,22 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
+import { tokens } from '@/lib/api';
 
 export default function Home() {
   const router = useRouter();
-  const { status, init } = useAuth();
+  const { init } = useAuth();
 
+  // Quyết định ngay theo phiên đã lưu, không chờ máy chủ trả lời:
+  // có phiên -> vào thẳng /dashboard (trang trong tự kiểm tra lại), chưa có -> /login
   useEffect(() => {
-    void init();
-  }, [init]);
-
-  useEffect(() => {
-    if (status === 'authed') router.replace('/dashboard');
-    if (status === 'guest') router.replace('/login');
-  }, [status, router]);
+    if (tokens.access || tokens.refresh) {
+      router.replace('/dashboard');
+      void init();
+    } else {
+      router.replace('/login');
+    }
+  }, [init, router]);
 
   return (
     <div className="center-page">
