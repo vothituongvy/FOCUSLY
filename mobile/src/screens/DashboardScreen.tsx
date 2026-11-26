@@ -27,7 +27,7 @@ function spoken(minutes: number) {
 }
 
 /** Thẻ đầu trang: tím chàm, chữ trắng, điểm nhấn vàng */
-const HERO = { bg: '#4f46c8', muted: '#d4d1fb' };
+const HERO = { bg: '#fff7d9', border: '#f4e3a3', muted: '#857c66' };
 
 function spokenShort(minutes: number) {
   const m = Math.max(0, Math.round(minutes));
@@ -118,7 +118,7 @@ function Metric({
   noteColor?: string;
 }) {
   return (
-    <Paper style={{ backgroundColor: tint.bg, borderRadius: 14, borderWidth: 1, borderColor: tint.border, padding: 14, gap: 8 }} radius={14}>
+    <Paper style={{ flex: 1, height: 138, backgroundColor: tint.bg, borderRadius: 14, borderWidth: 1, borderColor: tint.border, padding: 14, gap: 8, justifyContent: 'space-between' }} radius={14}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <View style={{ width: 34, height: 34, borderRadius: 11, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' }}>
           <Icon name={icon} size={19} color={tint.ink} />
@@ -131,11 +131,10 @@ function Metric({
         {value}
         {!!unit && <Text style={{ fontSize: 15, color: colors.muted, fontWeight: '600' }}>{unit}</Text>}
       </Text>
-      {!!note && (
-        <Text style={{ fontSize: 12, color: noteColor ?? colors.muted }} numberOfLines={1}>
-          {note}
-        </Text>
-      )}
+      {/* luôn giữ dòng ghi chú để 4 ô cao bằng nhau */}
+      <Text style={{ fontSize: 12, color: noteColor ?? colors.muted }} numberOfLines={1}>
+        {note ?? ' '}
+      </Text>
     </Paper>
   );
 }
@@ -201,25 +200,25 @@ export function DashboardScreen() {
         {offline && <Muted style={{ color: colors.warning }}>{tr('Đang hiển thị dữ liệu đã lưu vì không có mạng.')}</Muted>}
 
         <FadeIn>
-        <Card style={{ padding: 18, gap: 14, backgroundColor: HERO.bg, borderColor: HERO.bg }}>
+        <Card style={{ padding: 18, gap: 14, backgroundColor: HERO.bg, borderColor: HERO.border, borderLeftWidth: 1, borderLeftColor: HERO.border }}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
             <View>
               <Text style={{ fontSize: 13, color: HERO.muted, fontWeight: '600' }}>{tr('Thời gian tập trung hôm nay')}</Text>
-              <Text style={{ fontSize: 34, fontWeight: '800', color: '#ffffff', letterSpacing: -1, marginTop: 2 }}>
+              <Text style={{ fontSize: 34, fontWeight: '800', color: colors.text, letterSpacing: -1, marginTop: 2 }}>
                 {spokenShort(focusMin)}
                 <Text style={{ fontSize: 16, color: HERO.muted, fontWeight: '600' }}> / {spokenShort(target)}</Text>
               </Text>
             </View>
-            <Text style={{ fontSize: 15, fontWeight: '800', color: focusMin >= target ? '#7fd1a6' : colors.marker }}>
+            <Text style={{ fontSize: 15, fontWeight: '800', color: colors.text }}>
               {Math.min(100, Math.round((focusMin / Math.max(1, target)) * 100))}%
             </Text>
           </View>
-          <ProgressBar value={focusMin / Math.max(1, target)} track="rgba(255,255,255,0.22)" />
-          <Text style={{ fontSize: 15, lineHeight: 22, color: '#ffffff' }}>{headline}</Text>
+          <ProgressBar value={focusMin / Math.max(1, target)} color={colors.marker} track="#f3e8c2" />
+          <Text style={{ fontSize: 15, lineHeight: 22, color: colors.text }}>{headline}</Text>
           <DayRuler sessions={todaySessions} />
           {active ? (
             <Pressable onPress={() => nav.navigate('Focus')} accessibilityRole="button" style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}>
-              <View style={{ backgroundColor: colors.markerSoft, borderColor: '#f0d77a', borderWidth: 1, borderRadius: 12, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <View style={{ backgroundColor: '#ffffff', borderColor: HERO.border, borderWidth: 1, borderRadius: 12, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 <Icon name="focus" size={24} />
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontWeight: '700', color: colors.text }}>

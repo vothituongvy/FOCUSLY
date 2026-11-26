@@ -1,11 +1,11 @@
 import React, { ReactNode, useCallback, useState } from 'react';
-import { Image, Pressable, Text, View } from 'react-native';
+import { Image, Pressable, StatusBar, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { api } from '../api/client';
 import { useAuth } from '../store/auth';
-import { colors } from '../theme';
+import { colors, fonts } from '../theme';
 import type { AppStackParams } from '../navigation/types';
 import { IconButton } from './ui';
 import { tr } from '../i18n';
@@ -40,6 +40,8 @@ export function AppHeader({ title, subtitle, right }: { title: string; subtitle?
     .join('');
 
   return (
+    <>
+    <StatusBar barStyle="dark-content" />
     <View
       style={{
         flexDirection: 'row',
@@ -48,23 +50,23 @@ export function AppHeader({ title, subtitle, right }: { title: string; subtitle?
         paddingTop: insets.top + 10,
         paddingBottom: 12,
         gap: 6,
-        backgroundColor: colors.surface,
+        backgroundColor: colors.board,
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
       }}
     >
       <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 24, fontWeight: '800', color: colors.text, letterSpacing: -0.6 }} numberOfLines={1}>
+        <Text style={{ fontSize: 26, fontWeight: '700', color: colors.boardText, letterSpacing: -0.3, fontFamily: fonts.display }} numberOfLines={1}>
           {title}
         </Text>
         {!!subtitle && (
-          <Text style={{ fontSize: 13, color: colors.muted, marginTop: 2 }} numberOfLines={1}>
+          <Text style={{ fontSize: 13, color: colors.boardMuted, marginTop: 3 }} numberOfLines={1}>
             {subtitle}
           </Text>
         )}
       </View>
       {right}
-      <IconButton name="bell" label={tr('Thông báo')} badge={unread} onPress={() => nav.navigate('Notifications')} />
+      <IconButton name="bell" color={colors.boardText} label={tr('Thông báo')} badge={unread} onPress={() => nav.navigate('Notifications')} />
       <Pressable
         onPress={() => nav.navigate('Tabs', { screen: 'Profile' } as never)}
         accessibilityRole="button"
@@ -81,5 +83,6 @@ export function AppHeader({ title, subtitle, right }: { title: string; subtitle?
         )}
       </Pressable>
     </View>
+    </>
   );
 }

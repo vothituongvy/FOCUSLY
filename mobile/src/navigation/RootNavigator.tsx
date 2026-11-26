@@ -6,7 +6,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { BottomTabBar, createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../store/auth';
 import { useSession } from '../store/session';
-import { colors } from '../theme';
+import { colors, fonts } from '../theme';
 import { Loading } from '../components/ui';
 import { Icon, type IconName } from '../components/Icon';
 import { ForgotPasswordScreen, LoginScreen, RegisterScreen } from '../screens/AuthScreens';
@@ -33,21 +33,19 @@ function TabIcon({ name, focused }: { name: IconName; focused: boolean }) {
     Animated.spring(v, { toValue: focused ? 1 : 0, useNativeDriver: true, speed: 18, bounciness: 10 }).start();
   }, [focused, v]);
   return (
-    <View style={{ width: 54, height: 32, alignItems: 'center', justifyContent: 'center' }}>
+    <View style={{ width: 58, height: 32, alignItems: 'center', justifyContent: 'center' }}>
       <Animated.View
         style={{
           position: 'absolute',
-          width: 54,
+          width: 58,
           height: 32,
           borderRadius: 16,
           backgroundColor: colors.marker,
           opacity: v,
-          transform: [{ scaleX: v.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }) }],
+          transform: [{ scaleX: v.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) }],
         }}
       />
-      <Animated.View style={{ transform: [{ scale: v.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) }] }}>
-        <Icon name={name} size={24} color={focused ? colors.text : colors.muted} strokeWidth={focused ? 2 : 1.75} />
-      </Animated.View>
+      <Icon name={name} size={24} color={focused ? colors.boardText : colors.boardMuted} strokeWidth={focused ? 2.1 : 1.75} />
     </View>
   );
 }
@@ -71,12 +69,12 @@ function Tabs() {
       screenOptions={{
         headerShown: false,
         animation: 'shift',
-        tabBarActiveTintColor: colors.text,
-        tabBarInactiveTintColor: colors.muted,
+        tabBarActiveTintColor: colors.boardText,
+        tabBarInactiveTintColor: colors.boardMuted,
         tabBarLabelStyle: { fontSize: 11.5, fontWeight: '700', marginTop: 4 },
         tabBarStyle: hideTabs
           ? { display: 'none' }
-          : { height: 68 + insets.bottom, paddingTop: 8, paddingBottom: Math.max(8, insets.bottom), backgroundColor: colors.surface, borderTopColor: colors.border, elevation: 0 },
+          : { height: 68 + insets.bottom, paddingTop: 8, paddingBottom: Math.max(8, insets.bottom), backgroundColor: colors.board, borderTopWidth: 1, borderTopColor: colors.border, elevation: 0 },
       }}
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ title: tr('Hôm nay'), tabBarIcon: icon('home') }} />
@@ -106,10 +104,10 @@ export function RootNavigator() {
       {status === 'authed' ? (
         <AppStack.Navigator
           screenOptions={{
-            headerStyle: { backgroundColor: colors.bg },
+            headerStyle: { backgroundColor: colors.board },
             headerShadowVisible: false,
-            headerTintColor: colors.text,
-            headerTitleStyle: { fontWeight: '700', fontSize: 17 },
+            headerTintColor: colors.boardText,
+            headerTitleStyle: { fontWeight: '700', fontSize: 18, fontFamily: fonts.display },
             contentStyle: { backgroundColor: colors.bg },
             animation: 'slide_from_right',
           }}

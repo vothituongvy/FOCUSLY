@@ -14,7 +14,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, radius, tints } from '../theme';
+import { colors, fonts, radius, tints } from '../theme';
 import { useData } from '../store/data';
 import { Icon, type IconName } from './Icon';
 import { tr } from '../i18n';
@@ -111,15 +111,19 @@ export function useTone() {
 
 export function Card({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
   const tone = useTone();
-  return <Paper style={[s.card, { backgroundColor: tone.bg, borderColor: tone.border }, style]}>{children}</Paper>;
+  void tone;
+  return <Paper style={[s.card, style]}>{children}</Paper>;
 }
 
 /** Tiêu đề nhóm nội dung trên nền bàn (không đóng khung) */
 export function Section({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
   return (
     <View style={{ gap: 10 }}>
-      <Row style={{ justifyContent: 'space-between', paddingHorizontal: 2 }}>
-        <Text style={s.h3}>{title}</Text>
+      <Row style={{ justifyContent: 'space-between', alignItems: 'flex-end', paddingHorizontal: 2 }}>
+        <View>
+          <Text style={[s.h3, { fontSize: 19 }]}>{title}</Text>
+          <View style={{ width: 28, height: 4, borderRadius: 2, backgroundColor: colors.marker, marginTop: 4 }} />
+        </View>
         {action}
       </Row>
       {children}
@@ -149,11 +153,11 @@ export function Button({
   style?: StyleProp<ViewStyle>;
 }) {
   const v = {
-    primary: { bg: colors.text, fg: '#fff', border: colors.text },
+    primary: { bg: colors.marker, fg: colors.text, border: colors.marker },
     secondary: { bg: colors.surface, fg: colors.text, border: colors.borderStrong },
     ghost: { bg: 'transparent', fg: colors.text2, border: 'transparent' },
     danger: { bg: colors.surface, fg: colors.danger, border: '#efc4bb' },
-    marker: { bg: colors.marker, fg: colors.text, border: colors.text },
+    marker: { bg: colors.marker, fg: colors.text, border: '#e5b300' },
   }[variant];
   const press = usePressScale();
   return (
@@ -209,8 +213,8 @@ export function Field({ label, ...props }: TextInputProps & { label: string }) {
 
 export function Chip({ label, active, onPress }: { label: string; active?: boolean; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: !!active }} style={[s.chip, active && { borderColor: colors.text, backgroundColor: colors.marker }]}>
-      <Text style={{ color: active ? colors.text : colors.text2, fontWeight: active ? '700' : '500', fontSize: 13 }}>{label}</Text>
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: !!active }} style={[s.chip, active && { borderColor: colors.marker, backgroundColor: colors.marker }]}>
+      <Text style={{ color: active ? colors.text : colors.text2, fontWeight: active ? '700' : '500', fontSize: 13.5 }}>{label}</Text>
     </Pressable>
   );
 }
@@ -269,32 +273,32 @@ export function Logo({ size = 28 }: { size?: number }) {
 }
 
 export const s = StyleSheet.create({
-  h1: { fontSize: 28, fontWeight: '800', color: colors.text, letterSpacing: -0.6 },
-  h3: { fontSize: 16, fontWeight: '700', color: colors.text },
+  h1: { fontSize: 28, fontWeight: '700', color: colors.text, letterSpacing: -0.4, fontFamily: fonts.display },
+  h3: { fontSize: 17, fontWeight: '700', color: colors.text, fontFamily: fonts.display },
   muted: { color: colors.muted, fontSize: 13 },
   label: { fontSize: 13, fontWeight: '600', color: colors.text2 },
   card: {
     backgroundColor: colors.card,
-    borderRadius: radius + 2,
+    borderRadius: radius,
     padding: 16,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     gap: 10,
   },
-  btn: { borderRadius: 11, paddingVertical: 12, paddingHorizontal: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  btn: { borderRadius: 8, paddingVertical: 12, paddingHorizontal: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   iconBtn: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   badgeDot: { position: 'absolute', top: 5, right: 4, minWidth: 16, height: 16, borderRadius: 5, backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
   input: {
     borderWidth: 1,
     borderColor: colors.borderStrong,
-    borderRadius: 9,
+    borderRadius: 6,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 11,
     fontSize: 15,
     color: colors.text,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surface2,
   },
-  chip: { borderWidth: 1, borderColor: colors.borderStrong, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: '#ffffff' },
+  chip: { borderWidth: 1, borderColor: colors.borderStrong, borderRadius: 6, paddingHorizontal: 13, paddingVertical: 8, backgroundColor: colors.surface2 },
   sheet: {
     backgroundColor: colors.surface,
     borderRadius: 18,
