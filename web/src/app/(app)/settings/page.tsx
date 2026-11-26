@@ -411,7 +411,20 @@ function ShieldTab({ user }: { user: User }) {
         {!hasExtensionConfig() ? (
           <p className="small">{tr('Chưa cấu hình NEXT_PUBLIC_EXTENSION_ID. Xem hướng dẫn trong extension/README.md.')}</p>
         ) : ext === 'missing' ? (
-          <p className="small">{tr('Chưa phát hiện extension. Cài extension (Load unpacked) rồi tải lại trang.')}</p>
+          <div className="col" style={{ gap: 8 }}>
+            <p className="small">{tr('Chưa phát hiện extension trên trình duyệt này. Cài theo 4 bước:')}</p>
+            <ol className="small" style={{ margin: 0, paddingLeft: 20, lineHeight: 1.7 }}>
+              <li>{tr('Tải file focusly-extension.zip và giải nén.')}</li>
+              <li>{tr('Mở chrome://extensions, bật "Chế độ dành cho nhà phát triển" (góc trên bên phải).')}</li>
+              <li>{tr('Bấm "Tải tiện ích đã giải nén" và chọn thư mục focusly-extension vừa giải nén.')}</li>
+              <li>{tr('Tải lại trang này rồi bấm "Kết nối extension với tài khoản".')}</li>
+            </ol>
+            <div className="row">
+              <a className="btn" href={EXTENSION_ZIP_URL} target="_blank" rel="noreferrer">
+                {tr('Tải extension')}
+              </a>
+            </div>
+          </div>
         ) : (
           <div className="row">
             <button
@@ -430,6 +443,8 @@ function ShieldTab({ user }: { user: User }) {
     </div>
   );
 }
+
+const EXTENSION_ZIP_URL = 'https://github.com/vothituongvy/FOCUSLY/releases/download/extension/focusly-extension.zip';
 
 /* ============ Thông báo (Phase 2) ============ */
 function NotificationsTab() {

@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { tr } from '@/lib/i18n';
 
-const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? '';
+// trim(): giá trị dán vào Vercel hay dính dấu xuống dòng ở cuối -> Google báo invalid_client
+const CLIENT_ID = (process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? '').trim();
 
 interface GoogleId {
   initialize: (cfg: { client_id: string; callback: (r: { credential: string }) => void }) => void;

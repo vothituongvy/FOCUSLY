@@ -9,3 +9,9 @@ backend/uploads/
 extension/dist/
 mobile/android/app/build/
 mobile/ios/Pods/
+# Firebase (tải riêng từ Firebase Console)
+mobile/android/app/google-services.json
+
+# Khoá riêng của extension (giữ ID cố định) – tuyệt đối không đưa lên GitHub
+extension/*.pem
+extension/*.zip

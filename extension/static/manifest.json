@@ -2,6 +2,7 @@
   "manifest_version": 3,
   "name": "FOCUSLY Focus Shield",
   "version": "2.1.0",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA5R6LC+hyPH8FKzKtJru0a4VxsRosViNvlj4u9fXG2Vd5TA6vDHpD9vwcawID3mzeBAcZAquIALNRweQcRRFLoI0rWoPXuLcH4yWB40etSbkFz2SsPz4V7ld6YhnyxvRUhIChecTBKb4WkgR6jqV/eLiONf88QqziHnwKKrUjGCqw9tV7qCibpbreiRO3DSMS2i3xv3A2DjZu1y7UiabuI3MX7/wyQAR/XRVy4JTgJh7n/hF43fEo9iVP2rYq1jmH2kr1SLe1t0BFya8yYDMrGs9bbGNCU2vaHSXv+tgd02BHys3qccS1bPdwhxO6N675KNcNErhgUvmb1dO5I06PPwIDAQAB",
   "description": "Chặn website gây xao nhãng khi bạn đang học với FOCUSLY (đồng bộ với Web & Mobile).",
   "permissions": [
     "storage",

@@ -4,7 +4,7 @@
  * Giao tiếp với FOCUSLY Chrome Extension (externally_connectable).
  * Web gửi trạng thái Focus Shield để extension chặn website trong Block List.
  */
-const EXTENSION_ID = process.env.NEXT_PUBLIC_EXTENSION_ID ?? '';
+const EXTENSION_ID = (process.env.NEXT_PUBLIC_EXTENSION_ID ?? '').trim();
 
 interface ChromeRuntime {
   sendMessage: (id: string, msg: unknown, cb?: (res: unknown) => void) => void;
