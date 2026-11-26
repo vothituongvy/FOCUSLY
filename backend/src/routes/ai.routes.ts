@@ -8,7 +8,7 @@ import { MaterialModel, RecallModel } from '../models/Learn';
 import { FocusSessionModel } from '../models/FocusSession';
 import { SubjectModel, TaskModel } from '../models/Learning';
 import { findOwned } from '../services/entities';
-import { aiEnabled, complete, completeJson, relevantChunks, TUTOR_SYSTEM, usedLastHour } from '../services/ai';
+import { aiEnabled, complete, completeJson, relevantChunks, TRANSLATE_LIMIT_PER_HOUR, TUTOR_SYSTEM, usedLastHour } from '../services/ai';
 import { computeInsights } from '../services/analytics';
 
 /**
@@ -41,7 +41,14 @@ async function sourceText(userId: string, materialId?: string | null, topic?: st
 router.get(
   '/status',
   ah(async (req, res) => {
-    res.json({ enabled: aiEnabled(), model: env.ai.model, usedLastHour: await usedLastHour(uid(req)), limitPerHour: env.ai.maxRequestsPerHour });
+    res.json({
+      enabled: aiEnabled(),
+      model: env.ai.model,
+      usedLastHour: await usedLastHour(uid(req)),
+      limitPerHour: env.ai.maxRequestsPerHour,
+      translateUsedLastHour: await usedLastHour(uid(req), 'translate'),
+      translateLimitPerHour: TRANSLATE_LIMIT_PER_HOUR,
+    });
   }),
 );
 
@@ -282,6 +289,44 @@ ${src.content}`,
       draft: { title: out.title, material: src.material?.id ?? null, subject: src.material?.subject ?? null, cards: out.cards.slice(0, data.count) },
       note: 'Bản nháp do AI tạo – chọn các thẻ muốn giữ rồi lưu.',
     });
+  }),
+);
+
+/* ---------------- Dịch Anh ⇄ Việt (dùng ngay trong phiên học, khỏi mở tab khác) ---------------- */
+const translateSchema = z.object({
+  text: z.string().trim().min(1).max(2000),
+  to: z.enum(['auto', 'vi', 'en']).default('auto'),
+});
+const translateResult = z.object({
+  from: z.enum(['vi', 'en', 'other']),
+  to: z.enum(['vi', 'en']),
+  translation: z.string(),
+  // Chỉ có khi tra một từ/cụm từ ngắn
+  phonetic: z.string().optional().nullable(),
+  partOfSpeech: z.string().optional().nullable(),
+  alternatives: z.array(z.string()).max(4).default([]),
+  example: z.object({ source: z.string(), target: z.string() }).optional().nullable(),
+});
+
+router.post(
+  '/translate',
+  ah(async (req, res) => {
+    const { text, to } = parse(translateSchema, req.body);
+    const short = text.split(/\s+/).length <= 4;
+    const result = await completeJson({
+      userId: uid(req),
+      feature: 'translate',
+      maxTokens: short ? 500 : 1500,
+      temperature: 0.2,
+      schema: translateResult,
+      system: `You are a precise English–Vietnamese translator for students.
+Detect the source language. Translate English → Vietnamese and Vietnamese → English${to === 'auto' ? '' : `; the target language is forced to "${to}"`}. Other languages → Vietnamese.
+Keep meaning, tone and formatting (line breaks, lists, formulas). Do not add explanations to the translation itself.
+Return JSON: {"from":"vi|en|other","to":"vi|en","translation":"...","phonetic":null,"partOfSpeech":null,"alternatives":[],"example":null}.
+If the input is a single word or short phrase (≤ 4 words), also fill: "phonetic" (IPA, English words only), "partOfSpeech" (in Vietnamese, e.g. "danh từ"), up to 3 "alternatives" (other common meanings in the target language), and one short "example" {"source","target"} sentence pair. Otherwise leave them null/empty.`,
+      messages: [{ role: 'user', content: text }],
+    });
+    res.json({ ...result, short });
   }),
 );
 

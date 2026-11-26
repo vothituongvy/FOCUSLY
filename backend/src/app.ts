@@ -1,3 +1,4 @@
+import { langMiddleware } from './utils/lang';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -59,6 +60,7 @@ export function createApp() {
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: false, limit: '1mb' }));
   app.use(sanitizeInput);
+  app.use(langMiddleware);
   morgan.token('rid', (req) => (req as express.Request & { id?: string }).id ?? '-');
   app.use(morgan(env.isProd ? ':rid :method :url :status :res[content-length] - :response-time ms' : 'dev', { skip: (req) => req.url === '/health' }));
 

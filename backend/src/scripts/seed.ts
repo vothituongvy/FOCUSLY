@@ -29,8 +29,8 @@ async function main() {
     name: 'Demo Learner',
     passwordHash: await bcrypt.hash('Focusly123', 12),
     profile: {
-      learningGoal: 'Trở thành React Native Developer',
-      interestedSubjects: ['React Native', 'Tiếng Anh'],
+      learningGoal: 'Đạt IELTS 6.5 và giữ điểm Toán trên 8',
+      interestedSubjects: ['Sinh học', 'Tiếng Anh'],
       preferredStudyTimes: [{ start: '19:00', end: '22:00' }],
       dailyTargetMinutes: 120,
       timezone: 'Asia/Ho_Chi_Minh',
@@ -38,13 +38,13 @@ async function main() {
     },
   });
 
-  const rn = await SubjectModel.create({ user: user._id, name: 'React Native', color: '#6366f1', icon: '📱' });
+  const rn = await SubjectModel.create({ user: user._id, name: 'Sinh học', color: '#1f7a4d', icon: '🌱' });
   const en = await SubjectModel.create({ user: user._id, name: 'Tiếng Anh', color: '#f59e0b', icon: '🇬🇧' });
-  const hooks = await CourseModel.create({ user: user._id, subject: rn._id, name: 'React Hooks' });
+  const hooks = await CourseModel.create({ user: user._id, subject: rn._id, name: 'Chương 3: Quang hợp' });
   const goal = await GoalModel.create({
     user: user._id,
     subject: rn._id,
-    title: 'Hiểu và thực hành được useEffect',
+    title: 'Hiểu và giải thích được quá trình quang hợp',
     targetDate: new Date('2026-11-28'),
   });
 
@@ -56,14 +56,14 @@ async function main() {
       subject: rn._id,
       course: hooks._id,
       goal: goal._id,
-      title: 'Tìm hiểu useEffect',
+      title: 'Đọc bài Quang hợp và tóm tắt',
       estimatedMinutes: 45,
       priority: 'high',
       scheduledDate: today,
       deadline: new Date('2026-11-28T17:00:00+07:00'),
-      expectedOutcome: 'Hiểu và thực hành được useEffect',
+      expectedOutcome: 'Tự vẽ được sơ đồ pha sáng và pha tối',
     },
-    { user: user._id, subject: rn._id, course: hooks._id, title: 'Luyện useMemo & useCallback', estimatedMinutes: 30, scheduledDate: today },
+    { user: user._id, subject: rn._id, course: hooks._id, title: 'Làm 15 câu trắc nghiệm Quang hợp', estimatedMinutes: 30, scheduledDate: today },
     {
       user: user._id,
       subject: en._id,
@@ -111,31 +111,30 @@ async function main() {
   }
 
   // ---- Phase 2: tài liệu, flashcard, quiz mẫu
-  const text = `React Hooks – useEffect
+  const text = `Quang hợp
 
-useEffect cho phép thực hiện "side effect" (gọi API, đăng ký sự kiện, hẹn giờ) sau khi component render.
-Cú pháp: useEffect(() => { ...; return () => { /* cleanup */ } }, [deps]).
-- Không truyền dependency array: chạy sau MỌI lần render.
-- Mảng rỗng []: chỉ chạy một lần sau lần render đầu tiên.
-- [a, b]: chạy lại khi a hoặc b thay đổi.
-Cleanup function chạy trước khi effect chạy lại và khi component unmount – dùng để huỷ đăng ký, xoá timer.
-useMemo ghi nhớ GIÁ TRỊ tính toán, useCallback ghi nhớ HÀM giữa các lần render.`;
-  await MaterialModel.create({ user: user._id, subject: rn._id, title: 'Ghi chú useEffect', type: 'text', category: 'Ghi chú', textContent: text, hasText: true });
-  const deck = await DeckModel.create({ user: user._id, subject: rn._id, title: 'React Hooks' });
+Quang hợp là quá trình cây xanh dùng năng lượng ánh sáng để tổng hợp chất hữu cơ từ CO2 và nước, giải phóng O2.
+Phương trình tổng quát: 6CO2 + 6H2O → (ánh sáng, diệp lục) → C6H12O6 + 6O2.
+- Pha sáng: diễn ra ở màng thylakoid, cần ánh sáng; tạo ATP, NADPH và giải phóng O2 từ quá trình quang phân li nước.
+- Pha tối (chu trình Calvin): diễn ra ở chất nền lục lạp, dùng ATP và NADPH để cố định CO2 thành đường.
+Các yếu tố ảnh hưởng: cường độ ánh sáng, nồng độ CO2, nhiệt độ, nước.
+Ý nghĩa: tạo chất hữu cơ cho sinh giới, cung cấp O2 và điều hoà khí hậu.`;
+  await MaterialModel.create({ user: user._id, subject: rn._id, title: 'Ghi chú Quang hợp', type: 'text', category: 'Ghi chú', textContent: text, hasText: true });
+  const deck = await DeckModel.create({ user: user._id, subject: rn._id, title: 'Quang hợp' });
   await CardModel.create([
-    { user: user._id, deck: deck._id, front: 'useState dùng để làm gì?', back: 'Khai báo và cập nhật state trong function component.' },
-    { user: user._id, deck: deck._id, front: 'useEffect chạy khi nào?', back: 'Sau khi render; chạy lại khi dependency thay đổi.' },
-    { user: user._id, deck: deck._id, front: 'Cleanup function là gì?', back: 'Hàm trả về từ useEffect, chạy trước lần effect kế tiếp và khi unmount.' },
-    { user: user._id, deck: deck._id, front: 'useMemo khác useCallback thế nào?', back: 'useMemo ghi nhớ giá trị, useCallback ghi nhớ hàm.' },
+    { user: user._id, deck: deck._id, front: 'Quang hợp diễn ra ở bào quan nào?', back: 'Lục lạp.' },
+    { user: user._id, deck: deck._id, front: 'Pha sáng tạo ra những sản phẩm gì?', back: 'ATP, NADPH và O2.' },
+    { user: user._id, deck: deck._id, front: 'O2 trong quang hợp có nguồn gốc từ đâu?', back: 'Từ nước (quang phân li nước ở pha sáng).' },
+    { user: user._id, deck: deck._id, front: 'Chu trình Calvin diễn ra ở đâu?', back: 'Chất nền (stroma) của lục lạp.' },
   ]);
   await QuizModel.create({
     user: user._id,
     subject: rn._id,
-    title: 'Kiểm tra React Hooks',
+    title: 'Kiểm tra Quang hợp',
     questions: [
-      { qid: 'q1', type: 'mcq', prompt: 'useEffect với [] chạy khi nào?', options: ['Mỗi lần render', 'Chỉ một lần sau render đầu', 'Không bao giờ', 'Trước render'], correctIndex: 1, explanation: 'Mảng rỗng = không phụ thuộc gì nên chỉ chạy 1 lần.' },
-      { qid: 'q2', type: 'true_false', prompt: 'useMemo trả về một hàm đã ghi nhớ.', correctBoolean: false, explanation: 'useMemo trả về giá trị; useCallback mới ghi nhớ hàm.' },
-      { qid: 'q3', type: 'short', prompt: 'Tham số thứ hai của useEffect gọi là gì?', acceptedAnswers: ['dependency array', 'mảng phụ thuộc'], explanation: 'Dependency array quyết định khi nào effect chạy lại.' },
+      { qid: 'q1', type: 'mcq', prompt: 'Pha sáng của quang hợp diễn ra ở đâu?', options: ['Chất nền lục lạp', 'Màng thylakoid', 'Ti thể', 'Nhân tế bào'], correctIndex: 1, explanation: 'Pha sáng cần sắc tố quang hợp nằm trên màng thylakoid.' },
+      { qid: 'q2', type: 'true_false', prompt: 'O2 giải phóng trong quang hợp có nguồn gốc từ CO2.', correctBoolean: false, explanation: 'O2 đến từ quang phân li nước.' },
+      { qid: 'q3', type: 'short', prompt: 'Pha tối của quang hợp còn gọi là chu trình gì?', acceptedAnswers: ['calvin', 'chu trình calvin'], explanation: 'Pha tối là chu trình Calvin, cố định CO2 thành đường.' },
     ],
   });
 

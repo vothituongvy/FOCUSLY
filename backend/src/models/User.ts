@@ -48,7 +48,7 @@ const userSchema = new Schema(
       },
       autoEnableOnSession: { type: Boolean, default: true },
       /** Trang được phép mở trong phiên nghiêm ngặt (ngoài FOCUSLY) */
-      allowList: { type: [String], default: ['react.dev', 'developer.mozilla.org', 'stackoverflow.com', 'wikipedia.org'] },
+      allowList: { type: [String], default: ['wikipedia.org', 'translate.google.com', 'dictionary.cambridge.org', 'docs.google.com'] },
       strictByDefault: { type: Boolean, default: false },
       hideDistractions: { type: Boolean, default: true },
       schedule: { type: [focusScheduleSchema], default: [] },

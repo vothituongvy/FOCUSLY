@@ -1,3 +1,4 @@
+import { currentLang } from '../utils/lang';
 import { z, ZodTypeAny } from 'zod';
 import { env } from '../config/env';
 import { AIUsageModel } from '../models/AI';
@@ -15,9 +16,15 @@ export interface ChatMessage {
 
 export const aiEnabled = () => Boolean(env.ai.apiKey);
 
-export async function usedLastHour(userId: string): Promise<number> {
-  return AIUsageModel.countDocuments({ user: userId, createdAt: { $gte: new Date(Date.now() - 3600_000) } });
+/** Số lượt AI trong 1 giờ qua. Lượt dịch được tính riêng để tra từ không làm hết lượt hỏi AI. */
+export async function usedLastHour(userId: string, feature?: 'translate'): Promise<number> {
+  const since = new Date(Date.now() - 3600_000);
+  return AIUsageModel.countDocuments(
+    feature ? { user: userId, feature, createdAt: { $gte: since } } : { user: userId, feature: { $ne: 'translate' }, createdAt: { $gte: since } },
+  );
 }
+
+export const TRANSLATE_LIMIT_PER_HOUR = 200;
 
 export async function complete(opts: {
   userId: string;
@@ -28,8 +35,14 @@ export async function complete(opts: {
   temperature?: number;
 }): Promise<string> {
   if (!aiEnabled()) throw new HttpError(503, 'Tính năng AI chưa được cấu hình (thiếu ANTHROPIC_API_KEY)', 'AI_DISABLED');
-  if ((await usedLastHour(opts.userId)) >= env.ai.maxRequestsPerHour) {
-    throw new HttpError(429, `Bạn đã dùng hết ${env.ai.maxRequestsPerHour} lượt AI trong 1 giờ. Thử lại sau nhé.`, 'AI_RATE_LIMIT');
+  const isTranslate = opts.feature === 'translate';
+  const limit = isTranslate ? TRANSLATE_LIMIT_PER_HOUR : env.ai.maxRequestsPerHour;
+  if ((await usedLastHour(opts.userId, isTranslate ? 'translate' : undefined)) >= limit) {
+    throw new HttpError(429, `Bạn đã dùng hết ${limit} lượt AI trong 1 giờ. Thử lại sau nhé.`, 'AI_RATE_LIMIT');
+  }
+  // Trả lời theo ngôn ngữ giao diện người dùng đang chọn
+  if (!isTranslate && currentLang() === 'en') {
+    opts = { ...opts, system: `${opts.system}\n\nIMPORTANT: The learner uses the English interface. Write every reply in English (JSON values included), unless the learner writes in another language.` };
   }
 
   const controller = new AbortController();
