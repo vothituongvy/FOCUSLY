@@ -21,7 +21,19 @@ export type AppStackParams = {
   Review: { deckId?: string } | undefined;
   QuizTake: { quizId: string };
   Materials: undefined;
-  AIChat: { materialId?: string } | undefined;
+  AIChat: { materialId?: string; conversationId?: string } | undefined;
+  AICoach: undefined;
   Notifications: undefined;
   Analytics: undefined;
+  // Bổ sung cho bằng bản Web
+  History: undefined;
+  Guide: undefined;
+  MaterialDetail: { materialId: string };
+  MaterialAdd: { kind?: 'link' | 'text' } | undefined;
+  DeckEdit: { deckId?: string } | undefined;
+  QuizEdit: { quizId?: string } | undefined;
+  Preferences: undefined;
+  ShieldSettings: undefined;
+  NotificationSettings: undefined;
+  Security: undefined;
 };

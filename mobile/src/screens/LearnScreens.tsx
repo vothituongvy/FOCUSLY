@@ -11,6 +11,7 @@ import type { Card, Question, Quiz } from '../types';
 import type { AppStackParams } from '../navigation/types';
 import { Button, Card as Box, Chip, Chips, Empty, H1, H3, Muted, ProgressBar, Row, Screen, s } from '../components/ui';
 import { AppHeader } from '../components/AppHeader';
+import { Icon } from '../components/Icon';
 import { tr } from '../i18n';
 
 /* ======================================================================
@@ -34,21 +35,24 @@ export function LearnScreen() {
           [tr('Tổng thẻ'), String(cards.length)],
           [tr('Bài đã làm'), String(quizAttempts.length)],
         ].map(([l, v]) => (
-          <Box key={l} style={{ flex: 1, gap: 2, padding: 12 }}>
-            <Muted>{l}</Muted>
-            <Text style={{ fontSize: 22, fontWeight: '800', color: colors.text }}>{v}</Text>
+          <Box key={l} style={{ flex: 1, gap: 2, padding: 12, alignItems: 'center', justifyContent: 'center' }}>
+            <Muted style={{ textAlign: 'center' }}>{l}</Muted>
+            <Text style={{ fontSize: 24, fontWeight: '800', color: colors.text, textAlign: 'center' }}>{v}</Text>
           </Box>
         ))}
       </Row>
 
-      <H3>{tr('🃏 Bộ flashcard')}</H3>
-      {decks.length === 0 && <Empty text={tr('Chưa có bộ thẻ – tạo trên Web hoặc dùng AI.')} />}
+      <Row style={{ justifyContent: 'space-between' }}>
+        <H3>{tr('Bộ flashcard')}</H3>
+        <Button title={tr('+ Bộ thẻ')} small variant="secondary" onPress={() => nav.navigate('DeckEdit', {})} />
+      </Row>
+      {decks.length === 0 && <Empty text={tr('Chưa có bộ thẻ. Bấm “+ Bộ thẻ” để tự tạo hoặc nhờ AI tạo.')} />}
       {decks.map((d) => {
         const list = cards.filter((c) => c.deck === d.id && !c.suspended);
         const dDue = list.filter((c) => isDue(c, now)).length;
         const mature = list.filter((c) => cardStage(c.srs ?? {}) === 'mature').length;
         return (
-          <Pressable key={d.id} onPress={() => dDue && nav.navigate('Review', { deckId: d.id })}>
+          <Pressable key={d.id} onPress={() => nav.navigate('DeckEdit', { deckId: d.id })}>
             <Box style={{ borderLeftWidth: 4, borderLeftColor: d.color }}>
               <Row style={{ justifyContent: 'space-between' }}>
                 <Text style={{ fontWeight: '700', color: colors.text, flex: 1 }}>{d.title}</Text>
@@ -58,19 +62,28 @@ export function LearnScreen() {
                 {tr('{0} thẻ · đã thuộc lâu {1}', list.length, mature)}
               </Muted>
               <ProgressBar value={list.length ? mature / list.length : 0} color={colors.success} />
+              {dDue > 0 && <Button title={tr('Ôn {0} thẻ', dDue)} small variant="marker" icon="cards" onPress={() => nav.navigate('Review', { deckId: d.id })} />}
             </Box>
           </Pressable>
         );
       })}
 
-      <H3>{tr('Bộ câu hỏi')}</H3>
+      <Row style={{ justifyContent: 'space-between' }}>
+        <H3>{tr('Bộ câu hỏi')}</H3>
+        <Button title={tr('+ Bộ câu hỏi')} small variant="secondary" onPress={() => nav.navigate('QuizEdit', {})} />
+      </Row>
       {quizzes.length === 0 && <Empty text={tr('Chưa có bộ câu hỏi.')} />}
       {quizzes.map((q) => {
         const last = quizAttempts.find((a) => (typeof a.quiz === 'string' ? a.quiz : a.quiz?.id ?? a.quiz?._id) === q.id);
         return (
           <Pressable key={q.id} onPress={() => nav.navigate('QuizTake', { quizId: q.id })}>
             <Box>
-              <Text style={{ fontWeight: '700', color: colors.text }}>{q.title}</Text>
+              <Row style={{ flexWrap: 'nowrap' }}>
+                <Text style={{ fontWeight: '700', color: colors.text, flex: 1 }}>{q.title}</Text>
+                <Pressable hitSlop={10} accessibilityLabel={tr('Sửa')} onPress={() => nav.navigate('QuizEdit', { quizId: q.id })}>
+                  <Icon name="edit" size={18} color={colors.text2} />
+                </Pressable>
+              </Row>
               <Muted>
                 {tr('{0} câu', q.questions.length)}{q.source === 'ai' ? ' · AI' : ''}
                 {last ? tr(' · lần gần nhất {0}%', Math.round(last.accuracy * 100)) : ''}

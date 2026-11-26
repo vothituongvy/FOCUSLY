@@ -27,7 +27,11 @@ export function MaterialsScreen() {
     <Screen>
       <Card>
       <H1>{tr('Tài liệu')}</H1>
-      <Muted>{tr('Xem nhanh trên điện thoại. Tải lên & ghi chú đầy đủ trên Web.')}</Muted>
+      <Muted>{tr('Bấm vào tài liệu để xem, ghi chú và dùng AI. Tải file lên từ trang web.')}</Muted>
+      <Row>
+        <Button title={tr('+ Link')} small variant="secondary" icon="link" onPress={() => nav.navigate('MaterialAdd', { kind: 'link' })} />
+        <Button title={tr('+ Ghi chú văn bản')} small variant="secondary" icon="journal" onPress={() => nav.navigate('MaterialAdd', { kind: 'text' })} />
+      </Row>
       <TextInput style={s.input} value={q} onChangeText={setQ} placeholder={tr('Tìm tài liệu...')} placeholderTextColor="#a0a5c0" />
       <Chips>
         <Chip label={tr('★ Đã đánh dấu')} active={onlyBookmarked} onPress={() => setOnlyBookmarked(!onlyBookmarked)} />
@@ -35,7 +39,8 @@ export function MaterialsScreen() {
       </Card>
       {list.length === 0 && <Empty text={tr('Chưa có tài liệu.')} />}
       {list.map((m) => (
-        <Card key={m.id}>
+        <Pressable key={m.id} onPress={() => nav.navigate('MaterialDetail', { materialId: m.id })}>
+        <Card>
           <Row>
             <Icon name={TYPE_ICON[m.type]} size={22} color={colors.text2} />
             <View style={{ flex: 1 }}>
@@ -72,82 +77,9 @@ export function MaterialsScreen() {
             </Text>
           )}
         </Card>
+        </Pressable>
       ))}
     </Screen>
-  );
-}
-
-/* ======================= Trợ lý AI ======================= */
-export function AIChatScreen({ route }: { route: { params?: { materialId?: string } } }) {
-  const materials = useData((st) => st.materials);
-  const materialId = route.params?.materialId ?? null;
-  const material = materials.find((m) => m.id === materialId);
-  const [conv, setConv] = useState<Conversation | null>(null);
-  const [input, setInput] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-  // RN 0.88: ScrollView là function component – chỉ cần phương thức scrollToEnd
-  const scroll = useRef<{ scrollToEnd: (o?: { animated?: boolean }) => void } | null>(null);
-
-  const send = async (text = input) => {
-    if (!text.trim()) return;
-    setBusy(true);
-    setError('');
-    setInput('');
-    setConv((c) => ({
-      ...(c ?? { id: '', title: text, material: materialId, subject: null, updatedAt: '' }),
-      messages: [...(c?.messages ?? []), { role: 'user', content: text, at: new Date().toISOString() }],
-    }));
-    try {
-      const r = await api<{ item: Conversation }>('/ai/chat', { method: 'POST', body: { conversationId: conv?.id || undefined, message: text, materialId }, timeoutMs: 90000 });
-      setConv(r.item);
-    } catch (e) {
-      setError(errorMessage(e));
-    } finally {
-      setBusy(false);
-      setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 100);
-    }
-  };
-
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['bottom']}>
-      <ScrollView ref={scroll as never} contentContainerStyle={{ padding: 16, gap: 10 }}>
-        {material && <Muted>{tr('Đang hỏi về: {0}', material.title)}</Muted>}
-        {!conv?.messages?.length && (
-          <View style={{ alignItems: 'center', gap: 10, paddingVertical: 30 }}>
-            <Text style={{ fontSize: 40 }}></Text>
-            <Muted>{tr('Hỏi bất cứ điều gì bạn đang học. AI chỉ gợi ý – hãy kiểm chứng lại.')}</Muted>
-            <Chips>
-              {(material ? [tr('Tóm tắt ý chính'), tr('Giải thích phần khó nhất'), tr('Hỏi tôi 3 câu kiểm tra')] : [tr('Giải thích đạo hàm bằng ví dụ'), tr('Phân biệt hiện tại hoàn thành và quá khứ đơn')]).map((t) => (
-                <Chip key={t} label={t} onPress={() => send(t)} />
-              ))}
-            </Chips>
-          </View>
-        )}
-        {conv?.messages?.map((m, i) => (
-          <View
-            key={i}
-            style={{
-              alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
-              maxWidth: '85%',
-              backgroundColor: m.role === 'user' ? colors.primary : colors.surface,
-              borderRadius: 14,
-              padding: 12,
-              borderWidth: m.role === 'user' ? 0 : 1,
-              borderColor: colors.border,
-            }}
-          >
-            <Text style={{ color: m.role === 'user' ? '#fff' : colors.text }}>{m.role === 'assistant' ? m.content.replace(/\*\*/g, '').replace(/^#+\s/gm, '') : m.content}</Text>
-          </View>
-        ))}
-        {busy && <ActivityIndicator color={colors.primary} />}
-        {!!error && <Text style={s.error}>{error}</Text>}
-      </ScrollView>
-      <Row style={{ padding: 12, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface }}>
-        <TextInput style={[s.input, { flex: 1 }]} value={input} onChangeText={setInput} placeholder={tr('Nhập câu hỏi...')} placeholderTextColor="#a0a5c0" multiline />
-        <Button title={tr('Gửi')} small disabled={busy || !input.trim()} onPress={() => send()} />
-      </Row>
-    </SafeAreaView>
   );
 }
 
@@ -272,10 +204,10 @@ export function AnalyticsScreen() {
               [tr('Phân tâm'), String(m.distractionCount), tr('{0}/giờ', m.distractionsPerHour ?? '—')],
               ['Quiz', pct(m.quizAccuracy), tr('{0} bài', m.quizAttempts)],
             ].map(([l, v, sub]) => (
-              <Card key={l} style={{ width: '48%', flexGrow: 1, gap: 2 }}>
-                <Muted>{l}</Muted>
-                <Text style={{ fontSize: 22, fontWeight: '800', color: colors.text }}>{v}</Text>
-                <Muted style={{ fontSize: 11 }}>{sub}</Muted>
+              <Card key={l} style={{ width: '48%', flexGrow: 1, gap: 2, alignItems: 'center', justifyContent: 'center' }}>
+                <Muted style={{ textAlign: 'center' }}>{l}</Muted>
+                <Text style={{ fontSize: 24, fontWeight: '800', color: colors.text, textAlign: 'center' }}>{v}</Text>
+                <Muted style={{ fontSize: 11, textAlign: 'center' }}>{sub}</Muted>
               </Card>
             ))}
           </View>

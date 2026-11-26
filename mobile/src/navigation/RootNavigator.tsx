@@ -15,7 +15,10 @@ import { PlanScreen, SubjectEditScreen, TaskEditScreen } from '../screens/PlanSc
 import { FocusScreen } from '../screens/FocusScreen';
 import { JournalScreen } from '../screens/JournalScreen';
 import { LearnScreen, QuizTakeScreen, ReviewScreen } from '../screens/LearnScreens';
-import { AIChatScreen, AnalyticsScreen, MaterialsScreen, NotificationsScreen } from '../screens/MoreScreens';
+import { AnalyticsScreen, MaterialsScreen, NotificationsScreen } from '../screens/MoreScreens';
+import { AIChatScreen, AICoachScreen } from '../screens/AIScreens';
+import { GuideScreen, HistoryScreen, NotificationSettingsScreen, PreferencesScreen, SecurityScreen, ShieldSettingsScreen } from '../screens/ExtraScreens';
+import { DeckEditScreen, MaterialAddScreen, MaterialDetailScreen, QuizEditScreen } from '../screens/StudyScreens';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { OnboardingScreen, SplashScreen } from '../screens/OnboardingScreen';
 import type { AppStackParams, AuthStackParams, TabParams } from './types';
@@ -124,6 +127,17 @@ export function RootNavigator() {
           <AppStack.Screen name="AIChat" component={AIChatScreen as never} options={{ title: tr('Trợ lý AI') }} />
           <AppStack.Screen name="Notifications" component={NotificationsScreen} options={{ title: tr('Thông báo') }} />
           <AppStack.Screen name="Analytics" component={AnalyticsScreen} options={{ title: tr('Phân tích học tập') }} />
+          <AppStack.Screen name="AICoach" component={AICoachScreen} options={{ title: tr('Đề xuất & kế hoạch') }} />
+          <AppStack.Screen name="History" component={HistoryScreen} options={{ title: tr('Lịch sử phiên học') }} />
+          <AppStack.Screen name="Guide" component={GuideScreen} options={{ title: tr('Hướng dẫn sử dụng') }} />
+          <AppStack.Screen name="MaterialDetail" component={MaterialDetailScreen} options={{ title: tr('Tài liệu') }} />
+          <AppStack.Screen name="MaterialAdd" component={MaterialAddScreen} options={{ title: tr('Thêm tài liệu') }} />
+          <AppStack.Screen name="DeckEdit" component={DeckEditScreen} options={{ title: tr('Bộ flashcard') }} />
+          <AppStack.Screen name="QuizEdit" component={QuizEditScreen} options={{ title: tr('Bộ câu hỏi') }} />
+          <AppStack.Screen name="Preferences" component={PreferencesScreen} options={{ title: tr('Sở thích học tập') }} />
+          <AppStack.Screen name="ShieldSettings" component={ShieldSettingsScreen} options={{ title: 'Focus Shield' }} />
+          <AppStack.Screen name="NotificationSettings" component={NotificationSettingsScreen} options={{ title: tr('Cài đặt thông báo') }} />
+          <AppStack.Screen name="Security" component={SecurityScreen} options={{ title: tr('Bảo mật') }} />
         </AppStack.Navigator>
       ) : (
         <AuthStack.Navigator screenOptions={{ headerShown: false }}>

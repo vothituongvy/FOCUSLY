@@ -119,7 +119,7 @@ function Metric({
   noteColor?: string;
 }) {
   return (
-    <Paper style={{ flex: 1, minHeight: 138, backgroundColor: tint.bg, borderRadius: 14, borderWidth: 1, borderColor: tint.border, padding: 14, gap: 8, justifyContent: 'space-between' }} radius={14}>
+    <Paper style={{ flex: 1, minHeight: 138, backgroundColor: tint.bg, borderRadius: 14, borderWidth: 1, borderColor: tint.border, padding: 14, gap: 8 }} radius={14}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <View style={{ width: 34, height: 34, borderRadius: 11, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' }}>
           <Icon name={icon} size={19} color={tint.ink} />
@@ -128,12 +128,15 @@ function Metric({
           {label}
         </Text>
       </View>
-      <Text style={{ fontSize: 28, fontWeight: '800', color: colors.text, letterSpacing: -0.5 }}>
-        {value}
-        {!!unit && <Text style={{ fontSize: 15, color: colors.muted, fontWeight: '600' }}>{unit}</Text>}
-      </Text>
+      {/* con số nằm giữa phần còn lại của thẻ */}
+      <View style={{ flexGrow: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <Text style={{ fontSize: 30, fontWeight: '800', color: colors.text, letterSpacing: -0.5, textAlign: 'center' }}>
+          {value}
+          {!!unit && <Text style={{ fontSize: 15, color: colors.muted, fontWeight: '600' }}>{unit}</Text>}
+        </Text>
+      </View>
       {/* luôn giữ dòng ghi chú để 4 ô cao bằng nhau */}
-      <Text style={{ fontSize: 12, color: noteColor ?? colors.muted }} numberOfLines={2}>
+      <Text style={{ fontSize: 12, color: noteColor ?? colors.muted, textAlign: 'center' }} numberOfLines={2}>
         {note ?? ' '}
       </Text>
     </Paper>

@@ -1,6 +1,7 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useContext } from 'react';
+import { HeaderHeightContext } from '@react-navigation/elements';
 import { useRoute } from '@react-navigation/native';
-import { ActivityIndicator, Image, Animated, Pressable, ScrollView, StyleProp, StyleSheet, TextInputProps, View, ViewStyle } from 'react-native';
+import { ActivityIndicator, Image, Animated, KeyboardAvoidingView, Pressable, ScrollView, StyleProp, StyleSheet, TextInputProps, View, ViewStyle } from 'react-native';
 import { Text, TextInput } from './AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, fonts, radius, tints } from '../theme';
@@ -8,6 +9,19 @@ import { useData } from '../store/data';
 import { Icon, type IconName } from './Icon';
 import { tr } from '../i18n';
 import { FadeIn, useAnimatedNumber, usePressScale } from './motion';
+
+/**
+ * Đẩy nội dung lên trên bàn phím. Android bật edge-to-edge nên cửa sổ không tự co lại khi bàn phím mở
+ * -> phải tự chừa chỗ (padding) cho cả Android lẫn iOS, trừ đi chiều cao thanh tiêu đề (nếu có).
+ */
+export function KeyboardView({ children }: { children: ReactNode }) {
+  const headerHeight = useContext(HeaderHeightContext) ?? 0;
+  return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={headerHeight}>
+      {children}
+    </KeyboardAvoidingView>
+  );
+}
 
 /**
  * Khung màn hình: header cố định phía trên (nếu có) + nội dung cuộn.
@@ -26,9 +40,11 @@ export function Screen({ children, scroll = true, padded = true, header }: { chi
       {header}
       <SyncBar />
       {scroll ? (
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 32 }}>
-          {content}
-        </ScrollView>
+        <KeyboardView>
+          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 32 }}>
+            {content}
+          </ScrollView>
+        </KeyboardView>
       ) : (
         content
       )}
@@ -56,8 +72,8 @@ export function H1({ children }: { children: ReactNode }) {
 export function H3({ children }: { children: ReactNode }) {
   return <Text style={s.h3}>{children}</Text>;
 }
-export function Muted({ children, style }: { children: ReactNode; style?: object }) {
-  return <Text style={[s.muted, style]}>{children}</Text>;
+export function Muted({ children, style, numberOfLines }: { children: ReactNode; style?: object; numberOfLines?: number }) {
+  return <Text style={[s.muted, style]} numberOfLines={numberOfLines}>{children}</Text>;
 }
 
 const LAYOUT_KEYS = ['flex', 'flexGrow', 'flexShrink', 'flexBasis', 'width', 'minWidth', 'maxWidth', 'alignSelf', 'margin', 'marginTop', 'marginBottom', 'marginLeft', 'marginRight', 'marginHorizontal', 'marginVertical', 'position', 'top', 'left', 'right', 'bottom'] as const;
@@ -210,7 +226,7 @@ export function Chip({ label, active, onPress }: { label: string; active?: boole
 
 /** Hàng chip lướt ngang (không xuống dòng). Truyền `wrap` nếu muốn xuống dòng. */
 export function Chips({ children, wrap }: { children: ReactNode; wrap?: boolean }) {
-  if (wrap) return <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>{children}</View>;
+  if (wrap) return <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6 }}>{children}</View>;
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 6, paddingRight: 8 }} style={{ flexGrow: 0 }}>
       {children}

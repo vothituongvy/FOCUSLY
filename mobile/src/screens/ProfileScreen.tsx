@@ -12,17 +12,41 @@ import { colors } from '../theme';
 import type { User } from '../types';
 import { Button, Card, Chip, Chips, Field, H1, H3, Muted, Row, Screen, s } from '../components/ui';
 import { AppHeader } from '../components/AppHeader';
+import { Icon, type IconName } from '../components/Icon';
 import { LOCALE, tr } from '../i18n';
 import { LangSwitch } from '../components/LangSwitch';
 import { checkForUpdate } from '../updateCheck';
 import { APP_VERSION } from '../config';
 
-const MENU: { screen: 'Journal' | 'Materials' | 'AIChat' | 'Notifications' | 'Analytics'; label: string }[] = [
-  { screen: 'Analytics', label: tr(' Phân tích học tập') },
-  { screen: 'Journal', label: tr(' Nhật ký phân tâm') },
-  { screen: 'Materials', label: tr(' Tài liệu') },
-  { screen: 'AIChat', label: tr(' Trợ lý AI') },
-  { screen: 'Notifications', label: tr(' Thông báo') },
+type MenuItem = { screen: keyof AppStackParams; label: string; icon: IconName };
+/** Các mục giống thanh bên của bản Web, chia nhóm */
+const MENU: { title: string; items: MenuItem[] }[] = [
+  {
+    title: tr('Học'),
+    items: [
+      { screen: 'Materials', label: tr('Tài liệu'), icon: 'materials' },
+      { screen: 'AIChat', label: tr('Trợ lý AI'), icon: 'ai' },
+      { screen: 'AICoach', label: tr('Đề xuất & kế hoạch'), icon: 'zap' },
+    ],
+  },
+  {
+    title: tr('Nhìn lại'),
+    items: [
+      { screen: 'Analytics', label: tr('Phân tích học tập'), icon: 'analytics' },
+      { screen: 'History', label: tr('Lịch sử phiên học'), icon: 'history' },
+      { screen: 'Journal', label: tr('Nhật ký phân tâm'), icon: 'journal' },
+    ],
+  },
+  {
+    title: tr('Cài đặt'),
+    items: [
+      { screen: 'Preferences', label: tr('Sở thích học tập'), icon: 'settings' },
+      { screen: 'ShieldSettings', label: 'Focus Shield', icon: 'shield' },
+      { screen: 'NotificationSettings', label: tr('Thông báo'), icon: 'bell' },
+      { screen: 'Security', label: tr('Bảo mật'), icon: 'lock' },
+      { screen: 'Guide', label: tr('Hướng dẫn sử dụng'), icon: 'play' },
+    ],
+  },
 ];
 
 export function ProfileScreen() {
@@ -30,38 +54,7 @@ export function ProfileScreen() {
   const nav = useNavigation<NativeStackNavigationProp<AppStackParams>>();
   const { user, setUser, logout } = useAuth();
   const { online, pending, lastSyncAt, sync, syncing } = useData();
-  const [name, setName] = useState(user?.name ?? '');
-  const [goal, setGoal] = useState(user?.profile.learningGoal ?? '');
-  const [target, setTarget] = useState(String(user?.profile.dailyTargetMinutes ?? 120));
-  const [blockList, setBlockList] = useState<string[]>(user?.shield.blockList ?? []);
-  const [domain, setDomain] = useState('');
-  const [msg, setMsg] = useState('');
-
   if (!user) return null;
-
-  const saveProfile = async () => {
-    try {
-      const r = await api<{ user: User }>('/users/me', {
-        method: 'PATCH',
-        body: { name, profile: { learningGoal: goal, dailyTargetMinutes: Number(target) || 0 } },
-      });
-      setUser(r.user);
-      setMsg(tr('Đã lưu ✓'));
-    } catch (e) {
-      setMsg(errorMessage(e));
-    }
-  };
-
-  const saveShield = async (list: string[]) => {
-    setBlockList(list);
-    try {
-      await api('/shield', { method: 'PUT', body: { blockList: list } });
-      const me = await api<{ user: User }>('/users/me');
-      setUser(me.user);
-    } catch (e) {
-      Alert.alert(tr('Không lưu được'), errorMessage(e));
-    }
-  };
 
   return (
     <Screen header={<AppHeader title={tr('Cá nhân')} />}>
@@ -79,14 +72,26 @@ export function ProfileScreen() {
         </View>
       </Card>
 
-      <Card style={{ padding: 0, gap: 0 }}>
-        {MENU.map((m, i) => (
-          <Pressable key={m.screen} onPress={() => nav.navigate(m.screen as never)} style={{ padding: 14, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border, flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Text style={{ color: colors.text, fontWeight: '600', flex: 1 }}>{m.label}</Text>
-            <Text style={{ color: colors.muted }}>›</Text>
-          </Pressable>
-        ))}
-      </Card>
+      {MENU.map((g) => (
+        <View key={g.title} style={{ gap: 6 }}>
+          <Muted style={{ paddingHorizontal: 4, fontWeight: '700' }}>{g.title}</Muted>
+          <Card style={{ padding: 0, gap: 0 }}>
+            {g.items.map((m, i) => (
+              <Pressable
+                key={m.screen}
+                onPress={() => nav.navigate(m.screen as never)}
+                style={({ pressed }) => ({ paddingVertical: 13, paddingHorizontal: 14, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: pressed ? colors.surface2 : 'transparent' })}
+              >
+                <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: colors.markerSoft, alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon name={m.icon} size={18} color={colors.text} />
+                </View>
+                <Text style={{ color: colors.text, fontWeight: '600', flex: 1 }}>{m.label}</Text>
+                <Icon name="chevronRight" size={18} color={colors.muted} />
+              </Pressable>
+            ))}
+          </Card>
+        </View>
+      ))}
 
       <Card>
         <H3>{tr('Đồng bộ Web Mobile')}</H3>
@@ -95,44 +100,6 @@ export function ProfileScreen() {
           {lastSyncAt ? tr(' · lần cuối {0}', new Date(lastSyncAt).toLocaleTimeString(LOCALE)) : ''}
         </Muted>
         <Button title={syncing ? tr('Đang đồng bộ...') : tr('Đồng bộ ngay')} variant="secondary" small onPress={() => void sync()} />
-      </Card>
-
-      <Card>
-        <H3>{tr('Hồ sơ học tập')}</H3>
-        <Field label={tr('Họ tên')} value={name} onChangeText={setName} />
-        <Field label={tr('Mục tiêu học tập')} value={goal} onChangeText={setGoal} multiline />
-        <Field label={tr('Thời lượng học mỗi ngày (phút)')} value={target} onChangeText={setTarget} keyboardType="number-pad" />
-        <Muted>{tr('Múi giờ: {0} · Chỉnh khung giờ học, Pomodoro mặc định trên Web.', user.profile.timezone)}</Muted>
-        {!!msg && <Text style={{ color: colors.success }}>{msg}</Text>}
-        <Button title={tr('Lưu hồ sơ')} onPress={saveProfile} />
-      </Card>
-
-      <Card>
-        <H3>Focus Shield – Block List</H3>
-        <Muted>{tr('Danh sách website bị Chrome Extension chặn khi bạn đang học (kể cả khi bắt đầu phiên trên điện thoại).')}</Muted>
-        <Chips>
-          {blockList.map((d) => (
-            <Chip key={d} label={`${d}  ✕`} onPress={() => saveShield(blockList.filter((x) => x !== d))} />
-          ))}
-        </Chips>
-        <Row>
-          <View style={{ flex: 1 }}>
-            <Field label={tr('Thêm website')} value={domain} onChangeText={setDomain} autoCapitalize="none" placeholder="vd: reddit.com" />
-          </View>
-          <Button
-            title={tr('Thêm')}
-            small
-            style={{ marginTop: 22 }}
-            onPress={() => {
-              const d = domain.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
-              if (d && !blockList.includes(d)) void saveShield([...blockList, d]);
-              setDomain('');
-            }}
-          />
-        </Row>
-        <Muted style={{ fontSize: 11 }}>
-          {tr('Lưu ý: trên Android, việc chặn ứng dụng khác cần quyền hệ thống đặc biệt (Accessibility/Usage Access) – dự kiến ở giai đoạn sau. Phiên bản hiện tại phát hiện khi bạn rời FOCUSLY và ghi vào Nhật ký phân tâm.')}
-        </Muted>
       </Card>
 
       <Card>
