@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/api';
 import { GoogleButton } from '@/components/GoogleButton';
 import { tr } from '@/lib/i18n';
+import { PasswordInput } from '@/components/PasswordInput';
 
 export default function LoginPage() {
   const { login, googleLogin } = useAuth();
@@ -38,7 +39,7 @@ export default function LoginPage() {
         <span className="row between">
           {tr('Mật khẩu')}{' '}<Link href="/forgot-password" className="small">{tr('Quên mật khẩu?')}</Link>
         </span>
-        <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
+        <PasswordInput required value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
       </label>
       {error && <p className="error-text">{error}</p>}
       <button className="btn block" disabled={busy}>

@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/api';
 import { GoogleButton } from '@/components/GoogleButton';
 import { tr } from '@/lib/i18n';
+import { PasswordInput } from '@/components/PasswordInput';
 
 export default function RegisterPage() {
   const { register, googleLogin } = useAuth();
@@ -45,11 +46,11 @@ export default function RegisterPage() {
       </label>
       <label className="field">
         {tr('Mật khẩu')}
-        <input type="password" required value={form.password} onChange={set('password')} autoComplete="new-password" />
+        <PasswordInput required value={form.password} onChange={set('password')} autoComplete="new-password" />
       </label>
       <label className="field">
         {tr('Nhập lại mật khẩu')}
-        <input type="password" required value={form.confirm} onChange={set('confirm')} autoComplete="new-password" />
+        <PasswordInput required value={form.confirm} onChange={set('confirm')} autoComplete="new-password" />
       </label>
       {error && <p className="error-text">{error}</p>}
       <button className="btn block" disabled={busy}>

@@ -5,6 +5,7 @@ import { FormEvent, Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api, errorMessage } from '@/lib/api';
 import { tr } from '@/lib/i18n';
+import { PasswordInput } from '@/components/PasswordInput';
 
 function ResetForm() {
   const token = useSearchParams().get('token') ?? '';
@@ -45,11 +46,11 @@ function ResetForm() {
       <h2 style={{ textAlign: 'center' }}>{tr('Đặt lại mật khẩu')}</h2>
       <label className="field">
         {tr('Mật khẩu mới')}
-        <input type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
+        <PasswordInput required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
       </label>
       <label className="field">
         {tr('Nhập lại')}
-        <input type="password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+        <PasswordInput required value={confirm} onChange={(e) => setConfirm(e.target.value)} />
       </label>
       {error && <p className="error-text">{error}</p>}
       <button className="btn block" disabled={busy}>

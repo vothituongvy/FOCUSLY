@@ -11,6 +11,7 @@ import type { FocusScheduleItem, NotificationSettings, User } from '@/lib/types'
 import { Avatar, Toggle } from '@/components/ui';
 import { Icon } from '@/components/Icon';
 import { LANG, setLang, tr, type Lang } from '@/lib/i18n';
+import { PasswordInput } from '@/components/PasswordInput';
 
 type Tab = 'profile' | 'preferences' | 'shield' | 'notifications' | 'security' | 'language';
 
@@ -578,12 +579,12 @@ function SecurityTab({ user }: { user: User }) {
         {user.hasPassword && (
           <label className="field">
             {tr('Mật khẩu hiện tại')}
-            <input type="password" required value={current} onChange={(e) => setCurrent(e.target.value)} />
+            <PasswordInput required value={current} onChange={(e) => setCurrent(e.target.value)} />
           </label>
         )}
         <label className="field">
           {tr('Mật khẩu mới (≥ 8 ký tự, có chữ và số)')}
-          <input type="password" required minLength={8} value={next} onChange={(e) => setNext(e.target.value)} />
+          <PasswordInput required minLength={8} value={next} onChange={(e) => setNext(e.target.value)} />
         </label>
         <div className="row">
           <button className="btn">{tr('Cập nhật')}</button>
