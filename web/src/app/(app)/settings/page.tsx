@@ -604,23 +604,36 @@ function SecurityTab({ user }: { user: User }) {
 }
 
 function LanguageTab() {
+  const options: { id: Lang; name: string; native: string; sample: string }[] = [
+    { id: 'vi', name: 'Tiếng Việt', native: 'Vietnamese', sample: 'Bắt đầu phiên học' },
+    { id: 'en', name: 'English', native: 'Tiếng Anh', sample: 'Start a study session' },
+  ];
   return (
-    <div className="col" style={{ maxWidth: 560, gap: 12 }}>
-      <h3>{tr('Ngôn ngữ giao diện')}</h3>
-      <p className="small muted">{tr('Chọn ngôn ngữ hiển thị của FOCUSLY trên trình duyệt này.')}</p>
-      <div className="list">
-        {(
-          [
-            ['vi', 'Tiếng Việt'],
-            ['en', 'English'],
-          ] as [Lang, string][]
-        ).map(([l, label]) => (
-          <label key={l} className={`option ${LANG === l ? 'selected' : ''}`}>
-            <input type="radio" name="lang" checked={LANG === l} onChange={() => LANG !== l && setLang(l)} />
-            {label}
-          </label>
-        ))}
+    <div className="col" style={{ maxWidth: 620, gap: 14 }}>
+      <div>
+        <h3>{tr('Ngôn ngữ giao diện')}</h3>
+        <p className="small muted" style={{ marginTop: 4 }}>
+          {tr('Chọn ngôn ngữ hiển thị của FOCUSLY trên trình duyệt này.')}
+        </p>
       </div>
+      <div className="lang-cards" role="radiogroup" aria-label={tr('Ngôn ngữ giao diện')}>
+        {options.map((o) => {
+          const on = LANG === o.id;
+          return (
+            <button key={o.id} type="button" role="radio" aria-checked={on} className={`lang-card ${on ? 'on' : ''}`} onClick={() => !on && setLang(o.id)}>
+              <span className="lang-code">{o.id.toUpperCase()}</span>
+              <span className="grow" style={{ textAlign: 'left' }}>
+                <b>{o.name}</b>
+                <span className="small muted" style={{ display: 'block' }}>
+                  {o.native} · “{o.sample}”
+                </span>
+              </span>
+              {on && <Icon name="check" size={18} />}
+            </button>
+          );
+        })}
+      </div>
+      <p className="small muted">{tr('Trang sẽ tải lại để áp dụng ngôn ngữ mới.')}</p>
     </div>
   );
 }

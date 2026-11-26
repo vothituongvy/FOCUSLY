@@ -102,3 +102,19 @@ a.menu-item:hover, button.menu-item:hover, .menu-item:focus-visible { background
   .topbar { padding: 0 10px; }
   .main { margin: 0; border-width: 0; min-height: calc(100vh - 58px); }
 }
+
+
+/* Thanh tab trong trang (Cài đặt…): cuộn ngang được nhưng không hiện thanh cuộn */
+.tabs { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+
+/* Chọn ngôn ngữ */
+.lang-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.lang-card { display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--rule-strong); border-radius: 12px; background: var(--paper); font: inherit; color: var(--ink); cursor: pointer; }
+.lang-card:hover { border-color: var(--ink-2); }
+.lang-card:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.lang-card.on { border-color: var(--ink); box-shadow: inset 0 -4px 0 var(--marker); }
+.lang-card svg { color: var(--go); flex-shrink: 0; }
+.lang-code { width: 38px; height: 38px; border-radius: 10px; background: var(--desk); display: grid; place-items: center; font-weight: 800; font-size: 13px; letter-spacing: .03em; flex-shrink: 0; }
+.lang-card.on .lang-code { background: var(--marker); }
+@media (max-width: 560px) { .lang-cards { grid-template-columns: 1fr; } }
