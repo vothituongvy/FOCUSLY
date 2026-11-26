@@ -58,7 +58,9 @@ export function Spinner() {
 export function Avatar({ name, url, size }: { name: string; url?: string | null; size?: 'lg' }) {
   // Ảnh lỗi (link hết hạn, file đã mất trên máy chủ…) thì quay về chữ cái đầu thay vì hiện ô vàng trống
   const [broken, setBroken] = useState(false);
-  useEffect(() => setBroken(false), [url]);
+  useEffect(() => {
+    setBroken(false);
+  }, [url]);
   if (url && !broken) return <img className={`avatar ${size ?? ''}`} src={url} alt={name} onError={() => setBroken(true)} />;
   const initials = name
     .split(' ')

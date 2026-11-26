@@ -66,7 +66,10 @@ function Chat({ initialMaterial }: { initialMaterial: string | null }) {
   const [error, setError] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => endRef.current?.scrollIntoView({ behavior: 'smooth' }), [conv?.messages?.length, busy]);
+  // Chrome mới: scrollIntoView trả về Promise. Effect phải trả về hàm dọn dẹp hoặc không gì cả, nên dùng thân hàm có ngoặc { }
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [conv?.messages?.length, busy]);
 
   const open = async (id: string) => {
     const r = await get<{ item: Conversation }>(`/ai/conversations/${id}`);

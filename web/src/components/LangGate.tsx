@@ -8,6 +8,8 @@ import { useEffect, useState, type ReactNode } from 'react';
  */
 export function LangGate({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
-  useEffect(() => setReady(true), []);
+  useEffect(() => {
+    setReady(true);
+  }, []);
   return ready ? <>{children}</> : null;
 }
