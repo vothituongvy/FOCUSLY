@@ -1,6 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { BottomTabBar, createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../store/auth';
@@ -28,8 +29,8 @@ const Tab = createBottomTabNavigator<TabParams>();
 const icon =
   (name: IconName) =>
   ({ focused }: { focused: boolean }) => (
-    <View style={{ width: 48, height: 30, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: focused ? colors.marker : 'transparent' }}>
-      <Icon name={name} size={21} color={focused ? colors.text : colors.muted} strokeWidth={focused ? 2 : 1.75} />
+    <View style={{ width: 54, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: focused ? colors.marker : 'transparent' }}>
+      <Icon name={name} size={24} color={focused ? colors.text : colors.muted} strokeWidth={focused ? 2 : 1.75} />
     </View>
   );
 
@@ -37,6 +38,7 @@ function Tabs() {
   const running = useSession((s) => s.session);
   // Đang học với Focus Shield: ẩn thanh tab để giảm xao nhãng
   const hideTabs = Boolean(running?.shieldEnabled);
+  const insets = useSafeAreaInsets();
   return (
     <Tab.Navigator
       tabBar={(props) => (
@@ -49,10 +51,10 @@ function Tabs() {
         headerShown: false,
         tabBarActiveTintColor: colors.text,
         tabBarInactiveTintColor: colors.muted,
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600', marginTop: 2 },
+        tabBarLabelStyle: { fontSize: 11.5, fontWeight: '700', marginTop: 4 },
         tabBarStyle: hideTabs
           ? { display: 'none' }
-          : { height: 64, paddingTop: 6, paddingBottom: 8, backgroundColor: colors.surface, borderTopColor: colors.border, elevation: 0 },
+          : { height: 68 + insets.bottom, paddingTop: 8, paddingBottom: Math.max(8, insets.bottom), backgroundColor: colors.surface, borderTopColor: colors.border, elevation: 0 },
       }}
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ title: tr('Hôm nay'), tabBarIcon: icon('home') }} />

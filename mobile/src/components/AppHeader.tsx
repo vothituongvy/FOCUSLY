@@ -1,6 +1,7 @@
 import React, { ReactNode, useCallback, useState } from 'react';
 import { Image, Pressable, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { api } from '../api/client';
 import { useAuth } from '../store/auth';
@@ -16,6 +17,8 @@ export function AppHeader({ title, subtitle, right }: { title: string; subtitle?
   const nav = useNavigation<NativeStackNavigationProp<AppStackParams>>();
   const user = useAuth((s) => s.user);
   const [unread, setUnread] = useState(0);
+  const [avatarBroken, setAvatarBroken] = useState(false);
+  const insets = useSafeAreaInsets();
 
   useFocusEffect(
     useCallback(() => {
@@ -42,15 +45,17 @@ export function AppHeader({ title, subtitle, right }: { title: string; subtitle?
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 16,
-        paddingTop: 10,
+        paddingTop: insets.top + 10,
         paddingBottom: 12,
         gap: 6,
-        backgroundColor: colors.bg,
+        backgroundColor: colors.surface,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.border,
       }}
     >
       <View style={{ flex: 1 }}>
         {!!subtitle && <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 2 }}>{subtitle}</Text>}
-        <Text style={{ fontSize: 26, fontWeight: '800', color: colors.text, letterSpacing: -0.6 }} numberOfLines={1}>
+        <Text style={{ fontSize: 24, fontWeight: '800', color: colors.text, letterSpacing: -0.6 }} numberOfLines={1}>
           {title}
         </Text>
       </View>
@@ -63,8 +68,8 @@ export function AppHeader({ title, subtitle, right }: { title: string; subtitle?
         hitSlop={6}
         style={{ marginLeft: 2 }}
       >
-        {user?.avatarUrl ? (
-          <Image source={{ uri: user.avatarUrl }} style={{ width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: colors.border }} />
+        {user?.avatarUrl && !avatarBroken ? (
+          <Image onError={() => setAvatarBroken(true)} source={{ uri: user.avatarUrl }} style={{ width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: colors.border }} />
         ) : (
           <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.marker, alignItems: 'center', justifyContent: 'center' }}>
             <Text style={{ fontWeight: '800', color: colors.text, fontSize: 13 }}>{initials}</Text>

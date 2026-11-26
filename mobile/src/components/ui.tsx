@@ -21,9 +21,9 @@ import { tr } from '../i18n';
  * Khung màn hình: header cố định phía trên (nếu có) + nội dung cuộn.
  */
 export function Screen({ children, scroll = true, padded = true, header }: { children: ReactNode; scroll?: boolean; padded?: boolean; header?: ReactNode }) {
-  const content = <View style={[padded && { padding: 16, paddingTop: header ? 4 : 16, gap: 14 }]}>{children}</View>;
+  const content = <View style={[padded && { padding: 16, gap: 14 }]}>{children}</View>;
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={header ? [] : ['top']}>
       {header}
       <SyncBar />
       {scroll ? (
@@ -125,7 +125,7 @@ export function Button({
         <ActivityIndicator color={v.fg} />
       ) : (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          {icon && <Icon name={icon} size={small ? 14 : 17} color={v.fg} />}
+          {icon && <Icon name={icon} size={small ? 16 : 20} color={v.fg} />}
           <Text style={{ color: v.fg, fontWeight: '700', fontSize: small ? 13 : 15 }}>{title}</Text>
         </View>
       )}
@@ -136,7 +136,7 @@ export function Button({
 export function IconButton({ name, onPress, label, color = colors.text, badge }: { name: IconName; onPress: () => void; label: string; color?: string; badge?: number }) {
   return (
     <Pressable onPress={onPress} hitSlop={8} accessibilityRole="button" accessibilityLabel={label} style={({ pressed }) => [s.iconBtn, pressed && { backgroundColor: colors.surface2 }]}>
-      <Icon name={name} size={21} color={color} />
+      <Icon name={name} size={23} color={color} />
       {!!badge && (
         <View style={s.badgeDot}>
           <Text style={{ color: '#fff', fontSize: 10, fontWeight: '800' }}>{badge > 9 ? '9+' : badge}</Text>
@@ -170,7 +170,7 @@ export function Chips({ children }: { children: ReactNode }) {
 export function ProgressBar({ value, color = colors.marker }: { value: number; color?: string }) {
   const pct = Math.min(100, Math.max(0, value * 100));
   return (
-    <View style={{ height: 8, backgroundColor: colors.surface2, borderRadius: 3, overflow: 'hidden', borderWidth: 1, borderColor: colors.border }}>
+    <View style={{ height: 10, backgroundColor: colors.surface2, borderRadius: 5, overflow: 'hidden', borderWidth: 1, borderColor: colors.border }}>
       <View style={{ width: `${pct}%`, height: '100%', backgroundColor: color, borderRightWidth: pct > 0 && pct < 100 ? 1 : 0, borderRightColor: colors.text }} />
     </View>
   );
@@ -206,9 +206,21 @@ export const s = StyleSheet.create({
   h3: { fontSize: 16, fontWeight: '700', color: colors.text },
   muted: { color: colors.muted, fontSize: 13 },
   label: { fontSize: 13, fontWeight: '600', color: colors.text2 },
-  card: { backgroundColor: colors.surface, borderRadius: radius, padding: 16, borderWidth: 1, borderColor: colors.border, gap: 10 },
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: radius + 2,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: 10,
+    shadowColor: '#16203a',
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  },
   btn: { borderRadius: 11, paddingVertical: 12, paddingHorizontal: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  iconBtn: { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  iconBtn: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   badgeDot: { position: 'absolute', top: 5, right: 4, minWidth: 16, height: 16, borderRadius: 5, backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
   input: {
     borderWidth: 1,

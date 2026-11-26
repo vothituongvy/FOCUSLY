@@ -1,5 +1,5 @@
 import React from 'react';
-import { View } from 'react-native';
+import { Text, View } from 'react-native';
 
 /**
  * Icon nét mảnh dùng chung với Web.
@@ -67,8 +67,22 @@ try {
   Svg = null;
 }
 
+const FALLBACK: Partial<Record<string, string>> = {
+  home: '⌂', plan: '☰', focus: '◎', cards: '▤', learn: '▤', settings: '⚙', bell: '♪', plus: '+', x: '×', check: '✓',
+  play: '▶', pause: 'Ⅱ', stop: '■', search: '⌕', chevronRight: '›', chevronLeft: '‹', arrowLeft: '←', star: '★',
+  trash: '⌫', edit: '✎', shield: '◈', lock: '⊠', sync: '↻', repeat: '↻', calendar: '▦', analytics: '▥', ai: '✦',
+  materials: '▭', journal: '▯', history: '↺', coffee: '◡', wind: '≈', zap: 'ϟ', flame: '▲', translate: 'A',
+};
+
 export function Icon({ name, size = 20, color = '#16203a', strokeWidth = 1.75 }: { name: IconName; size?: number; color?: string; strokeWidth?: number }) {
-  if (!Svg) return <View style={{ width: size, height: size }} />;
+  if (!Svg) {
+    // Chưa cài/chưa build react-native-svg: hiện ký hiệu tạm để không bị ô trống
+    return (
+      <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+        <Text style={{ fontSize: size * 0.8, lineHeight: size, color, includeFontPadding: false }}>{FALLBACK[name] ?? '•'}</Text>
+      </View>
+    );
+  }
   const Root = Svg.default;
   const P = Svg.Path;
   const filled = name === 'play' || name === 'stop';

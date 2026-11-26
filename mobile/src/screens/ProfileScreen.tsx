@@ -23,6 +23,7 @@ const MENU: { screen: 'Journal' | 'Materials' | 'AIChat' | 'Notifications' | 'An
 ];
 
 export function ProfileScreen() {
+  const [avatarBroken, setAvatarBroken] = useState(false);
   const nav = useNavigation<NativeStackNavigationProp<AppStackParams>>();
   const { user, setUser, logout } = useAuth();
   const { online, pending, lastSyncAt, sync, syncing } = useData();
@@ -62,8 +63,8 @@ export function ProfileScreen() {
   return (
     <Screen header={<AppHeader title={tr('Cá nhân')} />}>
       <Row>
-        {user.avatarUrl ? (
-          <Image source={{ uri: user.avatarUrl }} style={{ width: 64, height: 64, borderRadius: 32 }} />
+        {user.avatarUrl && !avatarBroken ? (
+          <Image onError={() => setAvatarBroken(true)} source={{ uri: user.avatarUrl }} style={{ width: 64, height: 64, borderRadius: 32 }} />
         ) : (
           <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.marker, alignItems: 'center', justifyContent: 'center' }}>
             <Text style={{ fontSize: 24, fontWeight: '800', color: colors.text }}>{user.name[0]?.toUpperCase()}</Text>

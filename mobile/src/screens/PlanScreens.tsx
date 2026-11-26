@@ -69,10 +69,10 @@ export function PlanScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={[]}>
       <AppHeader title={tr('Kế hoạch')} subtitle={tr('{0} nhiệm vụ', list.length)} right={<IconButton name="plus" label={tr('Thêm nhiệm vụ')} onPress={() => nav.navigate('TaskEdit', { subjectId })} />} />
       <SyncBar />
-      <View style={{ paddingHorizontal: 16, paddingBottom: 12, gap: 10 }}>
+      <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12, gap: 10 }}>
         <Chips>
           <Chip label={tr('Tất cả')} active={!subjectId} onPress={() => setSubjectId(null)} />
           {subjects.map((sub) => (

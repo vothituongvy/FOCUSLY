@@ -12,11 +12,10 @@ import { colors } from '../theme';
 import type { Dashboard, FocusSession } from '../types';
 import type { TabParams } from '../navigation/types';
 import { AppHeader } from '../components/AppHeader';
-import { Icon } from '../components/Icon';
-import { Button, Card, Empty, Muted, Row, Section, SyncBar } from '../components/ui';
+import { Icon, type IconName } from '../components/Icon';
+import { Button, Card, Empty, Muted, ProgressBar, Section, SyncBar } from '../components/ui';
 import { LOCALE, tr } from '../i18n';
 
-const WD = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 
 function spoken(minutes: number) {
   const m = Math.max(0, Math.round(minutes));
@@ -24,6 +23,14 @@ function spoken(minutes: number) {
   const r = m % 60;
   if (!h) return tr('{0} phút', r);
   return r ? tr('{0} giờ {1} phút', h, r) : tr('{0} giờ', h);
+}
+
+function spokenShort(minutes: number) {
+  const m = Math.max(0, Math.round(minutes));
+  const h = Math.floor(m / 60);
+  const r = m % 60;
+  if (!h) return tr('{0}p', r);
+  return r ? tr('{0}g {1}p', h, r) : tr('{0}g', h);
 }
 
 function todayLabel() {
@@ -83,15 +90,42 @@ function DayRuler({ sessions }: { sessions: FocusSession[] }) {
   );
 }
 
-function Metric({ label, value, unit, note, noteColor }: { label: string; value: string; unit?: string; note?: string; noteColor?: string }) {
+function Metric({
+  icon,
+  tint,
+  label,
+  value,
+  unit,
+  note,
+  noteColor,
+}: {
+  icon: IconName;
+  tint: string;
+  label: string;
+  value: string;
+  unit?: string;
+  note?: string;
+  noteColor?: string;
+}) {
   return (
-    <View style={{ width: '50%', paddingVertical: 12, paddingRight: 12 }}>
-      <Muted>{label}</Muted>
-      <Text style={{ fontSize: 24, fontWeight: '800', color: colors.text, marginTop: 2 }}>
+    <View style={{ width: '48.5%', backgroundColor: colors.surface, borderRadius: 14, borderWidth: 1, borderColor: colors.border, padding: 14, gap: 8 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: tint, alignItems: 'center', justifyContent: 'center' }}>
+          <Icon name={icon} size={18} color={colors.text} />
+        </View>
+        <Text style={{ flex: 1, fontSize: 13, color: colors.text2, fontWeight: '600' }} numberOfLines={2}>
+          {label}
+        </Text>
+      </View>
+      <Text style={{ fontSize: 28, fontWeight: '800', color: colors.text, letterSpacing: -0.5 }}>
         {value}
         {!!unit && <Text style={{ fontSize: 15, color: colors.muted, fontWeight: '600' }}>{unit}</Text>}
       </Text>
-      {!!note && <Text style={{ fontSize: 12, color: noteColor ?? colors.muted }}>{note}</Text>}
+      {!!note && (
+        <Text style={{ fontSize: 12, color: noteColor ?? colors.muted }} numberOfLines={1}>
+          {note}
+        </Text>
+      )}
     </View>
   );
 }
@@ -150,49 +184,69 @@ export function DashboardScreen() {
   const max = Math.max(target, ...(data?.weeklyProgress.map((d) => d.focusMinutes) ?? [1]), 1);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={[]}>
       <AppHeader title={tr('Chào {0}', user?.name.split(' ').slice(-1)[0] ?? tr('bạn'))} subtitle={todayLabel()} />
       <SyncBar />
-      <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 4, gap: 18, paddingBottom: 32 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
-        <Text style={{ fontSize: 17, lineHeight: 24, color: colors.text2 }}>{headline}</Text>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 32 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.text]} tintColor={colors.text} />}>
         {offline && <Muted style={{ color: colors.warning }}>{tr('Đang hiển thị dữ liệu đã lưu vì không có mạng.')}</Muted>}
 
-        <DayRuler sessions={todaySessions} />
-
-        {active ? (
-          <Pressable onPress={() => nav.navigate('Focus')} accessibilityRole="button">
-            <Card style={{ backgroundColor: colors.markerSoft, borderColor: '#f0d77a', flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <Icon name="focus" size={22} />
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontWeight: '700', color: colors.text }}>
-                  {active.status === 'active' ? tr('Phiên học đang chạy') : active.status === 'on_break' ? tr('Đang nghỉ giữa phiên') : tr('Phiên học đang tạm dừng')}
-                </Text>
-                <Muted>{active.goal}</Muted>
+        <Card style={{ padding: 18, gap: 14 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+            <View>
+              <Text style={{ fontSize: 13, color: colors.muted, fontWeight: '600' }}>{tr('Thời gian tập trung hôm nay')}</Text>
+              <Text style={{ fontSize: 34, fontWeight: '800', color: colors.text, letterSpacing: -1, marginTop: 2 }}>
+                {spokenShort(focusMin)}
+                <Text style={{ fontSize: 16, color: colors.muted, fontWeight: '600' }}> / {spokenShort(target)}</Text>
+              </Text>
+            </View>
+            <Text style={{ fontSize: 15, fontWeight: '800', color: focusMin >= target ? colors.success : colors.text2 }}>
+              {Math.min(100, Math.round((focusMin / Math.max(1, target)) * 100))}%
+            </Text>
+          </View>
+          <ProgressBar value={focusMin / Math.max(1, target)} />
+          <Text style={{ fontSize: 15, lineHeight: 22, color: colors.text2 }}>{headline}</Text>
+          <DayRuler sessions={todaySessions} />
+          {active ? (
+            <Pressable onPress={() => nav.navigate('Focus')} accessibilityRole="button" style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}>
+              <View style={{ backgroundColor: colors.markerSoft, borderColor: '#f0d77a', borderWidth: 1, borderRadius: 12, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <Icon name="focus" size={24} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontWeight: '700', color: colors.text }}>
+                    {active.status === 'active' ? tr('Phiên học đang chạy') : active.status === 'on_break' ? tr('Đang nghỉ giữa phiên') : tr('Phiên học đang tạm dừng')}
+                  </Text>
+                  <Muted>{active.goal}</Muted>
+                </View>
+                <Icon name="chevronRight" size={20} color={colors.muted} />
               </View>
-              <Icon name="chevronRight" size={18} color={colors.muted} />
-            </Card>
-          </Pressable>
-        ) : (
-          <Button title={tr('Bắt đầu tập trung')} icon="play" variant="marker" onPress={() => nav.navigate('Focus')} />
-        )}
+            </Pressable>
+          ) : (
+            <Button title={tr('Bắt đầu tập trung')} icon="play" variant="marker" onPress={() => nav.navigate('Focus')} />
+          )}
+        </Card>
 
         {data && (
           <>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.borderStrong }}>
-              <Metric label={tr('Nhiệm vụ xong')} value={String(data.tasks.completed)} unit={`/${data.tasks.total}`} note={data.tasks.overdue ? tr('{0} việc quá hạn', data.tasks.overdue) : undefined} noteColor={colors.danger} />
-              <Metric label={tr('Chuỗi ngày học')} value={String(data.streak.current)} unit={tr(' ngày')} note={tr('Dài nhất {0} ngày', data.streak.best)} />
-              <Metric label={tr('Lần phân tâm')} value={String(data.distractionsToday.manual)} note={tr('Rời app {0} lần', data.distractionsToday.appLeaves)} />
-              <Metric label={tr('Điểm tập trung')} value={String(data.focusScore.score)} unit="/100" note={tr('Chỉ để tham khảo')} />
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 10 }}>
+              <Metric icon="check" tint={colors.successSoft} label={tr('Nhiệm vụ xong')} value={String(data.tasks.completed)} unit={`/${data.tasks.total}`} note={data.tasks.overdue ? tr('{0} việc quá hạn', data.tasks.overdue) : undefined} noteColor={colors.danger} />
+              <Metric icon="flame" tint={colors.markerSoft} label={tr('Chuỗi ngày học')} value={String(data.streak.current)} unit={tr(' ngày')} note={tr('Dài nhất {0} ngày', data.streak.best)} />
+              <Metric icon="zap" tint={colors.dangerSoft} label={tr('Lần phân tâm')} value={String(data.distractionsToday.manual)} note={tr('Rời app {0} lần', data.distractionsToday.appLeaves)} />
+              <Metric icon="focus" tint="#e6ecfb" label={tr('Điểm tập trung')} value={String(data.focusScore.score)} unit="/100" note={tr('Chỉ để tham khảo')} />
             </View>
 
             <Section title={tr('Việc tiếp theo')}>
               <Card style={{ paddingVertical: 4, gap: 0 }}>
                 {data.upcomingTasks.length === 0 && <Empty text={tr('Chưa có nhiệm vụ. Thêm ở tab Kế hoạch.')} />}
                 {data.upcomingTasks.map((t, i) => (
-                  <Row key={t.id} style={{ paddingVertical: 11, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border }}>
-                    <View style={{ width: 9, height: 9, borderRadius: 3, backgroundColor: t.subject?.color ?? colors.borderStrong }} />
+                  <Pressable
+                    key={t.id}
+                    onPress={() => nav.navigate('Focus', { taskId: t.id })}
+                    accessibilityRole="button"
+                    accessibilityLabel={tr('Học {0}', t.title)}
+                    style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border, opacity: pressed ? 0.7 : 1 })}
+                  >
+                    <View style={{ width: 10, height: 36, borderRadius: 4, backgroundColor: t.subject?.color ?? colors.borderStrong }} />
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontWeight: '600', color: colors.text }} numberOfLines={1}>
+                      <Text style={{ fontWeight: '700', fontSize: 15, color: colors.text }} numberOfLines={1}>
                         {t.title}
                       </Text>
                       <Muted>
@@ -200,8 +254,11 @@ export function DashboardScreen() {
                         {tr('{0} phút', t.estimatedMinutes)}{t.deadline ? tr(', hạn {0}', new Date(t.deadline).toLocaleDateString(LOCALE)) : ''}
                       </Muted>
                     </View>
-                    <Button title={tr('Học')} icon="play" small variant="secondary" onPress={() => nav.navigate('Focus', { taskId: t.id })} />
-                  </Row>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.text, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12 }}>
+                      <Icon name="play" size={15} color="#fff" />
+                      <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>{tr('Học')}</Text>
+                    </View>
+                  </Pressable>
                 ))}
               </Card>
             </Section>
@@ -226,7 +283,7 @@ export function DashboardScreen() {
                             borderTopRightRadius: 3,
                           }}
                         />
-                        <Text style={{ fontSize: 11, fontWeight: today ? '800' : '500', color: colors.text }}>{WD[new Date(`${d.date}T12:00:00`).getDay()]}</Text>
+                        <Text style={{ fontSize: 11, fontWeight: today ? '800' : '500', color: colors.text }}>{new Date(`${d.date}T12:00:00`).toLocaleDateString(LOCALE, { weekday: 'short' }).replace('.', '')}</Text>
                       </View>
                     );
                   })}
