@@ -207,7 +207,28 @@ export function IconButton({ name, onPress, label, color = colors.text, badge }:
   );
 }
 
-export function Field({ label, ...props }: TextInputProps & { label: string }) {
+export function Field({ label, secureTextEntry, ...props }: TextInputProps & { label: string }) {
+  // Ô mật khẩu: có nút con mắt để hiện / ẩn
+  const [shown, setShown] = React.useState(false);
+  if (secureTextEntry) {
+    return (
+      <View style={{ gap: 6 }}>
+        <Text style={s.label}>{label}</Text>
+        <View style={{ justifyContent: 'center' }}>
+          <TextInput placeholderTextColor="#9aa2b6" autoCapitalize="none" autoCorrect={false} {...props} secureTextEntry={!shown} style={[s.input, { paddingRight: 48 }]} />
+          <Pressable
+            onPress={() => setShown(!shown)}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={shown ? tr('Ẩn mật khẩu') : tr('Hiện mật khẩu')}
+            style={{ position: 'absolute', right: 4, width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Icon name={shown ? 'eyeOff' : 'eye'} size={20} color={colors.muted} />
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
   return (
     <View style={{ gap: 6 }}>
       <Text style={s.label}>{label}</Text>

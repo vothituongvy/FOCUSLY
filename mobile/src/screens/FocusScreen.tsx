@@ -170,7 +170,7 @@ function Setup() {
           })}
         </View>
         {level !== 'off' && (
-          <View style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 10, backgroundColor: colors.card, padding: 12, gap: 7 }}>
+          <View style={{ marginTop: 10, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 10, backgroundColor: colors.card, padding: 12, gap: 7 }}>
             {RULES.map((r) => {
               const has = r.levels.includes(level);
               return (
