@@ -410,12 +410,12 @@ function ShieldTab({ user }: { user: User }) {
         </p>
         {!hasExtensionConfig() ? (
           <p className="small">{tr('Chưa cấu hình NEXT_PUBLIC_EXTENSION_ID. Xem hướng dẫn trong extension/README.md.')}</p>
-        ) : ext === 'missing' && EXTENSION_STORE_URL ? (
+        ) : ext === 'missing' && storeUrl() ? (
           <div className="col" style={{ gap: 8 }}>
             <p className="small">{tr('Chưa phát hiện extension trên trình duyệt này.')}</p>
             <div className="row">
-              <a className="btn" href={EXTENSION_STORE_URL} target="_blank" rel="noreferrer">
-                {tr('Thêm vào Chrome')}
+              <a className="btn" href={storeUrl()} target="_blank" rel="noreferrer">
+                {isEdge() ? tr('Thêm vào Edge') : tr('Thêm vào Chrome')}
               </a>
             </div>
             <p className="small muted">{tr('Cài xong, tải lại trang này rồi bấm "Kết nối extension với tài khoản".')}</p>
@@ -456,7 +456,11 @@ function ShieldTab({ user }: { user: User }) {
 
 const EXTENSION_ZIP_URL = 'https://github.com/vothituongvy/FOCUSLY/releases/download/extension/focusly-extension.zip';
 // Link trang extension trên Chrome Web Store (khi đã được duyệt) -> người dùng cài bằng 1 nút
-const EXTENSION_STORE_URL = (process.env.NEXT_PUBLIC_EXTENSION_STORE_URL ?? '').trim();
+const CHROME_STORE_URL = (process.env.NEXT_PUBLIC_EXTENSION_STORE_URL ?? '').trim();
+// Link trên Microsoft Edge Add-ons (miễn phí đăng) -> dùng cho người mở web bằng Edge
+const EDGE_STORE_URL = (process.env.NEXT_PUBLIC_EXTENSION_EDGE_URL ?? '').trim();
+const isEdge = () => typeof navigator !== 'undefined' && /Edg\//.test(navigator.userAgent);
+const storeUrl = () => (isEdge() ? EDGE_STORE_URL : CHROME_STORE_URL);
 
 /* ============ Thông báo (Phase 2) ============ */
 function NotificationsTab() {
