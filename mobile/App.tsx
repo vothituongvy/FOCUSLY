@@ -10,6 +10,7 @@ import { registerPush } from './src/push';
 import { Alert } from 'react-native';
 import type { FocusSession, User } from './src/types';
 import { onLangChange } from './src/i18n';
+import { checkForUpdate } from './src/updateCheck';
 
 /** Khởi động đồng bộ khi đã đăng nhập: SQLite -> push/pull -> realtime socket */
 function useSyncEngine() {
@@ -71,6 +72,11 @@ export default function App() {
     void bootstrap();
   }, [bootstrap]);
   useSyncEngine();
+  // Báo khi có bản APK mới trên GitHub Releases (tối đa 1 lần / 12 giờ)
+  useEffect(() => {
+    const t = setTimeout(() => void checkForUpdate(), 3000);
+    return () => clearTimeout(t);
+  }, []);
   // Đổi ngôn ngữ: dựng lại toàn bộ màn hình để chữ đổi ngay
   const [langVersion, setLangVersion] = useState(0);
   useEffect(() => onLangChange(() => setLangVersion((v) => v + 1)), []);

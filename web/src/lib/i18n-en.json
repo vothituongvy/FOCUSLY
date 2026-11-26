@@ -956,5 +956,15 @@
  "Flashcard nhắc đúng lúc sắp quên, biểu đồ cho thấy bạn tiến bộ mỗi ngày.": "Flashcards come back right before you forget, and charts show your progress every day.",
  "Trang {0}/{1}": "Page {0}/{1}",
  "Bắt đầu": "Get started",
- "Tiếp": "Next"
+ "Tiếp": "Next",
+ "Kiểm tra cập nhật": "Check for updates",
+ "Chưa kiểm tra được. Hãy thử lại khi có mạng.": "Couldn't check. Please try again when you're online.",
+ "Bạn đang dùng bản mới nhất ({0}).": "You're on the latest version ({0}).",
+ "Có bản mới {0}": "Version {0} is available",
+ "Bạn đang dùng bản {0}.": "You're using version {0}.",
+ "Tải về rồi mở file để cài đè lên bản cũ, dữ liệu vẫn được giữ.": "Download it, then open the file to install over the current version. Your data is kept.",
+ "Bỏ qua bản này": "Skip this version",
+ "Tải về": "Download",
+ "Phiên bản ứng dụng": "App version",
+ "Đang dùng bản {0}": "Version {0}"
 }

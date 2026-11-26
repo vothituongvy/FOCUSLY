@@ -13,6 +13,8 @@ import { Button, Card, Chip, Chips, Field, H1, H3, Muted, Row, Screen, s } from 
 import { AppHeader } from '../components/AppHeader';
 import { LOCALE, tr } from '../i18n';
 import { LangSwitch } from '../components/LangSwitch';
+import { checkForUpdate } from '../updateCheck';
+import { APP_VERSION } from '../config';
 
 const MENU: { screen: 'Journal' | 'Materials' | 'AIChat' | 'Notifications' | 'Analytics'; label: string }[] = [
   { screen: 'Analytics', label: tr(' Phân tích học tập') },
@@ -135,6 +137,14 @@ export function ProfileScreen() {
       <Card>
         <H3>{tr('Ngôn ngữ')}</H3>
         <LangSwitch />
+      </Card>
+
+      <Card>
+        <H3>{tr('Phiên bản ứng dụng')}</H3>
+        <Row style={{ justifyContent: 'space-between' }}>
+          <Muted>{tr('Đang dùng bản {0}', APP_VERSION)}</Muted>
+          <Button title={tr('Kiểm tra cập nhật')} small variant="secondary" icon="download" onPress={() => void checkForUpdate(true)} />
+        </Row>
       </Card>
 
       <Card>
