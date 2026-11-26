@@ -2,6 +2,7 @@ import React, { ReactNode } from 'react';
 import { useRoute } from '@react-navigation/native';
 import {
   ActivityIndicator,
+  Image,
   Animated,
   Pressable,
   ScrollView,
@@ -263,13 +264,9 @@ export function Loading() {
   );
 }
 
-/** Logo: ô mực với vạch dạ quang */
+/** Logo FOCUSLY: khiên + mắt màu vàng */
 export function Logo({ size = 28 }: { size?: number }) {
-  return (
-    <View style={{ width: size, height: size, borderRadius: size * 0.27, backgroundColor: colors.text, justifyContent: 'center', paddingHorizontal: size * 0.23 }}>
-      <View style={{ height: size * 0.19, borderRadius: 2, backgroundColor: colors.marker }} />
-    </View>
-  );
+  return <Image source={require('../assets/logo-mark.png')} style={{ width: size, height: size }} resizeMode="contain" accessibilityIgnoresInvertColors />;
 }
 
 export const s = StyleSheet.create({

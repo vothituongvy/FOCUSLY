@@ -52,7 +52,7 @@ export function SplashScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center', gap: 18 }}>
       <Logo size={64} />
-      <Text style={{ fontSize: 30, fontWeight: '800', color: colors.text, letterSpacing: -1 }}>focusly</Text>
+      <Text style={{ fontSize: 30, fontWeight: '800', color: colors.text, letterSpacing: 1 }}>FOCUSLY</Text>
       <Text style={{ fontSize: 14, color: colors.muted }}>Learn with focus. Grow with consistency.</Text>
       <View style={{ width: 120, height: 5, borderRadius: 3, backgroundColor: colors.track, overflow: 'hidden', marginTop: 8 }}>
         <Animated.View
@@ -126,7 +126,7 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top + 8, paddingBottom: insets.bottom + 16 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, gap: 10 }}>
         <Logo size={28} />
-        <Text style={{ flex: 1, fontSize: 20, fontWeight: '800', color: colors.text, letterSpacing: -0.6 }}>focusly</Text>
+        <Text style={{ flex: 1, fontSize: 20, fontWeight: '800', color: colors.text, letterSpacing: 0.6 }}>FOCUSLY</Text>
         <LangSwitch compact />
       </View>
 

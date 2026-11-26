@@ -16,7 +16,7 @@ function AuthShell({ title, children }: { title: string; children: React.ReactNo
         <View style={{ gap: 18 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <Logo size={30} />
-            <Text style={{ flex: 1, fontSize: 22, fontWeight: '800', color: colors.text, letterSpacing: -0.8 }}>focusly</Text>
+            <Text style={{ flex: 1, fontSize: 22, fontWeight: '800', color: colors.text, letterSpacing: 0.6 }}>FOCUSLY</Text>
             <LangSwitch compact />
           </View>
           <Text style={{ fontSize: 30, fontWeight: '800', color: colors.text, letterSpacing: -0.8, lineHeight: 36 }}>{title}</Text>

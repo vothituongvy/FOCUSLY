@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   title: { default: 'FOCUSLY – Learn with focus. Grow with consistency.', template: '%s · FOCUSLY' },
   description: tr('Nền tảng quản lý học tập và sự tập trung trên Web & Mobile.'),
   manifest: '/manifest.webmanifest',
-  icons: { icon: '/icons/icon.svg', apple: '/icons/apple-touch-icon.png' },
+  icons: { icon: '/icons/favicon.png', apple: '/icons/apple-touch-icon.png' },
   appleWebApp: { capable: true, title: 'FOCUSLY', statusBarStyle: 'default' },
 };
 

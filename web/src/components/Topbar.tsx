@@ -46,7 +46,7 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
         <Icon name="menu" size={20} />
       </button>
       <Link href="/dashboard" className="brand topbar-brand">
-        <span className="brand-logo" aria-hidden /> focusly
+        <img src="/icons/logo-mark.png" alt="" className="brand-mark" width={30} height={30} /> <span className="brand-word">FOCUSLY</span>
       </Link>
       <GlobalSearch />
       <div className="topbar-right">

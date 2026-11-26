@@ -31,7 +31,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
       {open && <div className="drawer-backdrop" onClick={onClose} aria-hidden />}
       <aside className={`sidebar ${open ? 'open' : ''}`} aria-label={tr('Điều hướng chính')}>
         <Link href="/dashboard" className="brand">
-          <span className="brand-logo" aria-hidden /> focusly
+          <img src="/icons/logo-mark.png" alt="" className="brand-mark" width={30} height={30} /> <span className="brand-word">FOCUSLY</span>
         </Link>
         <nav className="sidebar-nav">
           {NAV_GROUPS.map((g) => (

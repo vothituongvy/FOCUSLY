@@ -22,7 +22,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <LangSwitch className="lang-switch-corner" />
       <div className="card auth-card">
         <div className="brand">
-          <span className="brand-logo" aria-hidden /> focusly
+          <img src="/icons/logo-mark.png" alt="" className="brand-mark" width={30} height={30} /> <span className="brand-word">FOCUSLY</span>
         </div>
         <p className="muted small" style={{ textAlign: 'center', marginBottom: 20 }}>
           Learn with focus. Grow with consistency.
