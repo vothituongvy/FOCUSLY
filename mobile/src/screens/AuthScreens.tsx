@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { Text } from '../components/AppText';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { api, errorMessage } from '../api/client';
 import { useAuth } from '../store/auth';

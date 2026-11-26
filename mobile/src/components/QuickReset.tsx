@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Modal, Pressable, Text, View } from 'react-native';
+import { Animated, Easing, Modal, Pressable, View } from 'react-native';
+import { Text } from './AppText';
 import { useData } from '../store/data';
 import { colors } from '../theme';
 import { Button, Muted } from './ui';

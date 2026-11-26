@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Alert, Image, Pressable, Text, View } from 'react-native';
+import { Alert, Image, Pressable, View } from 'react-native';
+import { Text } from '../components/AppText';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { AppStackParams } from '../navigation/types';
@@ -81,7 +82,7 @@ export function ProfileScreen() {
       <Card style={{ padding: 0, gap: 0 }}>
         {MENU.map((m, i) => (
           <Pressable key={m.screen} onPress={() => nav.navigate(m.screen as never)} style={{ padding: 14, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border, flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Text style={{ color: colors.text, fontWeight: '600' }}>{m.label}</Text>
+            <Text style={{ color: colors.text, fontWeight: '600', flex: 1 }}>{m.label}</Text>
             <Text style={{ color: colors.muted }}>›</Text>
           </Pressable>
         ))}

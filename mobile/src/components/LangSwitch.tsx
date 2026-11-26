@@ -1,5 +1,6 @@
 import React from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Alert, Pressable, View } from 'react-native';
+import { Text } from './AppText';
 import { LANG, setLang, type Lang } from '../i18n';
 import { colors } from '../theme';
 

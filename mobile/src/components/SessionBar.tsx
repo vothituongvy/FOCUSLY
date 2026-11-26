@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from './AppText';
 import { useSession } from '../store/session';
 import { fmtClock, timerInfo } from '../offline/sessionLogic';
 import { colors } from '../theme';

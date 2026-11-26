@@ -1,19 +1,7 @@
 import React, { ReactNode } from 'react';
 import { useRoute } from '@react-navigation/native';
-import {
-  ActivityIndicator,
-  Image,
-  Animated,
-  Pressable,
-  ScrollView,
-  StyleProp,
-  StyleSheet,
-  Text,
-  TextInput,
-  TextInputProps,
-  View,
-  ViewStyle,
-} from 'react-native';
+import { ActivityIndicator, Image, Animated, Pressable, ScrollView, StyleProp, StyleSheet, TextInputProps, View, ViewStyle } from 'react-native';
+import { Text, TextInput } from './AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, fonts, radius, tints } from '../theme';
 import { useData } from '../store/data';
@@ -162,7 +150,7 @@ export function Button({
   }[variant];
   const press = usePressScale();
   return (
-    <Animated.View style={[style, press.style]}>
+    <Animated.View style={[{ maxWidth: '100%' }, style, press.style]}>
     <Pressable
       onPress={onPress}
       onPressIn={press.onPressIn}
@@ -180,9 +168,9 @@ export function Button({
       {loading ? (
         <ActivityIndicator color={v.fg} />
       ) : (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, maxWidth: '100%' }}>
           {icon && <Icon name={icon} size={small ? 16 : 20} color={v.fg} />}
-          <Text style={{ color: v.fg, fontWeight: '700', fontSize: small ? 13 : 15 }}>{title}</Text>
+          <Text style={{ color: v.fg, fontWeight: '700', fontSize: small ? 13 : 15, flexShrink: 1, textAlign: 'center' }}>{title}</Text>
         </View>
       )}
     </Pressable>
@@ -249,7 +237,8 @@ export function ProgressBar({ value, color = colors.marker, track = colors.track
 }
 
 export function Row({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
-  return <View style={[{ flexDirection: 'row', alignItems: 'center', gap: 10 }, style]}>{children}</View>;
+  // flexWrap: khi chữ to hoặc màn hẹp, phần tử cuối (thường là nút) xuống dòng thay vì tràn ra ngoài
+  return <View style={[{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10 }, style]}>{children}</View>;
 }
 
 export function Empty({ text }: { text: string }) {

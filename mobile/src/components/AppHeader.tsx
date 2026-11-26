@@ -1,5 +1,6 @@
 import React, { ReactNode, useCallback, useState } from 'react';
-import { Image, Pressable, StatusBar, Text, View } from 'react-native';
+import { Image, Pressable, StatusBar, View } from 'react-native';
+import { Text } from './AppText';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -56,7 +57,7 @@ export function AppHeader({ title, subtitle, right }: { title: string; subtitle?
       }}
     >
       <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 26, fontWeight: '700', color: colors.boardText, letterSpacing: -0.3, fontFamily: fonts.display }} numberOfLines={1}>
+        <Text style={{ fontSize: 26, fontWeight: '700', color: colors.boardText, letterSpacing: -0.3, fontFamily: fonts.display }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
           {title}
         </Text>
         {!!subtitle && (

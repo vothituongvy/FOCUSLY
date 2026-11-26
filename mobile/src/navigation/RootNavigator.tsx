@@ -71,7 +71,9 @@ function Tabs() {
         animation: 'shift',
         tabBarActiveTintColor: colors.boardText,
         tabBarInactiveTintColor: colors.boardMuted,
-        tabBarLabelStyle: { fontSize: 11.5, fontWeight: '700', marginTop: 4 },
+        // Nhãn tab không phóng theo cỡ chữ hệ thống để không bị cắt thành "Kế hoạ..."
+        tabBarAllowFontScaling: false,
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '700', marginTop: 4 },
         tabBarStyle: hideTabs
           ? { display: 'none' }
           : { height: 68 + insets.bottom, paddingTop: 8, paddingBottom: Math.max(8, insets.bottom), backgroundColor: colors.board, borderTopWidth: 1, borderTopColor: colors.border, elevation: 0 },

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Dimensions, Easing, FlatList, Pressable, Text, View } from 'react-native';
+import { Animated, Dimensions, Easing, FlatList, Pressable, View } from 'react-native';
+import { Text } from '../components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, tints } from '../theme';
 import { Icon, type IconName } from '../components/Icon';

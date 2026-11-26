@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, AppState, BackHandler, Modal, Pressable, ScrollView, StatusBar, Switch, Text, TextInput, View } from 'react-native';
+import { Alert, AppState, BackHandler, Modal, Pressable, ScrollView, StatusBar, Switch, View } from 'react-native';
+import { Text, TextInput } from '../components/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, type RouteProp } from '@react-navigation/native';
 import { useAuth } from '../store/auth';

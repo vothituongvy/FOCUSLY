@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Animated, Pressable, RefreshControl, ScrollView, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Animated, Pressable, RefreshControl, ScrollView, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Text } from '../components/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -118,7 +119,7 @@ function Metric({
   noteColor?: string;
 }) {
   return (
-    <Paper style={{ flex: 1, height: 138, backgroundColor: tint.bg, borderRadius: 14, borderWidth: 1, borderColor: tint.border, padding: 14, gap: 8, justifyContent: 'space-between' }} radius={14}>
+    <Paper style={{ flex: 1, minHeight: 138, backgroundColor: tint.bg, borderRadius: 14, borderWidth: 1, borderColor: tint.border, padding: 14, gap: 8, justifyContent: 'space-between' }} radius={14}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <View style={{ width: 34, height: 34, borderRadius: 11, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' }}>
           <Icon name={icon} size={19} color={tint.ink} />
@@ -132,7 +133,7 @@ function Metric({
         {!!unit && <Text style={{ fontSize: 15, color: colors.muted, fontWeight: '600' }}>{unit}</Text>}
       </Text>
       {/* luôn giữ dòng ghi chú để 4 ô cao bằng nhau */}
-      <Text style={{ fontSize: 12, color: noteColor ?? colors.muted }} numberOfLines={1}>
+      <Text style={{ fontSize: 12, color: noteColor ?? colors.muted }} numberOfLines={2}>
         {note ?? ' '}
       </Text>
     </Paper>
@@ -201,8 +202,8 @@ export function DashboardScreen() {
 
         <FadeIn>
         <Card style={{ padding: 18, gap: 14, backgroundColor: HERO.bg, borderColor: HERO.border, borderLeftWidth: 1, borderLeftColor: HERO.border }}>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-            <View>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 }}>
+            <View style={{ flexShrink: 1 }}>
               <Text style={{ fontSize: 13, color: HERO.muted, fontWeight: '600' }}>{tr('Thời gian tập trung hôm nay')}</Text>
               <Text style={{ fontSize: 34, fontWeight: '800', color: colors.text, letterSpacing: -1, marginTop: 2 }}>
                 {spokenShort(focusMin)}
