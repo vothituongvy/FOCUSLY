@@ -5,6 +5,7 @@ import { FormEvent, useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/api';
 import { GoogleButton } from '@/components/GoogleButton';
+import { tr } from '@/lib/i18n';
 
 export default function LoginPage() {
   const { login, googleLogin } = useAuth();
@@ -28,22 +29,22 @@ export default function LoginPage() {
 
   return (
     <form className="form" onSubmit={submit}>
-      <h2 style={{ textAlign: 'center' }}>Đăng nhập</h2>
+      <h2 style={{ textAlign: 'center' }}>{tr('Đăng nhập')}</h2>
       <label className="field">
         Email
         <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
       </label>
       <label className="field">
         <span className="row between">
-          Mật khẩu <Link href="/forgot-password" className="small">Quên mật khẩu?</Link>
+          {tr('Mật khẩu')}{' '}<Link href="/forgot-password" className="small">{tr('Quên mật khẩu?')}</Link>
         </span>
         <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
       </label>
       {error && <p className="error-text">{error}</p>}
       <button className="btn block" disabled={busy}>
-        {busy ? 'Đang đăng nhập...' : 'Đăng nhập'}
+        {busy ? tr('Đang đăng nhập...') : tr('Đăng nhập')}
       </button>
-      <div className="divider">hoặc</div>
+      <div className="divider">{tr('hoặc')}</div>
       <GoogleButton
         onCredential={async (token) => {
           try {
@@ -54,7 +55,7 @@ export default function LoginPage() {
         }}
       />
       <p className="small muted" style={{ textAlign: 'center' }}>
-        Chưa có tài khoản? <Link href="/register">Đăng ký</Link>
+        {tr('Chưa có tài khoản?')}{' '}<Link href="/register">{tr('Đăng ký')}</Link>
       </p>
     </form>
   );

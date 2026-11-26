@@ -12,6 +12,8 @@ import { DistractionModal } from '../DistractionModal';
 import { QuickReset } from '../QuickReset';
 import { Modal } from '../ui';
 import { Icon } from '@/components/Icon';
+import { TranslatePanel } from '@/components/TranslatePanel';
+import { tr } from '@/lib/i18n';
 
 function beep() {
   try {
@@ -65,6 +67,7 @@ export function FocusRunning({
   const [endAt, setEndAt] = useState<Date | null>(null);
   const [leaveBanner, setLeaveBanner] = useState<number | null>(null);
   const [escapes, setEscapes] = useState(0);
+  const [showTranslate, setShowTranslate] = useState(false);
   const [extOk, setExtOk] = useState<boolean | null>(null);
   const strict = Boolean(session.strict);
   const [breakOver, setBreakOver] = useState(false);
@@ -90,12 +93,12 @@ export function FocusRunning({
 
   let target = 0;
   let elapsed = focusTotal;
-  let phaseLabel = 'Tập trung';
+  let phaseLabel = tr('Tập trung');
   if (session.mode === 'pomodoro') {
     if (session.status === 'on_break') {
       target = (isLongBreak ? p.longBreakMinutes : p.breakMinutes) * 60;
       elapsed = current && !current.endedAt ? segSeconds(current, now) : 0;
-      phaseLabel = isLongBreak ? 'Nghỉ dài' : 'Nghỉ ngắn';
+      phaseLabel = isLongBreak ? tr('Nghỉ dài') : tr('Nghỉ ngắn');
     } else {
       target = p.focusMinutes * 60;
       elapsed = focusSinceBreak;
@@ -104,14 +107,14 @@ export function FocusRunning({
   } else if (session.mode === 'custom') {
     if (session.status === 'on_break') {
       elapsed = current && !current.endedAt ? segSeconds(current, now) : 0;
-      phaseLabel = 'Đang nghỉ';
+      phaseLabel = tr('Đang nghỉ');
     } else {
       target = session.plannedMinutes * 60;
-      phaseLabel = 'Phiên tuỳ chỉnh';
+      phaseLabel = tr('Phiên tuỳ chỉnh');
     }
   } else if (session.status === 'on_break') {
     elapsed = current && !current.endedAt ? segSeconds(current, now) : 0;
-    phaseLabel = 'Đang nghỉ';
+    phaseLabel = tr('Đang nghỉ');
   }
   const remaining = target ? Math.max(0, target - elapsed) : elapsed;
   const ratio = target ? Math.min(1, elapsed / target) : (elapsed % 3600) / 3600;
@@ -142,13 +145,13 @@ export function FocusRunning({
     autoRef.current = key;
     beep();
     if (session.mode === 'pomodoro' && session.status === 'active') {
-      notify('Hết giờ tập trung ', 'Đến giờ nghỉ ngắn rồi!');
+      notify(tr('Hết giờ tập trung '), tr('Đến giờ nghỉ ngắn rồi!'));
       void act('break');
     } else if (session.status === 'on_break') {
-      notify('Hết giờ nghỉ', `Quay lại mục tiêu: ${session.goal}`);
+      notify(tr('Hết giờ nghỉ'), tr('Quay lại mục tiêu: {0}', session.goal));
       setBreakOver(true);
     } else if (session.mode === 'custom' && session.status === 'active') {
-      notify('Hoàn thành thời lượng phiên ', 'Ghi nhận kết quả phiên học nhé.');
+      notify(tr('Hoàn thành thời lượng phiên '), tr('Ghi nhận kết quả phiên học nhé.'));
       setEndAt(new Date(now));
     }
   }, [remaining, target, session.status, session.mode, segs.length, act, session.goal, now]);
@@ -178,7 +181,7 @@ export function FocusRunning({
             void act('pause', new Date(left + offsetMs));
           }, 2000);
         }
-        reminderTimer.current = setTimeout(() => notify('Phiên học vẫn đang chờ bạn', session.goal || 'Quay lại FOCUSLY để học tiếp'), strict ? 15_000 : 60_000);
+        reminderTimer.current = setTimeout(() => notify(tr('Phiên học vẫn đang chờ bạn'), session.goal || tr('Quay lại FOCUSLY để học tiếp')), strict ? 15_000 : 60_000);
       } else if (leftAt.current) {
         if (pauseTimer) clearTimeout(pauseTimer);
         if (reminderTimer.current) clearTimeout(reminderTimer.current);
@@ -216,7 +219,7 @@ export function FocusRunning({
         await post('/distractions', {
           session: session.id,
           reason: 'blocked_site',
-          note: a.kind === 'tab' ? `Chuyển sang tab ${a.host}` : `Cố mở ${a.host}`,
+          note: a.kind === 'tab' ? tr('Chuyển sang tab {0}', a.host) : tr('Cố mở {0}', a.host),
           occurredAt: new Date(a.at).toISOString(),
           source: 'auto',
           device: 'web',
@@ -244,23 +247,23 @@ export function FocusRunning({
           </span>
         )}
         <span className="badge">{phaseLabel}</span>
-        {strict ? <span className="badge">Phiên nghiêm ngặt</span> : session.shieldEnabled && <span className="badge">Focus Shield</span>}
-        {session.device !== 'web' && <span className="badge">bắt đầu từ {session.device}</span>}
+        {strict ? <span className="badge">{tr('Phiên nghiêm ngặt')}</span> : session.shieldEnabled && <span className="badge">Focus Shield</span>}
+        {session.device !== 'web' && <span className="badge">{tr('bắt đầu từ {0}', session.device)}</span>}
       </div>
 
       <p className="session-goal">{session.goal}</p>
 
       {session.autoPausedAt && session.status === 'paused' && (
-        <div className="banner warn">Phiên đã tự tạm dừng vì ứng dụng bị đóng hoặc mất kết nối. Thời gian vắng mặt không được tính.</div>
+        <div className="banner warn">{tr('Phiên đã tự tạm dừng vì ứng dụng bị đóng hoặc mất kết nối. Thời gian vắng mặt không được tính.')}</div>
       )}
       {strict && extOk === false && (
-        <div className="banner warn">Chưa có FOCUSLY Extension nên trình duyệt chưa bị khoá tab. Đồng hồ vẫn tự dừng khi bạn rời trang này.</div>
+        <div className="banner warn">{tr('Chưa có FOCUSLY Extension nên trình duyệt chưa bị khoá tab. Đồng hồ vẫn tự dừng khi bạn rời trang này.')}</div>
       )}
       {leaveBanner && (
         <div className="banner warn">
           {strict
-            ? `Bạn đã rời FOCUSLY ${fmtDuration(leaveBanner)}. Đồng hồ đã dừng từ lúc bạn rời đi.`
-            : `Bạn vừa rời tab ${fmtDuration(leaveBanner)}. Có phải bạn bị phân tâm?`}
+            ? tr('Bạn đã rời FOCUSLY {0}. Đồng hồ đã dừng từ lúc bạn rời đi.', fmtDuration(leaveBanner))
+            : tr('Bạn vừa rời tab {0}. Có phải bạn bị phân tâm?', fmtDuration(leaveBanner))}
           {strict && session.status === 'paused' && (
             <button
               className="btn sm"
@@ -269,22 +272,22 @@ export function FocusRunning({
                 void act('resume');
               }}
             >
-              Học tiếp
+              {tr('Học tiếp')}
             </button>
           )}
           <button className="btn sm" onClick={() => setShowDistraction(true)}>
-            Ghi nguyên nhân
+            {tr('Ghi nguyên nhân')}
           </button>
           <button className="btn sm ghost" onClick={() => setLeaveBanner(null)}>
-            Bỏ qua
+            {tr('Bỏ qua')}
           </button>
         </div>
       )}
       {breakOver && (
         <div className="banner warn">
-          <Icon name="calendar" size={16} /> Hết giờ nghỉ!{' '}
+          <Icon name="calendar" size={16} />{' '}{tr('Hết giờ nghỉ!')} 
           <button className="btn sm" onClick={() => act('resume')}>
-            Tiếp tục học
+            {tr('Tiếp tục học')}
           </button>
         </div>
       )}
@@ -308,33 +311,33 @@ export function FocusRunning({
         <div className="timer-center">
           <div className="timer-text">{fmtClock(remaining)}</div>
           <div className="muted small">
-            {session.status === 'paused' ? 'Tạm dừng' : session.status === 'on_break' ? 'Nghỉ giải lao' : target ? 'còn lại' : 'đã tập trung'}
+            {session.status === 'paused' ? tr('Tạm dừng') : session.status === 'on_break' ? tr('Nghỉ giải lao') : target ? tr('còn lại') : tr('đã tập trung')}
           </div>
         </div>
       </div>
 
       <div className="row wrap" style={{ justifyContent: 'center', gap: 24 }}>
         <div style={{ textAlign: 'center' }}>
-          <div className="muted small">Tập trung thực tế</div>
+          <div className="muted small">{tr('Tập trung thực tế')}</div>
           <b>{fmtClock(focusTotal)}</b>
         </div>
         {session.plannedMinutes > 0 && (
           <div style={{ textAlign: 'center' }}>
-            <div className="muted small">Dự kiến</div>
-            <b>{session.plannedMinutes} phút</b>
+            <div className="muted small">{tr('Dự kiến')}</div>
+            <b>{tr('{0} phút', session.plannedMinutes)}</b>
           </div>
         )}
         <div style={{ textAlign: 'center' }}>
-          <div className="muted small">Phân tâm</div>
+          <div className="muted small">{tr('Phân tâm')}</div>
           <b>{session.distractionCount}</b>
         </div>
         <div style={{ textAlign: 'center' }}>
-          <div className="muted small">Rời tab/app</div>
+          <div className="muted small">{tr('Rời tab/app')}</div>
           <b>{session.appLeaveCount}</b>
         </div>
         {strict && (
           <div style={{ textAlign: 'center' }}>
-            <div className="muted small">Lần cố thoát</div>
+            <div className="muted small">{tr('Lần cố thoát')}</div>
             <b>{escapes}</b>
           </div>
         )}
@@ -343,35 +346,39 @@ export function FocusRunning({
       <div className="row wrap" style={{ justifyContent: 'center' }}>
         {session.status === 'active' && (
           <button className="btn secondary lg" disabled={busy} onClick={() => act('pause')}>
-            <Icon name="pause" size={16} /> Tạm dừng
+            <Icon name="pause" size={16} />{' '}{tr('Tạm dừng')}
           </button>
         )}
         {(session.status === 'paused' || session.status === 'on_break') && (
           <button className="btn lg" disabled={busy} onClick={() => act('resume')}>
-            <Icon name="play" size={16} /> {session.status === 'on_break' ? 'Kết thúc nghỉ' : 'Tiếp tục'}
+            <Icon name="play" size={16} /> {session.status === 'on_break' ? tr('Kết thúc nghỉ') : tr('Tiếp tục')}
           </button>
         )}
         {session.status === 'active' && session.mode !== 'custom' && (
           <button className="btn secondary lg" disabled={busy} onClick={() => act('break')}>
-            <Icon name="coffee" size={16} /> Nghỉ
+            <Icon name="coffee" size={16} />{' '}{tr('Nghỉ')}
           </button>
         )}
         {strict && (!target || session.mode !== 'custom' || focusTotal < session.plannedMinutes * 60) ? (
           <HoldButton disabled={busy} onDone={() => setEndAt(new Date(now))} />
         ) : (
           <button className="btn danger lg" disabled={busy} onClick={() => setEndAt(new Date(now))}>
-            <Icon name="stop" size={16} /> Kết thúc
+            <Icon name="stop" size={16} />{' '}{tr('Kết thúc')}
           </button>
         )}
       </div>
       <div className="row wrap" style={{ justifyContent: 'center' }}>
         <button className="btn ghost" onClick={() => setShowDistraction(true)}>
-          <Icon name="zap" size={16} /> Tôi đang bị phân tâm
+          <Icon name="zap" size={16} />{' '}{tr('Tôi đang bị phân tâm')}
         </button>
         <button className="btn ghost" onClick={() => setRecover({ trigger: 'manual' })}>
           <Icon name="wind" size={16} /> Quick Reset
         </button>
+        <button className="btn ghost" onClick={() => setShowTranslate((v) => !v)} aria-expanded={showTranslate}>
+          <Icon name="translate" size={16} />{' '}{tr('Dịch Anh ⇄ Việt')}
+        </button>
       </div>
+      {showTranslate && <TranslatePanel onClose={() => setShowTranslate(false)} />}
       {error && <p className="error-text">{error}</p>}
     </div>
   );
@@ -386,7 +393,7 @@ export function FocusRunning({
             style={{ position: 'absolute', top: 16, right: 16 }}
             onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()).catch(() => undefined)}
           >
-            <Icon name="maximize" size={16} /> Toàn màn hình
+            <Icon name="maximize" size={16} />{' '}{tr('Toàn màn hình')}
           </button>
         </div>
       ) : (
@@ -471,11 +478,11 @@ function HoldButton({ onDone, disabled }: { onDone: () => void; disabled?: boole
       onKeyDown={(e) => (e.key === ' ' || e.key === 'Enter') && start()}
       onKeyUp={stop}
       style={{ position: 'relative', overflow: 'hidden', userSelect: 'none', touchAction: 'none' }}
-      aria-label="Giữ 3 giây để kết thúc sớm"
+      aria-label={tr('Giữ 3 giây để kết thúc sớm')}
     >
       <span aria-hidden style={{ position: 'absolute', inset: 0, width: `${progress * 100}%`, background: 'rgba(184, 64, 47, .25)' }} />
       <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-        <Icon name="stop" size={16} /> {progress > 0 ? 'Giữ tiếp…' : 'Giữ 3 giây để kết thúc sớm'}
+        <Icon name="stop" size={16} /> {progress > 0 ? tr('Giữ tiếp…') : tr('Giữ 3 giây để kết thúc sớm')}
       </span>
     </button>
   );
@@ -520,17 +527,17 @@ function EndSessionModal({
   };
 
   return (
-    <Modal open onClose={onCancel} title="Kết thúc phiên học">
+    <Modal open onClose={onCancel} title={tr('Kết thúc phiên học')}>
       <div className="form">
         <p className="muted">
-          Bạn đã tập trung <b style={{ color: 'var(--text)' }}>{fmtDuration(focusSeconds)}</b>. Mục tiêu: “{session.goal}”
+          {tr('Bạn đã tập trung')}{' '}<b style={{ color: 'var(--text)' }}>{fmtDuration(focusSeconds)}</b>{tr('. Mục tiêu: “{0}”', session.goal)}
         </p>
         <div className="field">
-          Bạn đã đạt mục tiêu phiên học chưa?
+          {tr('Bạn đã đạt mục tiêu phiên học chưa?')}
           <div className="chips">
             {[
-              [true, 'Đã đạt'],
-              [false, 'Chưa đạt'],
+              [true, tr('Đã đạt')],
+              [false, tr('Chưa đạt')],
             ].map(([v, l]) => (
               <button key={String(v)} type="button" className={`chip ${goalAchieved === v ? 'active' : ''}`} onClick={() => setGoalAchieved(v as boolean)}>
                 {l as string}
@@ -539,7 +546,7 @@ function EndSessionModal({
           </div>
         </div>
         <div className="field">
-          Mức độ tập trung tự đánh giá
+          {tr('Mức độ tập trung tự đánh giá')}
           <div className="chips">
             {[1, 2, 3, 4, 5].map((n) => (
               <button key={n} type="button" className={`chip ${rating === n ? 'active' : ''}`} onClick={() => setRating(n)}>
@@ -549,25 +556,25 @@ function EndSessionModal({
           </div>
         </div>
         <label className="field">
-          Ghi chú kết quả
-          <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Đã học được gì? Còn vướng chỗ nào?" />
+          {tr('Ghi chú kết quả')}
+          <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder={tr('Đã học được gì? Còn vướng chỗ nào?')} />
         </label>
         {session.task && (
           <label className="row">
-            <input type="checkbox" checked={markTaskDone} onChange={(e) => setMarkTaskDone(e.target.checked)} /> Đánh dấu nhiệm vụ đã hoàn thành
+            <input type="checkbox" checked={markTaskDone} onChange={(e) => setMarkTaskDone(e.target.checked)} />{' '}{tr('Đánh dấu nhiệm vụ đã hoàn thành')}
           </label>
         )}
         {error && <p className="error-text">{error}</p>}
         <div className="row between">
-          <button className="btn ghost" disabled={busy} onClick={() => submit(true)} title="Huỷ phiên (không tính vào thống kê hoàn thành)">
-            Huỷ phiên
+          <button className="btn ghost" disabled={busy} onClick={() => submit(true)} title={tr('Huỷ phiên (không tính vào thống kê hoàn thành)')}>
+            {tr('Huỷ phiên')}
           </button>
           <div className="row">
             <button className="btn secondary" onClick={onCancel}>
-              Học tiếp
+              {tr('Học tiếp')}
             </button>
             <button className="btn" disabled={busy} onClick={() => submit(false)}>
-              Lưu kết quả
+              {tr('Lưu kết quả')}
             </button>
           </div>
         </div>

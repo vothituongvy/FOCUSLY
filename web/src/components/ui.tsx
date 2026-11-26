@@ -1,6 +1,7 @@
 'use client';
 
 import { ReactNode, useEffect } from 'react';
+import { tr } from '@/lib/i18n';
 
 export function Modal({
   open,
@@ -29,7 +30,7 @@ export function Modal({
         {title && (
           <div className="row between" style={{ marginBottom: 16 }}>
             <h2>{title}</h2>
-            <button className="icon-btn" onClick={onClose} aria-label="Đóng">
+            <button className="icon-btn" onClick={onClose} aria-label={tr('Đóng')}>
               ✕
             </button>
           </div>

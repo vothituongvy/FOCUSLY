@@ -9,14 +9,15 @@ import { fmtDate } from '@/lib/format';
 import type { AppNotification } from '@/lib/types';
 import { Empty, Spinner } from '@/components/ui';
 import { Icon } from '@/components/Icon';
+import { tr } from '@/lib/i18n';
 
 const LABEL: Record<string, string> = {
-  study_reminder: 'Nhắc lịch học',
-  task_reminder: 'Nhiệm vụ',
-  break_reminder: 'Nghỉ giải lao',
-  daily_summary: 'Tổng kết ngày',
-  review_due: 'Ôn tập',
-  system: 'Hệ thống',
+  study_reminder: tr('Nhắc lịch học'),
+  task_reminder: tr('Nhiệm vụ'),
+  break_reminder: tr('Nghỉ giải lao'),
+  daily_summary: tr('Tổng kết ngày'),
+  review_due: tr('Ôn tập'),
+  system: tr('Hệ thống'),
 };
 
 export default function NotificationsPage() {
@@ -28,14 +29,14 @@ export default function NotificationsPage() {
     <div className="col" style={{ gap: 18 }}>
       <div className="page-header">
         <div>
-          <h1>Thông báo</h1>
+          <h1>{tr('Thông báo')}</h1>
           <p className="muted">
-            {data?.unread ?? 0} chưa đọc · <Link href="/settings?tab=notifications">Cài đặt thông báo</Link>
+            {tr('{0} chưa đọc ·', data?.unread ?? 0)}{' '}<Link href="/settings?tab=notifications">{tr('Cài đặt thông báo')}</Link>
           </p>
         </div>
         <div className="row">
           <button className={`chip ${unreadOnly ? 'active' : ''}`} onClick={() => setUnreadOnly(!unreadOnly)}>
-            Chỉ chưa đọc
+            {tr('Chỉ chưa đọc')}
           </button>
           <button
             className="btn secondary sm"
@@ -44,7 +45,7 @@ export default function NotificationsPage() {
               void reload();
             }}
           >
-            Đánh dấu tất cả đã đọc
+            {tr('Đánh dấu tất cả đã đọc')}
           </button>
           <button
             className="btn sm"
@@ -53,7 +54,7 @@ export default function NotificationsPage() {
               await post('/notifications/test');
             }}
           >
-            Gửi thử
+            {tr('Gửi thử')}
           </button>
         </div>
       </div>
@@ -61,7 +62,7 @@ export default function NotificationsPage() {
         {!data ? (
           <Spinner />
         ) : data.items.length === 0 ? (
-          <Empty>Không có thông báo.</Empty>
+          <Empty>{tr('Không có thông báo.')}</Empty>
         ) : (
           <div className="list">
             {data.items.map((n) => (
@@ -75,7 +76,7 @@ export default function NotificationsPage() {
                 </div>
                 {n.data?.link && (
                   <Link href={n.data.link} className="btn sm secondary" onClick={() => !n.readAt && post(`/notifications/${n.id}/read`)}>
-                    Mở
+                    {tr('Mở')}
                   </Link>
                 )}
                 <button
@@ -85,7 +86,7 @@ export default function NotificationsPage() {
                     void reload();
                   }}
                 >
-                  {n.readAt ? 'Chưa đọc' : 'Đã đọc'}
+                  {n.readAt ? tr('Chưa đọc') : tr('Đã đọc')}
                 </button>
                 <button
                   className="icon-btn"

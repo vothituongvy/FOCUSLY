@@ -5,6 +5,7 @@ import { FormEvent, useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/api';
 import { GoogleButton } from '@/components/GoogleButton';
+import { tr } from '@/lib/i18n';
 
 export default function RegisterPage() {
   const { register, googleLogin } = useAuth();
@@ -15,9 +16,9 @@ export default function RegisterPage() {
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
-    if (form.password !== form.confirm) return setError('Mật khẩu nhập lại không khớp');
+    if (form.password !== form.confirm) return setError(tr('Mật khẩu nhập lại không khớp'));
     if (!/[A-Za-z]/.test(form.password) || !/\d/.test(form.password) || form.password.length < 8) {
-      return setError('Mật khẩu tối thiểu 8 ký tự, gồm chữ và số');
+      return setError(tr('Mật khẩu tối thiểu 8 ký tự, gồm chữ và số'));
     }
     setBusy(true);
     try {
@@ -33,9 +34,9 @@ export default function RegisterPage() {
 
   return (
     <form className="form" onSubmit={submit}>
-      <h2 style={{ textAlign: 'center' }}>Tạo tài khoản</h2>
+      <h2 style={{ textAlign: 'center' }}>{tr('Tạo tài khoản')}</h2>
       <label className="field">
-        Họ tên
+        {tr('Họ tên')}
         <input required value={form.name} onChange={set('name')} autoComplete="name" />
       </label>
       <label className="field">
@@ -43,18 +44,18 @@ export default function RegisterPage() {
         <input type="email" required value={form.email} onChange={set('email')} autoComplete="email" />
       </label>
       <label className="field">
-        Mật khẩu
+        {tr('Mật khẩu')}
         <input type="password" required value={form.password} onChange={set('password')} autoComplete="new-password" />
       </label>
       <label className="field">
-        Nhập lại mật khẩu
+        {tr('Nhập lại mật khẩu')}
         <input type="password" required value={form.confirm} onChange={set('confirm')} autoComplete="new-password" />
       </label>
       {error && <p className="error-text">{error}</p>}
       <button className="btn block" disabled={busy}>
-        {busy ? 'Đang tạo...' : 'Đăng ký'}
+        {busy ? tr('Đang tạo...') : tr('Đăng ký')}
       </button>
-      <div className="divider">hoặc</div>
+      <div className="divider">{tr('hoặc')}</div>
       <GoogleButton
         onCredential={async (t) => {
           try {
@@ -65,7 +66,7 @@ export default function RegisterPage() {
         }}
       />
       <p className="small muted" style={{ textAlign: 'center' }}>
-        Đã có tài khoản? <Link href="/login">Đăng nhập</Link>
+        {tr('Đã có tài khoản?')}{' '}<Link href="/login">{tr('Đăng nhập')}</Link>
       </p>
     </form>
   );

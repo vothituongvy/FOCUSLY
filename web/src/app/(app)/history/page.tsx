@@ -6,13 +6,14 @@ import { fmtDate, fmtDuration } from '@/lib/format';
 import type { FocusSession } from '@/lib/types';
 import { Empty, Modal, Spinner } from '@/components/ui';
 import { Icon } from '@/components/Icon';
+import { LOCALE, tr } from '@/lib/i18n';
 
 const STATUS: Record<string, string> = {
-  active: 'Đang chạy',
-  paused: 'Tạm dừng',
-  on_break: 'Đang nghỉ',
-  completed: 'Hoàn thành',
-  abandoned: 'Đã huỷ',
+  active: tr('Đang chạy'),
+  paused: tr('Tạm dừng'),
+  on_break: tr('Đang nghỉ'),
+  completed: tr('Hoàn thành'),
+  abandoned: tr('Đã huỷ'),
 };
 const DEVICE: Record<string, string> = { web: 'Web', android: 'Android', ios: 'iOS', unknown: '—' };
 const PAGE = 20;
@@ -32,14 +33,14 @@ export default function HistoryPage() {
     <div className="col" style={{ gap: 18 }}>
       <div className="page-header">
         <div>
-          <h1>Lịch sử phiên học</h1>
-          <p className="muted">Mọi phiên học trên Web và Mobile.</p>
+          <h1>{tr('Lịch sử phiên học')}</h1>
+          <p className="muted">{tr('Mọi phiên học trên Web và Mobile.')}</p>
         </div>
         <div className="chips">
           {[
-            ['', 'Tất cả'],
-            ['completed', 'Hoàn thành'],
-            ['abandoned', 'Đã huỷ'],
+            ['', tr('Tất cả')],
+            ['completed', tr('Hoàn thành')],
+            ['abandoned', tr('Đã huỷ')],
           ].map(([v, l]) => (
             <button
               key={v}
@@ -58,13 +59,13 @@ export default function HistoryPage() {
         {loading && !data ? (
           <Spinner />
         ) : !data?.items.length ? (
-          <Empty>Chưa có phiên học nào.</Empty>
+          <Empty>{tr('Chưa có phiên học nào.')}</Empty>
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
               <thead>
                 <tr style={{ textAlign: 'left', color: 'var(--muted)', fontSize: 12.5 }}>
-                  {['Thời gian', 'Môn / Nhiệm vụ', 'Mục tiêu', 'Tập trung', 'Dự kiến', 'Phân tâm', 'Thiết bị', 'Trạng thái'].map((h) => (
+                  {[tr('Thời gian'), tr('Môn / Nhiệm vụ'), tr('Mục tiêu'), tr('Tập trung'), tr('Dự kiến'), tr('Phân tâm'), tr('Thiết bị'), tr('Trạng thái')].map((h) => (
                     <th key={h} style={{ padding: '8px 6px', borderBottom: '1px solid var(--border)' }}>
                       {h}
                     </th>
@@ -102,10 +103,10 @@ export default function HistoryPage() {
           </div>
         )}
         <div className="row between mt-16">
-          <span className="small muted">Tổng {data?.total ?? 0} phiên</span>
+          <span className="small muted">{tr('Tổng {0} phiên', data?.total ?? 0)}</span>
           <div className="row">
             <button className="btn sm secondary" disabled={page === 0} onClick={() => setPage(page - 1)}>
-              ‹ Trước
+              {tr('‹ Trước')}
             </button>
             <span className="small">
               {page + 1}/{totalPages}
@@ -118,11 +119,11 @@ export default function HistoryPage() {
       </div>
 
       {detail && (
-        <Modal open onClose={() => setDetail(null)} title="Chi tiết phiên học">
+        <Modal open onClose={() => setDetail(null)} title={tr('Chi tiết phiên học')}>
           <div className="col">
             <p>{detail.goal}</p>
             <p className="small muted">
-              {fmtDate(detail.startedAt, true)} {detail.endedAt ? fmtDate(detail.endedAt, true) : 'đang mở'}
+              {fmtDate(detail.startedAt, true)} {detail.endedAt ? fmtDate(detail.endedAt, true) : tr('đang mở')}
             </p>
             <div className="list">
               {detail.segments.map((seg, i) => {
@@ -132,8 +133,8 @@ export default function HistoryPage() {
                   <div className="list-item" key={i}>
                     <span className="muted"><Icon name={seg.type === 'focus' ? 'focus' : 'coffee'} size={15} /></span>
                     <span className="grow small">
-                      {new Date(seg.startedAt).toLocaleTimeString('vi-VN')} – {seg.endedAt ? end.toLocaleTimeString('vi-VN') : '…'}
-                      {seg.endReason === 'auto_pause' && <span className="badge high" style={{ marginLeft: 6 }}>tự tạm dừng</span>}
+                      {new Date(seg.startedAt).toLocaleTimeString(LOCALE)} – {seg.endedAt ? end.toLocaleTimeString(LOCALE) : '…'}
+                      {seg.endReason === 'auto_pause' && <span className="badge high" style={{ marginLeft: 6 }}>{tr('tự tạm dừng')}</span>}
                     </span>
                     <b className="small">{fmtDuration(secs)}</b>
                   </div>

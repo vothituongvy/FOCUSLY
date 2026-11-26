@@ -10,8 +10,9 @@ import { fmtClock, fmtDate, fmtDuration } from '@/lib/format';
 import type { Question, QuestionType, Quiz, QuizAttempt } from '@/lib/types';
 import { Spinner } from '@/components/ui';
 import { Icon } from '@/components/Icon';
+import { tr } from '@/lib/i18n';
 
-const TYPE_LABEL: Record<QuestionType, string> = { mcq: 'Trắc nghiệm', true_false: 'Đúng / Sai', short: 'Trả lời ngắn' };
+const TYPE_LABEL: Record<QuestionType, string> = { mcq: tr('Trắc nghiệm'), true_false: tr('Đúng / Sai'), short: tr('Trả lời ngắn') };
 const blank = (type: QuestionType = 'mcq'): Question => ({
   type,
   prompt: '',
@@ -57,7 +58,7 @@ function QuizEditor({ initial, onSaved, onCancel }: { initial: Draft; onSaved: (
     setBusy('save');
     setError('');
     const body = {
-      title: d.title || 'Bộ câu hỏi',
+      title: d.title || tr('Bộ câu hỏi'),
       subject: d.subject || null,
       material: d.material || null,
       task: d.task || null,
@@ -80,17 +81,17 @@ function QuizEditor({ initial, onSaved, onCancel }: { initial: Draft; onSaved: (
 
   return (
     <div className="col" style={{ gap: 14 }}>
-      {d.source === 'ai' && <div className="banner info">Câu hỏi do AI tạo là bản nháp – hãy kiểm tra đáp án, sửa hoặc xoá câu chưa phù hợp trước khi lưu.</div>}
+      {d.source === 'ai' && <div className="banner info">{tr('Câu hỏi do AI tạo là bản nháp – hãy kiểm tra đáp án, sửa hoặc xoá câu chưa phù hợp trước khi lưu.')}</div>}
       <div className="card form">
         <div className="grid grid-2">
           <label className="field">
-            Tên bộ câu hỏi
+            {tr('Tên bộ câu hỏi')}
             <input value={d.title} onChange={(e) => setD({ ...d, title: e.target.value })} />
           </label>
           <label className="field">
-            Môn học
+            {tr('Môn học')}
             <select value={d.subject ?? ''} onChange={(e) => setD({ ...d, subject: e.target.value || null })}>
-              <option value="">— Không —</option>
+              <option value="">{tr('— Không —')}</option>
               {subjects.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
@@ -100,9 +101,9 @@ function QuizEditor({ initial, onSaved, onCancel }: { initial: Draft; onSaved: (
           </label>
         </div>
         <div className="row">
-          <input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Chủ đề để AI tạo thêm câu hỏi" />
+          <input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder={tr('Chủ đề để AI tạo thêm câu hỏi')} />
           <button className="btn secondary" disabled={!topic || busy === 'ai'} onClick={generate}>
-            {busy === 'ai' ? 'Đang tạo...' : 'AI tạo 8 câu'}
+            {busy === 'ai' ? tr('Đang tạo...') : tr('AI tạo 8 câu')}
           </button>
         </div>
       </div>
@@ -110,7 +111,7 @@ function QuizEditor({ initial, onSaved, onCancel }: { initial: Draft; onSaved: (
       {d.questions.map((q, i) => (
         <div key={i} className="card col">
           <div className="row between">
-            <b>Câu {i + 1}</b>
+            <b>{tr('Câu {0}', i + 1)}</b>
             <div className="row">
               <select
                 value={q.type}
@@ -128,21 +129,21 @@ function QuizEditor({ initial, onSaved, onCancel }: { initial: Draft; onSaved: (
               </button>
             </div>
           </div>
-          <textarea value={q.prompt} onChange={(e) => setQ(i, { prompt: e.target.value })} placeholder="Nội dung câu hỏi" style={{ minHeight: 50 }} />
+          <textarea value={q.prompt} onChange={(e) => setQ(i, { prompt: e.target.value })} placeholder={tr('Nội dung câu hỏi')} style={{ minHeight: 50 }} />
           {q.type === 'mcq' &&
             q.options.map((o, k) => (
               <label key={k} className="row">
-                <input type="radio" checked={q.correctIndex === k} onChange={() => setQ(i, { correctIndex: k })} title="Đáp án đúng" />
-                <input value={o} onChange={(e) => setQ(i, { options: q.options.map((x, j) => (j === k ? e.target.value : x)) })} placeholder={`Lựa chọn ${String.fromCharCode(65 + k)}`} />
+                <input type="radio" checked={q.correctIndex === k} onChange={() => setQ(i, { correctIndex: k })} title={tr('Đáp án đúng')} />
+                <input value={o} onChange={(e) => setQ(i, { options: q.options.map((x, j) => (j === k ? e.target.value : x)) })} placeholder={tr('Lựa chọn {0}', String.fromCharCode(65 + k))} />
               </label>
             ))}
           {q.type === 'true_false' && (
             <div className="chips">
               <button className={`chip ${q.correctBoolean === true ? 'active' : ''}`} onClick={() => setQ(i, { correctBoolean: true })}>
-                Đáp án: Đúng
+                {tr('Đáp án: Đúng')}
               </button>
               <button className={`chip ${q.correctBoolean === false ? 'active' : ''}`} onClick={() => setQ(i, { correctBoolean: false })}>
-                Đáp án: Sai
+                {tr('Đáp án: Sai')}
               </button>
             </div>
           )}
@@ -150,10 +151,10 @@ function QuizEditor({ initial, onSaved, onCancel }: { initial: Draft; onSaved: (
             <input
               value={q.acceptedAnswers.join(' | ')}
               onChange={(e) => setQ(i, { acceptedAnswers: e.target.value.split('|').map((x) => x.trim()) })}
-              placeholder="Các đáp án chấp nhận, phân tách bằng |  (không phân biệt hoa thường/dấu)"
+              placeholder={tr('Các đáp án chấp nhận, phân tách bằng |  (không phân biệt hoa thường/dấu)')}
             />
           )}
-          <input value={q.explanation ?? ''} onChange={(e) => setQ(i, { explanation: e.target.value })} placeholder="Giải thích (hiện sau khi làm bài)" />
+          <input value={q.explanation ?? ''} onChange={(e) => setQ(i, { explanation: e.target.value })} placeholder={tr('Giải thích (hiện sau khi làm bài)')} />
         </div>
       ))}
 
@@ -167,11 +168,11 @@ function QuizEditor({ initial, onSaved, onCancel }: { initial: Draft; onSaved: (
       {error && <p className="error-text">{error}</p>}
       <div className="row">
         <button className="btn lg" disabled={busy === 'save' || !d.questions.length} onClick={save}>
-          Lưu bộ câu hỏi ({d.questions.length} câu)
+          {tr('Lưu bộ câu hỏi ({0} câu)', d.questions.length)}
         </button>
         {onCancel && (
           <button className="btn ghost" onClick={onCancel}>
-            Huỷ
+            {tr('Huỷ')}
           </button>
         )}
       </div>
@@ -195,7 +196,7 @@ function QuizTaker({ quiz, onFinished }: { quiz: Quiz; onFinished: (a: QuizAttem
   const answered = quiz.questions.filter((q) => answers[q.qid!] !== undefined && answers[q.qid!] !== '').length;
 
   const submit = async () => {
-    if (answered < quiz.questions.length && !confirm(`Bạn mới trả lời ${answered}/${quiz.questions.length} câu. Nộp bài?`)) return;
+    if (answered < quiz.questions.length && !confirm(tr('Bạn mới trả lời {0}/{1} câu. Nộp bài?', answered, quiz.questions.length))) return;
     setBusy(true);
     try {
       const r = await post<{ item: QuizAttempt }>(`/learn/quizzes/${quiz.id}/attempts`, {
@@ -214,14 +215,14 @@ function QuizTaker({ quiz, onFinished }: { quiz: Quiz; onFinished: (a: QuizAttem
     <div className="col" style={{ gap: 14, maxWidth: 780 }}>
       <div className="row between card" style={{ position: 'sticky', top: 8, zIndex: 5, padding: 12 }}>
         <span>
-          Đã trả lời <b>{answered}</b>/{quiz.questions.length}
+          {tr('Đã trả lời')}{' '}<b>{answered}</b>/{quiz.questions.length}
         </span>
         <span style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtClock(elapsed)}</span>
       </div>
       {quiz.questions.map((q, i) => (
         <div key={q.qid} className="card col">
           <span className="small muted">
-            Câu {i + 1} · {TYPE_LABEL[q.type]}
+            {tr('Câu {0} · {1}', i + 1, TYPE_LABEL[q.type])}
           </span>
           <b style={{ whiteSpace: 'pre-wrap' }}>{q.prompt}</b>
           {q.type === 'mcq' &&
@@ -234,19 +235,19 @@ function QuizTaker({ quiz, onFinished }: { quiz: Quiz; onFinished: (a: QuizAttem
             <div className="grid grid-2">
               {[true, false].map((v) => (
                 <button key={String(v)} className={`option ${answers[q.qid!] === v ? 'selected' : ''}`} onClick={() => setAnswers({ ...answers, [q.qid!]: v })}>
-                  {v ? 'Đúng' : 'Sai'}
+                  {v ? tr('Đúng') : 'Sai'}
                 </button>
               ))}
             </div>
           )}
           {q.type === 'short' && (
-            <input value={String(answers[q.qid!] ?? '')} onChange={(e) => setAnswers({ ...answers, [q.qid!]: e.target.value })} placeholder="Câu trả lời của bạn" />
+            <input value={String(answers[q.qid!] ?? '')} onChange={(e) => setAnswers({ ...answers, [q.qid!]: e.target.value })} placeholder={tr('Câu trả lời của bạn')} />
           )}
         </div>
       ))}
       {error && <p className="error-text">{error}</p>}
       <button className="btn lg" disabled={busy} onClick={submit}>
-        Nộp bài
+        {tr('Nộp bài')}
       </button>
     </div>
   );
@@ -259,12 +260,12 @@ function AttemptResult({ attempt, quiz, onRetry }: { attempt: QuizAttempt; quiz:
     <div className="col" style={{ gap: 14, maxWidth: 780 }}>
       <div className="card col" style={{ alignItems: 'center', textAlign: 'center' }}>
         <h2>
-          {attempt.score}/{attempt.total} câu đúng · {Math.round(attempt.accuracy * 100)}%
+          {tr('{0}/{1} câu đúng · {2}%', attempt.score, attempt.total, Math.round(attempt.accuracy * 100))}
         </h2>
-        <p className="muted">Thời gian {fmtDuration(attempt.durationSeconds)}</p>
+        <p className="muted">{tr('Thời gian {0}', fmtDuration(attempt.durationSeconds))}</p>
         <div className="row">
           <button className="btn" onClick={onRetry}>
-            Làm lại
+            {tr('Làm lại')}
           </button>
           {wrong.length > 0 && (
             <button
@@ -273,14 +274,14 @@ function AttemptResult({ attempt, quiz, onRetry }: { attempt: QuizAttempt; quiz:
                 const r = await post<{ created: number }>('/learn/mistakes/to-cards', {
                   items: wrong.map((w) => ({ prompt: w.prompt, correctAnswer: w.correctAnswer, explanation: w.explanation })),
                 });
-                setMsg(`Đã tạo ${r.created} flashcard để ôn lại câu sai.`);
+                setMsg(tr('Đã tạo {0} flashcard để ôn lại câu sai.', r.created));
               }}
             >
-              🃏 Chuyển {wrong.length} câu sai thành flashcard
+              {tr('🃏 Chuyển {0} câu sai thành flashcard', wrong.length)}
             </button>
           )}
           <Link href="/learn" className="btn ghost">
-            Về trang ôn tập
+            {tr('Về trang ôn tập')}
           </Link>
         </div>
         {msg && <p className="success-text">{msg}</p>}
@@ -288,14 +289,14 @@ function AttemptResult({ attempt, quiz, onRetry }: { attempt: QuizAttempt; quiz:
       {attempt.answers.map((a, i) => {
         const q = quiz.questions.find((x) => x.qid === a.qid);
         const your =
-          q?.type === 'mcq' && typeof a.answer === 'number' ? q.options[a.answer] : q?.type === 'true_false' && a.answer != null ? (a.answer ? 'Đúng' : 'Sai') : String(a.answer ?? '(bỏ trống)');
+          q?.type === 'mcq' && typeof a.answer === 'number' ? q.options[a.answer] : q?.type === 'true_false' && a.answer != null ? (a.answer ? tr('Đúng') : 'Sai') : String(a.answer ?? tr('(bỏ trống)'));
         return (
           <div key={a.qid} className={`card col option ${a.correct ? 'correct' : 'wrong'}`} style={{ cursor: 'default', alignItems: 'stretch' }}>
             <b>
-              <Icon name={a.correct ? 'check' : 'x'} size={15} /> Câu {i + 1}. {a.prompt}
+              <Icon name={a.correct ? 'check' : 'x'} size={15} />{' '}{tr('Câu {0}. {1}', i + 1, a.prompt)}
             </b>
-            <span className="small">Bạn trả lời: {your}</span>
-            {!a.correct && <span className="small">Đáp án đúng: <b>{a.correctAnswer}</b></span>}
+            <span className="small">{tr('Bạn trả lời: {0}', your)}</span>
+            {!a.correct && <span className="small">{tr('Đáp án đúng:')}{' '}<b>{a.correctAnswer}</b></span>}
             {a.explanation && <span className="small muted">{a.explanation}</span>}
           </div>
         );
@@ -327,9 +328,9 @@ function QuizInner() {
     return (
       <div className="col" style={{ gap: 14, maxWidth: 820 }}>
         <Link href="/learn?tab=quiz" className="small">
-          ‹ Bộ câu hỏi
+          {tr('‹ Bộ câu hỏi')}
         </Link>
-        <h1>Tạo bộ câu hỏi</h1>
+        <h1>{tr('Tạo bộ câu hỏi')}</h1>
         {draft && <QuizEditor initial={draft} onSaved={(q) => router.replace(`/learn/quiz/${q.id}`)} />}
       </div>
     );
@@ -343,31 +344,31 @@ function QuizInner() {
       <div className="page-header">
         <div>
           <Link href="/learn?tab=quiz" className="small">
-            ‹ Bộ câu hỏi
+            {tr('‹ Bộ câu hỏi')}
           </Link>
           <h1>{q.title}</h1>
           <p className="muted small">
-            {q.questions.length} câu · {q.source === 'ai' ? 'tạo bởi AI' : 'tự tạo'}
+            {tr('{0} câu ·', q.questions.length)}{' '}{q.source === 'ai' ? tr('tạo bởi AI') : tr('tự tạo')}
           </p>
         </div>
         {mode === 'view' && (
           <div className="row">
             <button className="btn" onClick={() => setMode('take')}>
-              <Icon name="play" size={16} /> Làm bài
+              <Icon name="play" size={16} />{' '}{tr('Làm bài')}
             </button>
             <button className="btn secondary" onClick={() => setMode('edit')}>
-              Sửa
+              {tr('Sửa')}
             </button>
             <button
               className="btn ghost"
               style={{ color: 'var(--danger)' }}
               onClick={async () => {
-                if (!confirm('Xoá bộ câu hỏi?')) return;
+                if (!confirm(tr('Xoá bộ câu hỏi?'))) return;
                 await del(`/quizzes/${id}`);
                 router.push('/learn?tab=quiz');
               }}
             >
-              Xoá
+              {tr('Xoá')}
             </button>
           </div>
         )}
@@ -397,17 +398,17 @@ function QuizInner() {
       {mode === 'result' && attempt && <AttemptResult attempt={attempt} quiz={q} onRetry={() => setMode('take')} />}
       {mode === 'view' && (
         <div className="card">
-          <h3 style={{ marginBottom: 8 }}>Lịch sử làm bài</h3>
+          <h3 style={{ marginBottom: 8 }}>{tr('Lịch sử làm bài')}</h3>
           {!attempts.data?.items.length ? (
-            <p className="muted small">Chưa làm lần nào.</p>
+            <p className="muted small">{tr('Chưa làm lần nào.')}</p>
           ) : (
             <table className="table">
               <thead>
                 <tr>
-                  <th>Thời điểm</th>
-                  <th>Điểm</th>
-                  <th>Độ chính xác</th>
-                  <th>Thời gian</th>
+                  <th>{tr('Thời điểm')}</th>
+                  <th>{tr('Điểm')}</th>
+                  <th>{tr('Độ chính xác')}</th>
+                  <th>{tr('Thời gian')}</th>
                 </tr>
               </thead>
               <tbody>

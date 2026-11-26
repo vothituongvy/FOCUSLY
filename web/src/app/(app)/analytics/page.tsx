@@ -8,6 +8,7 @@ import { WEEKDAYS_VI } from '@/lib/format';
 import { REASON_LABEL, type Analytics, type Insight } from '@/lib/types';
 import { Empty, Progress, Spinner } from '@/components/ui';
 import { Icon } from '@/components/Icon';
+import { tr } from '@/lib/i18n';
 
 type Range = 'day' | 'week' | 'month';
 const pct = (v: number | null | undefined) => (v == null ? '—' : `${Math.round(v * 100)}%`);
@@ -18,7 +19,7 @@ function Delta({ v, invert = false }: { v: number | null; invert?: boolean }) {
   const good = invert ? v < 0 : v > 0;
   return (
     <span className={`delta small ${good ? 'up' : 'down'}`}>
-      {v > 0 ? '▲' : '▼'} {Math.abs(Math.round(v * 100))}% so với kỳ trước
+      {v > 0 ? '▲' : '▼'}{' '}{tr('{0}% so với kỳ trước', Math.abs(Math.round(v * 100)))}
     </span>
   );
 }
@@ -43,16 +44,16 @@ export default function AnalyticsPage() {
     <div className="col" style={{ gap: 18 }}>
       <div className="page-header">
         <div>
-          <h1>Phân tích hiệu quả học tập</h1>
-          <p className="muted">Các chỉ số được tách riêng: thời gian dự kiến, tập trung thực tế, phân tâm, hoàn thành và độ chính xác kiểm tra.</p>
+          <h1>{tr('Phân tích hiệu quả học tập')}</h1>
+          <p className="muted">{tr('Các chỉ số được tách riêng: thời gian dự kiến, tập trung thực tế, phân tâm, hoàn thành và độ chính xác kiểm tra.')}</p>
         </div>
         <div className="row">
           <div className="chips">
             {(
               [
-                ['day', 'Hôm nay'],
-                ['week', '7 ngày'],
-                ['month', '30 ngày'],
+                ['day', tr('Hôm nay')],
+                ['week', tr('7 ngày')],
+                ['month', tr('30 ngày')],
               ] as [Range, string][]
             ).map(([k, l]) => (
               <button key={k} className={`chip ${range === k ? 'active' : ''}`} onClick={() => setRange(k)}>
@@ -64,7 +65,7 @@ export default function AnalyticsPage() {
             <Icon name="download" size={16} /> CSV
           </button>
           <Link href="/ai?tab=coach" className="btn sm">
-            <Icon name="ai" size={16} /> AI phân tích
+            <Icon name="ai" size={16} />{' '}{tr('AI phân tích')}
           </Link>
         </div>
       </div>
@@ -75,24 +76,24 @@ export default function AnalyticsPage() {
         <>
           <div className="grid grid-4">
             <div className="card">
-              <div className="stat-label">Thời gian tập trung thực tế</div>
+              <div className="stat-label">{tr('Thời gian tập trung thực tế')}</div>
               <div className="stat-value">{mins(a.metrics.actualFocusMinutes)}</div>
-              <div className="small muted">Dự kiến {mins(a.metrics.plannedMinutes)} · Tổng học (gồm nghỉ) {mins(a.metrics.studyMinutes)}</div>
+              <div className="small muted">{tr('Dự kiến')}{' '}{mins(a.metrics.plannedMinutes)}{' '}{tr('· Tổng học (gồm nghỉ)')}{' '}{mins(a.metrics.studyMinutes)}</div>
               <Delta v={a.change.actualFocusMinutes} />
             </div>
             <div className="card">
-              <div className="stat-label">Tỷ lệ hoàn thành nhiệm vụ</div>
+              <div className="stat-label">{tr('Tỷ lệ hoàn thành nhiệm vụ')}</div>
               <div className="stat-value">{pct(a.metrics.completionRate)}</div>
               <div className="small muted">
-                {a.metrics.tasksDone}/{a.metrics.tasksTotal} nhiệm vụ · đạt mục tiêu phiên {pct(a.metrics.goalAchievedRate)}
+                {tr('{0}/{1} nhiệm vụ · đạt mục tiêu phiên', a.metrics.tasksDone, a.metrics.tasksTotal)}{' '}{pct(a.metrics.goalAchievedRate)}
               </div>
               <Delta v={a.change.completionRate} />
             </div>
             <div className="card">
-              <div className="stat-label">Số lần phân tâm</div>
+              <div className="stat-label">{tr('Số lần phân tâm')}</div>
               <div className="stat-value">{a.metrics.distractionCount}</div>
               <div className="small muted">
-                {a.metrics.distractionsPerHour ?? '—'} lần/giờ · rời app/tab {a.metrics.appLeaveCount}
+                {tr('{0} lần/giờ · rời app/tab {1}', a.metrics.distractionsPerHour ?? '—', a.metrics.appLeaveCount)}
               </div>
               <Delta v={a.change.distractionsPerHour} invert />
             </div>
@@ -100,7 +101,7 @@ export default function AnalyticsPage() {
               <div className="stat-label">Quiz Accuracy</div>
               <div className="stat-value">{pct(a.metrics.quizAccuracy)}</div>
               <div className="small muted">
-                {a.metrics.quizAttempts} bài · ôn {a.metrics.cardReviews} thẻ · nhớ {pct(a.metrics.retention)}
+                {tr('{0} bài · ôn {1} thẻ · nhớ', a.metrics.quizAttempts, a.metrics.cardReviews)}{' '}{pct(a.metrics.retention)}
               </div>
               <Delta v={a.change.quizAccuracy} />
             </div>
@@ -109,22 +110,22 @@ export default function AnalyticsPage() {
           <div className="grid grid-3-1">
             <div className="card">
               <div className="card-title">
-                <h3>{range === 'day' ? 'Hôm nay' : 'Theo ngày'}: dự kiến vs thực tế</h3>
+                <h3>{range === 'day' ? tr('Hôm nay') : tr('Theo ngày')}{tr(': dự kiến vs thực tế')}</h3>
                 <span className="small muted">
-                  <span className="dot" style={{ background: '#d5dbe5' }} /> dự kiến <span className="dot" style={{ background: 'var(--marker)', marginLeft: 8, outline: '1px solid var(--ink)' }} /> thực tế
+                  <span className="dot" style={{ background: '#d5dbe5' }} />{' '}{tr('dự kiến')}{' '}<span className="dot" style={{ background: 'var(--marker)', marginLeft: 8, outline: '1px solid var(--ink)' }} />{' '}{tr('thực tế')}
                 </span>
               </div>
               <SeriesChart a={a} />
             </div>
             <div className="card col">
-              <h3>Phiên học</h3>
+              <h3>{tr('Phiên học')}</h3>
               {[
-                ['Số phiên', String(a.metrics.sessionCount)],
-                ['Hoàn thành', String(a.metrics.completedSessions)],
-                ['Huỷ giữa chừng', String(a.metrics.abandonedSessions)],
-                ['Độ dài TB', a.metrics.avgSessionMinutes != null ? `${a.metrics.avgSessionMinutes} phút` : '—'],
-                ['Nghỉ', mins(a.metrics.breakMinutes)],
-                ['Quick Reset', `${a.metrics.recoveries} lần · quay lại ${pct(a.metrics.recoveryResumeRate)}`],
+                [tr('Số phiên'), String(a.metrics.sessionCount)],
+                [tr('Hoàn thành'), String(a.metrics.completedSessions)],
+                [tr('Huỷ giữa chừng'), String(a.metrics.abandonedSessions)],
+                [tr('Độ dài TB'), a.metrics.avgSessionMinutes != null ? tr('{0} phút', a.metrics.avgSessionMinutes) : '—'],
+                [tr('Nghỉ'), mins(a.metrics.breakMinutes)],
+                ['Quick Reset', tr('{0} lần · quay lại {1}', a.metrics.recoveries, pct(a.metrics.recoveryResumeRate))],
               ].map(([k, v]) => (
                 <div key={k} className="row between small">
                   <span className="muted">{k}</span>
@@ -136,7 +137,7 @@ export default function AnalyticsPage() {
 
           <div className="grid grid-2">
             <div className="card">
-              <h3 style={{ marginBottom: 10 }}>Khung giờ học hiệu quả</h3>
+              <h3 style={{ marginBottom: 10 }}>{tr('Khung giờ học hiệu quả')}</h3>
               <HourHeat a={a} />
               {a.bestFocusTimes.length > 0 ? (
                 <div className="col mt-16" style={{ gap: 6 }}>
@@ -146,19 +147,19 @@ export default function AnalyticsPage() {
                         {['', '', ''][i]} {String(b.hour).padStart(2, '0')}:00–{String((b.hour + 1) % 24).padStart(2, '0')}:00
                       </span>
                       <span className="muted">
-                        {b.focusMinutes} phút · {b.distractionsPerHour ?? 0} phân tâm/giờ
+                        {tr('{0} phút · {1} phân tâm/giờ', b.focusMinutes, b.distractionsPerHour ?? 0)}
                       </span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="small muted mt-8">Cần ít nhất 15 phút tập trung trong một khung giờ.</p>
+                <p className="small muted mt-8">{tr('Cần ít nhất 15 phút tập trung trong một khung giờ.')}</p>
               )}
             </div>
             <div className="card col">
-              <h3>Nguyên nhân phân tâm</h3>
+              <h3>{tr('Nguyên nhân phân tâm')}</h3>
               {a.distractionReasons.length === 0 ? (
-                <Empty>Không có phân tâm </Empty>
+                <Empty>{tr('Không có phân tâm')}{' '}</Empty>
               ) : (
                 a.distractionReasons.map((r) => (
                   <div key={r.reason} className="hbar">
@@ -172,18 +173,18 @@ export default function AnalyticsPage() {
           </div>
 
           <div className="card">
-            <h3 style={{ marginBottom: 10 }}>Hiệu quả theo từng môn</h3>
+            <h3 style={{ marginBottom: 10 }}>{tr('Hiệu quả theo từng môn')}</h3>
             {a.bySubject.length === 0 ? (
-              <Empty>Chưa có dữ liệu theo môn.</Empty>
+              <Empty>{tr('Chưa có dữ liệu theo môn.')}</Empty>
             ) : (
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Môn học</th>
-                    <th>Tập trung</th>
-                    <th>Phiên</th>
-                    <th>Nhiệm vụ</th>
-                    <th>Phân tâm/giờ</th>
+                    <th>{tr('Môn học')}</th>
+                    <th>{tr('Tập trung')}</th>
+                    <th>{tr('Phiên')}</th>
+                    <th>{tr('Nhiệm vụ')}</th>
+                    <th>{tr('Phân tâm/giờ')}</th>
                     <th>Quiz</th>
                   </tr>
                 </thead>
@@ -210,11 +211,11 @@ export default function AnalyticsPage() {
       )}
 
       <div className="card col">
-        <h3>Learning Insights – đề xuất cải thiện</h3>
+        <h3>{tr('Learning Insights – đề xuất cải thiện')}</h3>
         {!insights.data ? (
           <Spinner />
         ) : insights.data.insights.length === 0 ? (
-          <Empty>Học thêm vài phiên để FOCUSLY phân tích thói quen của bạn.</Empty>
+          <Empty>{tr('Học thêm vài phiên để FOCUSLY phân tích thói quen của bạn.')}</Empty>
         ) : (
           <div className="grid grid-2">
             {insights.data.insights.map((i) => (
@@ -242,7 +243,7 @@ function SeriesChart({ a }: { a: Analytics }) {
   return (
     <div className="bars" style={{ height: 180, gap: a.series.length > 10 ? 3 : 10 }}>
       {a.series.map((s) => (
-        <div key={s.date} className="bar-col" title={`${s.date}\nThực tế ${s.focusMinutes}p · Dự kiến ${s.plannedMinutes}p · ${s.distractions} phân tâm · ${s.tasksDone} nhiệm vụ`}>
+        <div key={s.date} className="bar-col" title={tr('{0}\nThực tế {1}p · Dự kiến {2}p · {3} phân tâm · {4} nhiệm vụ', s.date, s.focusMinutes, s.plannedMinutes, s.distractions, s.tasksDone)}>
           <div style={{ display: 'flex', gap: 2, alignItems: 'flex-end', height: '100%', width: '100%', justifyContent: 'center' }}>
             <div className="bar under" style={{ height: `${(s.plannedMinutes / max) * 100}%`, maxWidth: 16 }} />
             <div className="bar" style={{ height: `${(s.focusMinutes / max) * 100}%`, maxWidth: 16 }} />
@@ -260,7 +261,7 @@ function HourHeat({ a }: { a: Analytics }) {
     <>
       <div className="heat">
         {a.byHour.map((h) => (
-          <div key={h.hour} title={`${h.hour}:00 – ${h.focusMinutes} phút, ${h.distractions} phân tâm`} style={{ opacity: h.focusMinutes ? 0.15 + (0.85 * h.focusMinutes) / max : 0.06 }} />
+          <div key={h.hour} title={tr('{0}:00 – {1} phút, {2} phân tâm', h.hour, h.focusMinutes, h.distractions)} style={{ opacity: h.focusMinutes ? 0.15 + (0.85 * h.focusMinutes) / max : 0.06 }} />
         ))}
       </div>
       <div className="row between small muted mt-8">

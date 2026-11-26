@@ -1,4 +1,5 @@
 import type { FocusSession, Segment } from './types';
+import { LOCALE, tr } from '@/lib/i18n';
 
 export function fmtDuration(totalSeconds: number): string {
   const s = Math.max(0, Math.round(totalSeconds));
@@ -21,7 +22,7 @@ export function fmtClock(totalSeconds: number): string {
 export function fmtDate(iso?: string | null, withTime = false): string {
   if (!iso) return '';
   const d = new Date(iso);
-  return d.toLocaleString('vi-VN', {
+  return d.toLocaleString(LOCALE, {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -31,10 +32,10 @@ export function fmtDate(iso?: string | null, withTime = false): string {
 
 export function fmtRelative(iso: string): string {
   const diff = (Date.now() - new Date(iso).getTime()) / 1000;
-  if (diff < 60) return 'vừa xong';
-  if (diff < 3600) return `${Math.floor(diff / 60)} phút trước`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} giờ trước`;
-  return `${Math.floor(diff / 86400)} ngày trước`;
+  if (diff < 60) return tr('vừa xong');
+  if (diff < 3600) return tr('{0} phút trước', Math.floor(diff / 60));
+  if (diff < 86400) return tr('{0} giờ trước', Math.floor(diff / 3600));
+  return tr('{0} ngày trước', Math.floor(diff / 86400));
 }
 
 /** yyyy-mm-dd theo giờ máy */

@@ -1,90 +1,62 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth';
-import { disconnectSocket } from '@/lib/socket';
-import { Avatar } from './ui';
-import { Icon, type IconName } from './Icon';
-import { NotificationBell } from './NotificationBell';
+import { usePathname } from 'next/navigation';
+import { useEffect } from 'react';
+import { Icon } from './Icon';
+import { NAV_GROUPS } from '@/lib/nav';
+import { tr } from '@/lib/i18n';
 
-const GROUPS: { label: string | null; items: { href: string; label: string; icon: IconName }[] }[] = [
-  {
-    label: null,
-    items: [
-      { href: '/dashboard', label: 'Hôm nay', icon: 'home' },
-      { href: '/focus', label: 'Tập trung', icon: 'focus' },
-      { href: '/plan', label: 'Kế hoạch', icon: 'plan' },
-    ],
-  },
-  {
-    label: 'Học',
-    items: [
-      { href: '/learn', label: 'Ôn tập & quiz', icon: 'cards' },
-      { href: '/materials', label: 'Tài liệu', icon: 'materials' },
-      { href: '/ai', label: 'Trợ lý AI', icon: 'ai' },
-    ],
-  },
-  {
-    label: 'Nhìn lại',
-    items: [
-      { href: '/analytics', label: 'Phân tích', icon: 'analytics' },
-      { href: '/history', label: 'Lịch sử phiên', icon: 'history' },
-      { href: '/journal', label: 'Nhật ký phân tâm', icon: 'journal' },
-    ],
-  },
-];
-
-export function Sidebar() {
+/** Thanh điều hướng bên trái. Trên màn hình nhỏ là ngăn kéo mở từ nút menu ở thanh trên. */
+export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const { user, logout } = useAuth();
 
-  const link = (href: string, label: string, icon: IconName) => (
-    <Link key={href} href={href} className={`nav-link ${pathname.startsWith(href) ? 'active' : ''}`} aria-current={pathname.startsWith(href) ? 'page' : undefined}>
-      <Icon name={icon} />
-      <span className="nav-label">{label}</span>
-    </Link>
-  );
+  // đóng ngăn kéo khi chuyển trang
+  useEffect(() => {
+    onClose();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
+  const active = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   return (
-    <aside className="sidebar">
-      <Link href="/dashboard" className="brand">
-        <span className="brand-logo" aria-hidden /> focusly
-      </Link>
-      {GROUPS.map((g) => (
-        <div key={g.label ?? 'main'} style={{ display: 'contents' }}>
-          {g.label && <div className="nav-group">{g.label}</div>}
-          {g.items.map((n) => link(n.href, n.label, n.icon))}
-        </div>
-      ))}
-      <div className="sidebar-footer">
-        <NotificationBell />
-        {link('/settings', 'Cài đặt', 'settings')}
-        {user && (
-          <div className="me">
-            <Avatar name={user.name} url={user.avatarUrl} />
-            <div className="grow">
-              <div className="truncate" style={{ fontWeight: 700, fontSize: 14 }}>
-                {user.name}
-              </div>
-              <div className="truncate small muted">{user.email}</div>
+    <>
+      {open && <div className="drawer-backdrop" onClick={onClose} aria-hidden />}
+      <aside className={`sidebar ${open ? 'open' : ''}`} aria-label={tr('Điều hướng chính')}>
+        <Link href="/dashboard" className="brand">
+          <span className="brand-logo" aria-hidden /> focusly
+        </Link>
+        <nav className="sidebar-nav">
+          {NAV_GROUPS.map((g) => (
+            <div key={g.label ?? 'main'} className="nav-section">
+              {g.label && <div className="nav-group">{g.label}</div>}
+              {g.items.map((n) => (
+                <Link key={n.href} href={n.href} className={`nav-link ${active(n.href) ? 'active' : ''}`} aria-current={active(n.href) ? 'page' : undefined}>
+                  <Icon name={n.icon} />
+                  <span className="nav-label">{n.label}</span>
+                </Link>
+              ))}
             </div>
-            <button
-              className="icon-btn"
-              title="Đăng xuất"
-              aria-label="Đăng xuất"
-              onClick={async () => {
-                disconnectSocket();
-                await logout();
-                router.replace('/login');
-              }}
-            >
-              <Icon name="logout" size={17} />
-            </button>
-          </div>
-        )}
-      </div>
-    </aside>
+          ))}
+        </nav>
+        <div className="sidebar-footer">
+          <Link href="/guide" className={`nav-link ${active('/guide') ? 'active' : ''}`}>
+            <Icon name="help" />
+            <span className="nav-label">{tr('Hướng dẫn sử dụng')}</span>
+          </Link>
+          <Link href="/settings" className={`nav-link ${active('/settings') ? 'active' : ''}`}>
+            <Icon name="settings" />
+            <span className="nav-label">{tr('Cài đặt')}</span>
+          </Link>
+        </div>
+      </aside>
+    </>
   );
 }

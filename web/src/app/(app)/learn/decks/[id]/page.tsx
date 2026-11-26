@@ -10,6 +10,7 @@ import { fmtDate } from '@/lib/format';
 import type { Card, Deck } from '@/lib/types';
 import { Empty, Spinner } from '@/components/ui';
 import { Icon } from '@/components/Icon';
+import { tr } from '@/lib/i18n';
 
 interface DraftCard {
   front: string;
@@ -75,7 +76,7 @@ function DeckInner() {
     setBusy('save');
     setError('');
     try {
-      const r = await post<{ item: Deck }>('/decks', { title: title || 'Bộ thẻ mới', subject: subject || null, material });
+      const r = await post<{ item: Deck }>('/decks', { title: title || tr('Bộ thẻ mới'), subject: subject || null, material });
       await saveDrafts(r.item.id);
       router.replace(`/learn/decks/${r.item.id}`);
     } catch (e) {
@@ -87,8 +88,8 @@ function DeckInner() {
   const draftEditor = drafts.length > 0 && (
     <div className="card col">
       <div className="row between">
-        <h3>Bản nháp từ AI ({drafts.filter((d) => d.keep).length}/{drafts.length} được chọn)</h3>
-        <span className="small muted">Sửa, bỏ chọn thẻ chưa phù hợp rồi lưu</span>
+        <h3>{tr('Bản nháp từ AI ({0}/{1} được chọn)', drafts.filter((d) => d.keep).length, drafts.length)}</h3>
+        <span className="small muted">{tr('Sửa, bỏ chọn thẻ chưa phù hợp rồi lưu')}</span>
       </div>
       {drafts.map((d, i) => (
         <div key={i} className="row" style={{ alignItems: 'flex-start', opacity: d.keep ? 1 : 0.45 }}>
@@ -99,7 +100,7 @@ function DeckInner() {
       ))}
       {!isNew && (
         <button className="btn" onClick={() => saveDrafts(id).then(cards.reload)}>
-          Lưu các thẻ đã chọn
+          {tr('Lưu các thẻ đã chọn')}
         </button>
       )}
     </div>
@@ -107,9 +108,9 @@ function DeckInner() {
 
   const aiBox = (
     <div className="row">
-      <input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Chủ đề để AI tạo thẻ, vd: React Hooks cơ bản" />
+      <input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder={tr('Chủ đề để AI tạo thẻ, vd: Từ vựng chủ đề Môi trường')} />
       <button className="btn secondary" disabled={!topic || busy === 'ai'} onClick={generate}>
-        {busy === 'ai' ? 'Đang tạo...' : 'Tạo bằng AI'}
+        {busy === 'ai' ? tr('Đang tạo...') : tr('Tạo bằng AI')}
       </button>
     </div>
   );
@@ -118,19 +119,19 @@ function DeckInner() {
     return (
       <div className="col" style={{ gap: 16, maxWidth: 900 }}>
         <Link href="/learn" className="small">
-          ‹ Ôn tập
+          {tr('‹ Ôn tập')}
         </Link>
-        <h1>Tạo bộ flashcard</h1>
+        <h1>{tr('Tạo bộ flashcard')}</h1>
         <div className="card form">
           <div className="grid grid-2">
             <label className="field">
-              Tên bộ thẻ
-              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="VD: React Hooks" />
+              {tr('Tên bộ thẻ')}
+              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={tr('VD: Từ vựng Unit 5')} />
             </label>
             <label className="field">
-              Môn học
+              {tr('Môn học')}
               <select value={subject} onChange={(e) => setSubject(e.target.value)}>
-                <option value="">— Không —</option>
+                <option value="">{tr('— Không —')}</option>
                 {subjects.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
@@ -144,7 +145,7 @@ function DeckInner() {
         {draftEditor}
         {error && <p className="error-text">{error}</p>}
         <button className="btn lg" disabled={busy === 'save'} onClick={createDeck}>
-          Tạo bộ thẻ{drafts.filter((d) => d.keep).length ? ` với ${drafts.filter((d) => d.keep).length} thẻ` : ''}
+          {tr('Tạo bộ thẻ')}{drafts.filter((d) => d.keep).length ? tr(' với {0} thẻ', drafts.filter((d) => d.keep).length) : ''}
         </button>
       </div>
     );
@@ -159,34 +160,34 @@ function DeckInner() {
       <div className="page-header">
         <div>
           <Link href="/learn" className="small">
-            ‹ Ôn tập
+            {tr('‹ Ôn tập')}
           </Link>
           <h1>{d.title}</h1>
-          <p className="muted small">{list.length} thẻ</p>
+          <p className="muted small">{tr('{0} thẻ', list.length)}</p>
         </div>
         <div className="row">
           <Link href={`/learn/review?deck=${id}`} className="btn">
-            <Icon name="cards" size={16} /> Ôn bộ này
+            <Icon name="cards" size={16} />{' '}{tr('Ôn bộ này')}
           </Link>
           <button
             className="btn ghost"
             style={{ color: 'var(--danger)' }}
             onClick={async () => {
-              if (!confirm('Xoá bộ thẻ và toàn bộ thẻ bên trong?')) return;
+              if (!confirm(tr('Xoá bộ thẻ và toàn bộ thẻ bên trong?'))) return;
               await del(`/decks/${id}`);
               router.push('/learn');
             }}
           >
-            Xoá bộ
+            {tr('Xoá bộ')}
           </button>
         </div>
       </div>
 
       <div className="card col">
-        <h3>Thêm thẻ</h3>
+        <h3>{tr('Thêm thẻ')}</h3>
         <div className="grid grid-2">
-          <textarea value={front} onChange={(e) => setFront(e.target.value)} placeholder="Mặt trước – câu hỏi / khái niệm" />
-          <textarea value={back} onChange={(e) => setBack(e.target.value)} placeholder="Mặt sau – câu trả lời" />
+          <textarea value={front} onChange={(e) => setFront(e.target.value)} placeholder={tr('Mặt trước – câu hỏi / khái niệm')} />
+          <textarea value={back} onChange={(e) => setBack(e.target.value)} placeholder={tr('Mặt sau – câu trả lời')} />
         </div>
         <div className="row between">
           {aiBox}
@@ -200,7 +201,7 @@ function DeckInner() {
               void cards.reload();
             }}
           >
-            + Thêm thẻ
+            {tr('+ Thêm thẻ')}
           </button>
         </div>
       </div>
@@ -209,15 +210,15 @@ function DeckInner() {
 
       <div className="card">
         {list.length === 0 ? (
-          <Empty>Bộ thẻ còn trống.</Empty>
+          <Empty>{tr('Bộ thẻ còn trống.')}</Empty>
         ) : (
           <table className="table">
             <thead>
               <tr>
-                <th>Mặt trước</th>
-                <th>Mặt sau</th>
-                <th>Ôn lần tới</th>
-                <th>Khoảng cách</th>
+                <th>{tr('Mặt trước')}</th>
+                <th>{tr('Mặt sau')}</th>
+                <th>{tr('Ôn lần tới')}</th>
+                <th>{tr('Khoảng cách')}</th>
                 <th />
               </tr>
             </thead>
@@ -229,13 +230,13 @@ function DeckInner() {
                   <tr key={c.id} style={{ opacity: c.suspended ? 0.5 : 1 }}>
                     <td style={{ whiteSpace: 'pre-wrap' }}>{c.front}</td>
                     <td style={{ whiteSpace: 'pre-wrap' }} className="small">{c.back}</td>
-                    <td className="small">{c.srs.lastReviewedAt ? fmtDate(c.srs.due) : <span className="badge">Mới</span>}</td>
-                    <td className="small">{c.srs.interval ? `${c.srs.interval} ngày` : '—'}</td>
+                    <td className="small">{c.srs.lastReviewedAt ? fmtDate(c.srs.due) : <span className="badge">{tr('Mới')}</span>}</td>
+                    <td className="small">{c.srs.interval ? tr('{0} ngày', c.srs.interval) : '—'}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>
-                      <button className="icon-btn" title="Sửa" onClick={() => setEditing(c.id)}>✎</button>
+                      <button className="icon-btn" title={tr('Sửa')} onClick={() => setEditing(c.id)}>✎</button>
                       <button
                         className="icon-btn"
-                        title={c.suspended ? 'Bật lại' : 'Tạm ẩn'}
+                        title={c.suspended ? tr('Bật lại') : tr('Tạm ẩn')}
                         onClick={async () => {
                           await patch(`/cards/${c.id}`, { suspended: !c.suspended });
                           void cards.reload();
@@ -245,7 +246,7 @@ function DeckInner() {
                       </button>
                       <button
                         className="icon-btn"
-                        title="Xoá"
+                        title={tr('Xoá')}
                         onClick={async () => {
                           await del(`/cards/${c.id}`);
                           void cards.reload();
@@ -284,10 +285,10 @@ function EditRow({ card, onDone }: { card: Card; onDone: () => void }) {
             onDone();
           }}
         >
-          Lưu
+          {tr('Lưu')}
         </button>{' '}
         <button className="btn sm ghost" onClick={onDone}>
-          Huỷ
+          {tr('Huỷ')}
         </button>
       </td>
     </tr>

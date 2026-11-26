@@ -10,6 +10,7 @@ import { PRIORITY_LABEL, STATUS_LABEL, type Course, type Goal, type Subject, typ
 import { CourseForm, GoalForm, SubjectForm, TaskForm } from '@/components/PlanForms';
 import { Empty, Spinner } from '@/components/ui';
 import { Icon } from '@/components/Icon';
+import { tr } from '@/lib/i18n';
 
 type View = 'list' | 'calendar' | 'goals';
 type ModalState =
@@ -72,15 +73,15 @@ export default function PlanPage() {
     <div className="col" style={{ gap: 18 }}>
       <div className="page-header">
         <div>
-          <h1>Kế hoạch học tập</h1>
-          <p className="muted">Tổ chức việc học theo môn học, chủ đề, mục tiêu và nhiệm vụ.</p>
+          <h1>{tr('Kế hoạch học tập')}</h1>
+          <p className="muted">{tr('Tổ chức việc học theo môn học, chủ đề, mục tiêu và nhiệm vụ.')}</p>
         </div>
         <div className="row">
           <button className="btn secondary" onClick={() => setModal({ kind: 'goal' })}>
-            + Mục tiêu
+            {tr('+ Mục tiêu')}
           </button>
           <button className="btn" onClick={() => setModal({ kind: 'task' })}>
-            + Nhiệm vụ
+            {tr('+ Nhiệm vụ')}
           </button>
         </div>
       </div>
@@ -89,8 +90,8 @@ export default function PlanPage() {
         {/* ----- Môn học ----- */}
         <div className="card col" style={{ gap: 4 }}>
           <div className="row between" style={{ marginBottom: 6 }}>
-            <h3>Môn học</h3>
-            <button className="icon-btn" title="Thêm môn học" onClick={() => setModal({ kind: 'subject' })}>
+            <h3>{tr('Môn học')}</h3>
+            <button className="icon-btn" title={tr('Thêm môn học')} onClick={() => setModal({ kind: 'subject' })}>
               ＋
             </button>
           </div>
@@ -102,7 +103,7 @@ export default function PlanPage() {
               setCourseId(null);
             }}
           >
-            Tất cả
+            {tr('Tất cả')}
           </button>
           {subjects.map((s) => (
             <div key={s.id} className="row" style={{ gap: 2 }}>
@@ -116,18 +117,18 @@ export default function PlanPage() {
               >
                 <span className="dot" style={{ background: s.color }} /> {s.icon} <span className="truncate">{s.name}</span>
               </button>
-              <button className="icon-btn" title="Sửa" onClick={() => setModal({ kind: 'subject', subject: s })}>
+              <button className="icon-btn" title={tr('Sửa')} onClick={() => setModal({ kind: 'subject', subject: s })}>
                 ✎
               </button>
             </div>
           ))}
-          {subjects.length === 0 && <p className="small muted">Chưa có môn học nào.</p>}
+          {subjects.length === 0 && <p className="small muted">{tr('Chưa có môn học nào.')}</p>}
 
           {subject && (
             <div className="mt-16 col" style={{ gap: 4 }}>
               <div className="row between">
                 <span className="small muted" style={{ fontWeight: 600 }}>
-                  CHỦ ĐỀ / KHOÁ HỌC
+                  {tr('CHỦ ĐỀ / KHOÁ HỌC')}
                 </span>
                 <button className="icon-btn" onClick={() => setModal({ kind: 'course' })}>
                   ＋
@@ -147,7 +148,7 @@ export default function PlanPage() {
                   </button>
                 </div>
               ))}
-              {subjectCourses.length === 0 && <p className="small muted">Chưa có chủ đề.</p>}
+              {subjectCourses.length === 0 && <p className="small muted">{tr('Chưa có chủ đề.')}</p>}
             </div>
           )}
         </div>
@@ -157,9 +158,9 @@ export default function PlanPage() {
           <div className="tabs">
             {(
               [
-                ['list', 'Danh sách nhiệm vụ'],
-                ['calendar', 'Lịch'],
-                ['goals', 'Mục tiêu'],
+                ['list', tr('Danh sách nhiệm vụ')],
+                ['calendar', tr('Lịch')],
+                ['goals', tr('Mục tiêu')],
               ] as [View, string][]
             ).map(([v, label]) => (
               <button key={v} className={`tab ${view === v ? 'active' : ''}`} onClick={() => setView(v)}>
@@ -171,12 +172,12 @@ export default function PlanPage() {
           {view === 'list' && (
             <>
               <div className="row wrap" style={{ marginBottom: 12 }}>
-                <input placeholder="Tìm nhiệm vụ..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ maxWidth: 260 }} />
+                <input placeholder={tr('Tìm nhiệm vụ...')} value={search} onChange={(e) => setSearch(e.target.value)} style={{ maxWidth: 260 }} />
                 <div className="chips">
                   {[
-                    ['todo,in_progress', 'Chưa xong'],
-                    ['done', 'Hoàn thành'],
-                    ['', 'Tất cả'],
+                    ['todo,in_progress', tr('Chưa xong')],
+                    ['done', tr('Hoàn thành')],
+                    ['', tr('Tất cả')],
                   ].map(([v, l]) => (
                     <button key={v} className={`chip ${status === v ? 'active' : ''}`} onClick={() => setStatus(v)}>
                       {l}
@@ -188,9 +189,9 @@ export default function PlanPage() {
                 <Spinner />
               ) : sorted.length === 0 ? (
                 <Empty>
-                  Không có nhiệm vụ.{' '}
+                  {tr('Không có nhiệm vụ.')} 
                   <button className="btn sm" onClick={() => setModal({ kind: 'task' })}>
-                    Tạo nhiệm vụ
+                    {tr('Tạo nhiệm vụ')}
                   </button>
                 </Empty>
               ) : (
@@ -201,12 +202,12 @@ export default function PlanPage() {
                     const overdue = t.status !== 'done' && t.deadline && new Date(t.deadline) < new Date();
                     return (
                       <div className="list-item" key={t.id}>
-                        <button className={`check ${t.status === 'done' ? 'on' : ''}`} onClick={() => toggleDone(t)} aria-label="Hoàn thành">
+                        <button className={`check ${t.status === 'done' ? 'on' : ''}`} onClick={() => toggleDone(t)} aria-label={tr('Hoàn thành')}>
                           {t.status === 'done' ? '✓' : ''}
                         </button>
                         <div className="grow" style={{ cursor: 'pointer' }} onClick={() => setModal({ kind: 'task', task: t })}>
                           <div className={`truncate ${t.status === 'done' ? 'strike' : ''}`} style={{ fontWeight: 600 }}>
-                            {t.title} {t.recurrence?.freq !== 'none' && <span title="Lặp lại"></span>}
+                            {t.title} {t.recurrence?.freq !== 'none' && <span title={tr('Lặp lại')}></span>}
                           </div>
                           <div className="small muted">
                             {s && (
@@ -215,8 +216,8 @@ export default function PlanPage() {
                                 {c ? ` › ${c.name}` : ''} ·{' '}
                               </>
                             )}
-                            {t.estimatedMinutes}p dự kiến
-                            {t.actualFocusSeconds > 0 && ` · đã học ${fmtDuration(t.actualFocusSeconds)}`}
+                            {tr('{0}p dự kiến', t.estimatedMinutes)}
+                            {t.actualFocusSeconds > 0 && tr(' · đã học {0}', fmtDuration(t.actualFocusSeconds))}
                             {t.scheduledDate && ` · ${fmtDate(t.scheduledDate)}`}
                             {t.deadline && <span style={{ color: overdue ? 'var(--danger)' : undefined }}> · {fmtDate(t.deadline, true)}</span>}
                           </div>
@@ -230,9 +231,9 @@ export default function PlanPage() {
                         )}
                         <button
                           className="icon-btn"
-                          title="Xoá"
+                          title={tr('Xoá')}
                           onClick={async () => {
-                            if (!confirm(`Xoá "${t.title}"?`)) return;
+                            if (!confirm(tr('Xoá "{0}"?', t.title))) return;
                             await del(`/tasks/${t.id}`);
                             void reload();
                           }}
@@ -317,7 +318,7 @@ function CalendarView({
           ‹
         </button>
         <h3>
-          Tháng {month.getMonth() + 1}/{month.getFullYear()}
+          {tr('Tháng {0}/', month.getMonth() + 1)}{month.getFullYear()}
         </h3>
         <button className="btn secondary sm" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}>
           ›
@@ -352,12 +353,12 @@ function CalendarView({
                   {task.title}
                 </div>
               ))}
-              {items.length > 3 && <div className="small muted">+{items.length - 3} nữa</div>}
+              {items.length > 3 && <div className="small muted">{tr('+{0} nữa', items.length - 3)}</div>}
             </div>
           );
         })}
       </div>
-      <p className="small muted mt-8">Nhấn vào một ngày để thêm nhiệm vụ cho ngày đó. = hạn hoàn thành.</p>
+      <p className="small muted mt-8">{tr('Nhấn vào một ngày để thêm nhiệm vụ cho ngày đó. = hạn hoàn thành.')}</p>
     </div>
   );
 }
@@ -367,13 +368,13 @@ function GoalsView({ goals, onEdit, onAdd }: { goals: Goal[]; onEdit: (g: Goal) 
   if (goals.length === 0)
     return (
       <Empty>
-        Chưa có mục tiêu.{' '}
+        {tr('Chưa có mục tiêu.')} 
         <button className="btn sm" onClick={onAdd}>
-          Thêm mục tiêu
+          {tr('Thêm mục tiêu')}
         </button>
       </Empty>
     );
-  const label = { active: 'Đang theo đuổi', achieved: 'Đã đạt ', abandoned: 'Tạm bỏ' };
+  const label = { active: tr('Đang theo đuổi'), achieved: tr('Đã đạt '), abandoned: tr('Tạm bỏ') };
   return (
     <div className="list">
       {goals.map((g) => {
@@ -384,7 +385,7 @@ function GoalsView({ goals, onEdit, onAdd }: { goals: Goal[]; onEdit: (g: Goal) 
               <div style={{ fontWeight: 600 }}>{g.title}</div>
               <div className="small muted">
                 {s ? `${s.icon} ${s.name}` : 'Chung'}
-                {g.targetDate && ` · Hạn ${fmtDate(g.targetDate)}`}
+                {g.targetDate && tr(' · Hạn {0}', fmtDate(g.targetDate))}
               </div>
             </div>
             <span className={`badge ${g.status === 'achieved' ? 'done' : ''}`}>{label[g.status]}</span>

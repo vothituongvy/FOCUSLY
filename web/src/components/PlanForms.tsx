@@ -6,6 +6,7 @@ import { useLearning } from '@/lib/learning';
 import { fromDateInput, toDateInput, toDateTimeInput, WEEKDAYS_VI } from '@/lib/format';
 import { PRIORITY_LABEL, STATUS_LABEL, type Course, type Goal, type Priority, type Subject, type Task, type TaskStatus } from '@/lib/types';
 import { Modal } from './ui';
+import { tr } from '@/lib/i18n';
 
 const COLORS = ['#16203a', '#2f6fb3', '#0f7c86', '#1f7a4d', '#a8780b', '#b8402f', '#c2557a', '#7b4fa3', '#5b6475', '#d4a017'];
 const ICONS = ['📘', '📱', '💻', '🇬🇧', '🧮', '🧪', '🎨', '🎵', '📊', '🧠', '✍️', '🌏'];
@@ -34,18 +35,18 @@ export function SubjectForm({ open, onClose, subject }: { open: boolean; onClose
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={subject ? 'Sửa môn học' : 'Thêm môn học'}>
+    <Modal open={open} onClose={onClose} title={subject ? tr('Sửa môn học') : tr('Thêm môn học')}>
       <form className="form" onSubmit={submit}>
         <label className="field">
-          Tên môn học
-          <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="VD: React Native" />
+          {tr('Tên môn học')}
+          <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={tr('VD: Tiếng Anh')} />
         </label>
         <label className="field">
-          Mô tả
+          {tr('Mô tả')}
           <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
         </label>
         <div className="field">
-          Biểu tượng
+          {tr('Biểu tượng')}
           <div className="chips">
             {ICONS.map((i) => (
               <button type="button" key={i} className={`chip ${form.icon === i ? 'active' : ''}`} onClick={() => setForm({ ...form, icon: i })}>
@@ -55,7 +56,7 @@ export function SubjectForm({ open, onClose, subject }: { open: boolean; onClose
           </div>
         </div>
         <div className="field">
-          Màu
+          {tr('Màu')}
           <div className="chips">
             {COLORS.map((c) => (
               <button
@@ -76,18 +77,18 @@ export function SubjectForm({ open, onClose, subject }: { open: boolean; onClose
               className="btn ghost"
               style={{ color: 'var(--danger)' }}
               onClick={async () => {
-                if (!confirm(`Xoá môn "${subject.name}"? Các khoá học thuộc môn sẽ bị xoá, nhiệm vụ được giữ lại.`)) return;
+                if (!confirm(tr('Xoá môn "{0}"? Các khoá học thuộc môn sẽ bị xoá, nhiệm vụ được giữ lại.', subject.name))) return;
                 await del(`/subjects/${subject.id}`);
                 await load();
                 onClose();
               }}
             >
-              Xoá môn học
+              {tr('Xoá môn học')}
             </button>
           ) : (
             <span />
           )}
-          <button className="btn">Lưu</button>
+          <button className="btn">{tr('Lưu')}</button>
         </div>
       </form>
     </Modal>
@@ -112,14 +113,14 @@ export function CourseForm({ open, onClose, subjectId, course }: { open: boolean
     }
   };
   return (
-    <Modal open={open} onClose={onClose} title={course ? 'Sửa khoá học / chủ đề' : 'Thêm khoá học / chủ đề'}>
+    <Modal open={open} onClose={onClose} title={course ? tr('Sửa khoá học / chủ đề') : tr('Thêm khoá học / chủ đề')}>
       <form className="form" onSubmit={submit}>
         <label className="field">
-          Tên
-          <input required value={name} onChange={(e) => setName(e.target.value)} placeholder="VD: React Hooks" />
+          {tr('Tên')}
+          <input required value={name} onChange={(e) => setName(e.target.value)} placeholder={tr('VD: Ngữ pháp cơ bản')} />
         </label>
         <label className="field">
-          Mô tả
+          {tr('Mô tả')}
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} />
         </label>
         {error && <p className="error-text">{error}</p>}
@@ -130,18 +131,18 @@ export function CourseForm({ open, onClose, subjectId, course }: { open: boolean
               className="btn ghost"
               style={{ color: 'var(--danger)' }}
               onClick={async () => {
-                if (!confirm('Xoá khoá học này?')) return;
+                if (!confirm(tr('Xoá khoá học này?'))) return;
                 await del(`/courses/${course.id}`);
                 await load();
                 onClose();
               }}
             >
-              Xoá
+              {tr('Xoá')}
             </button>
           ) : (
             <span />
           )}
-          <button className="btn">Lưu</button>
+          <button className="btn">{tr('Lưu')}</button>
         </div>
       </form>
     </Modal>
@@ -172,21 +173,21 @@ export function GoalForm({ open, onClose, goal, defaultSubject }: { open: boolea
     }
   };
   return (
-    <Modal open={open} onClose={onClose} title={goal ? 'Sửa mục tiêu' : 'Thêm mục tiêu học tập'}>
+    <Modal open={open} onClose={onClose} title={goal ? tr('Sửa mục tiêu') : tr('Thêm mục tiêu học tập')}>
       <form className="form" onSubmit={submit}>
         <label className="field">
-          Mục tiêu
-          <input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="VD: Hiểu và thực hành được useEffect" />
+          {tr('Mục tiêu')}
+          <input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder={tr('VD: Nắm chắc 12 thì và làm được bài tập')} />
         </label>
         <label className="field">
-          Mô tả
+          {tr('Mô tả')}
           <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
         </label>
         <div className="grid grid-2">
           <label className="field">
-            Môn học
+            {tr('Môn học')}
             <select value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })}>
-              <option value="">— Không —</option>
+              <option value="">{tr('— Không —')}</option>
               {subjects.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.icon} {s.name}
@@ -195,16 +196,16 @@ export function GoalForm({ open, onClose, goal, defaultSubject }: { open: boolea
             </select>
           </label>
           <label className="field">
-            Ngày hoàn thành mục tiêu
+            {tr('Ngày hoàn thành mục tiêu')}
             <input type="date" value={form.targetDate} onChange={(e) => setForm({ ...form, targetDate: e.target.value })} />
           </label>
         </div>
         <label className="field">
-          Trạng thái
+          {tr('Trạng thái')}
           <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as Goal['status'] })}>
-            <option value="active">Đang theo đuổi</option>
-            <option value="achieved">Đã đạt</option>
-            <option value="abandoned">Tạm bỏ</option>
+            <option value="active">{tr('Đang theo đuổi')}</option>
+            <option value="achieved">{tr('Đã đạt')}</option>
+            <option value="abandoned">{tr('Tạm bỏ')}</option>
           </select>
         </label>
         {error && <p className="error-text">{error}</p>}
@@ -215,18 +216,18 @@ export function GoalForm({ open, onClose, goal, defaultSubject }: { open: boolea
               className="btn ghost"
               style={{ color: 'var(--danger)' }}
               onClick={async () => {
-                if (!confirm('Xoá mục tiêu?')) return;
+                if (!confirm(tr('Xoá mục tiêu?'))) return;
                 await del(`/goals/${goal.id}`);
                 await load();
                 onClose();
               }}
             >
-              Xoá
+              {tr('Xoá')}
             </button>
           ) : (
             <span />
           )}
-          <button className="btn">Lưu</button>
+          <button className="btn">{tr('Lưu')}</button>
         </div>
       </form>
     </Modal>
@@ -308,17 +309,17 @@ export function TaskForm({
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={task ? 'Sửa nhiệm vụ' : 'Tạo nhiệm vụ học tập'} width={620}>
+    <Modal open={open} onClose={onClose} title={task ? tr('Sửa nhiệm vụ') : tr('Tạo nhiệm vụ học tập')} width={620}>
       <form className="form" onSubmit={submit}>
         <label className="field">
-          Nhiệm vụ
-          <input required value={form.title} onChange={(e) => set('title', e.target.value)} placeholder="VD: Tìm hiểu useEffect" />
+          {tr('Nhiệm vụ')}
+          <input required value={form.title} onChange={(e) => set('title', e.target.value)} placeholder={tr('VD: Ôn thì hiện tại hoàn thành')} />
         </label>
         <div className="grid grid-2">
           <label className="field">
-            Môn học
+            {tr('Môn học')}
             <select value={form.subject ?? ''} onChange={(e) => setForm({ ...form, subject: e.target.value, course: '' })}>
-              <option value="">— Không —</option>
+              <option value="">{tr('— Không —')}</option>
               {subjects.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.icon} {s.name}
@@ -327,9 +328,9 @@ export function TaskForm({
             </select>
           </label>
           <label className="field">
-            Chủ đề / Khoá học
+            {tr('Chủ đề / Khoá học')}
             <select value={form.course ?? ''} onChange={(e) => set('course', e.target.value)} disabled={!form.subject}>
-              <option value="">— Không —</option>
+              <option value="">{tr('— Không —')}</option>
               {subjectCourses.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -338,9 +339,9 @@ export function TaskForm({
             </select>
           </label>
           <label className="field">
-            Mục tiêu liên quan
+            {tr('Mục tiêu liên quan')}
             <select value={form.goal ?? ''} onChange={(e) => set('goal', e.target.value)}>
-              <option value="">— Không —</option>
+              <option value="">{tr('— Không —')}</option>
               {subjectGoals.map((g) => (
                 <option key={g.id} value={g.id}>
                   {g.title}
@@ -349,11 +350,11 @@ export function TaskForm({
             </select>
           </label>
           <label className="field">
-            Thời lượng dự kiến (phút)
+            {tr('Thời lượng dự kiến (phút)')}
             <input type="number" min={0} max={1440} value={form.estimatedMinutes} onChange={(e) => set('estimatedMinutes', Number(e.target.value))} />
           </label>
           <label className="field">
-            Mức độ ưu tiên
+            {tr('Mức độ ưu tiên')}
             <select value={form.priority} onChange={(e) => set('priority', e.target.value as Priority)}>
               {Object.entries(PRIORITY_LABEL).map(([k, v]) => (
                 <option key={k} value={k}>
@@ -363,7 +364,7 @@ export function TaskForm({
             </select>
           </label>
           <label className="field">
-            Trạng thái
+            {tr('Trạng thái')}
             <select value={form.status} onChange={(e) => set('status', e.target.value as TaskStatus)}>
               {Object.entries(STATUS_LABEL).map(([k, v]) => (
                 <option key={k} value={k}>
@@ -373,7 +374,7 @@ export function TaskForm({
             </select>
           </label>
           <label className="field">
-            Ngày học dự kiến
+            {tr('Ngày học dự kiến')}
             <input type="date" value={form.scheduledDate} onChange={(e) => set('scheduledDate', e.target.value)} />
           </label>
           <label className="field">
@@ -382,33 +383,33 @@ export function TaskForm({
           </label>
         </div>
         <label className="field">
-          Kết quả mong muốn
-          <input value={form.expectedOutcome} onChange={(e) => set('expectedOutcome', e.target.value)} placeholder="VD: Hiểu và thực hành được useEffect" />
+          {tr('Kết quả mong muốn')}
+          <input value={form.expectedOutcome} onChange={(e) => set('expectedOutcome', e.target.value)} placeholder={tr('VD: Làm đúng 8/10 câu bài tập')} />
         </label>
         <label className="field">
-          Ghi chú
+          {tr('Ghi chú')}
           <textarea value={form.description} onChange={(e) => set('description', e.target.value)} />
         </label>
 
         <div className="card" style={{ padding: 12, background: 'var(--surface-2)', boxShadow: 'none' }}>
           <div className="row wrap">
             <label className="field grow">
-              Lặp lại
+              {tr('Lặp lại')}
               <select value={form.freq} onChange={(e) => set('freq', e.target.value as typeof form.freq)}>
-                <option value="none">Không lặp</option>
-                <option value="daily">Hằng ngày</option>
-                <option value="weekly">Hằng tuần</option>
-                <option value="monthly">Hằng tháng</option>
+                <option value="none">{tr('Không lặp')}</option>
+                <option value="daily">{tr('Hằng ngày')}</option>
+                <option value="weekly">{tr('Hằng tuần')}</option>
+                <option value="monthly">{tr('Hằng tháng')}</option>
               </select>
             </label>
             {form.freq !== 'none' && (
               <>
                 <label className="field" style={{ width: 110 }}>
-                  Mỗi
+                  {tr('Mỗi')}
                   <input type="number" min={1} max={365} value={form.interval} onChange={(e) => set('interval', Number(e.target.value))} />
                 </label>
                 <label className="field" style={{ width: 170 }}>
-                  Đến ngày
+                  {tr('Đến ngày')}
                   <input type="date" value={form.until} onChange={(e) => set('until', e.target.value)} />
                 </label>
               </>
@@ -428,16 +429,16 @@ export function TaskForm({
               ))}
             </div>
           )}
-          {form.freq !== 'none' && <p className="small muted mt-8">Khi hoàn thành, nhiệm vụ lần kế tiếp sẽ được tạo tự động.</p>}
+          {form.freq !== 'none' && <p className="small muted mt-8">{tr('Khi hoàn thành, nhiệm vụ lần kế tiếp sẽ được tạo tự động.')}</p>}
         </div>
 
         {error && <p className="error-text">{error}</p>}
         <div className="row" style={{ justifyContent: 'flex-end' }}>
           <button type="button" className="btn secondary" onClick={onClose}>
-            Huỷ
+            {tr('Huỷ')}
           </button>
           <button className="btn" disabled={busy}>
-            {task ? 'Lưu thay đổi' : 'Tạo nhiệm vụ'}
+            {task ? tr('Lưu thay đổi') : tr('Tạo nhiệm vụ')}
           </button>
         </div>
       </form>

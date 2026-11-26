@@ -6,6 +6,7 @@ import { useLearning } from '@/lib/learning';
 import { fromDateInput, toDateTimeInput } from '@/lib/format';
 import { REASONS, type DistractionReason } from '@/lib/types';
 import { Modal } from './ui';
+import { tr } from '@/lib/i18n';
 
 /** Ghi nhận một lần mất tập trung (trong phiên học hoặc ghi bổ sung) */
 export function DistractionModal({
@@ -35,7 +36,7 @@ export function DistractionModal({
   const [saved, setSaved] = useState(false);
 
   const save = async () => {
-    if (!reason) return setError('Chọn nguyên nhân');
+    if (!reason) return setError(tr('Chọn nguyên nhân'));
     try {
       const r = await post<{ item: { id: string } }>('/distractions', {
         reason,
@@ -56,14 +57,14 @@ export function DistractionModal({
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={saved ? 'Quay lại mục tiêu nhé ' : 'Điều gì làm bạn phân tâm?'}>
+    <Modal open={open} onClose={onClose} title={saved ? tr('Quay lại mục tiêu nhé ') : tr('Điều gì làm bạn phân tâm?')}>
       {saved ? (
         <div className="col" style={{ alignItems: 'center', textAlign: 'center', gap: 16 }}>
-          <p className="muted">Đã ghi vào Nhật ký phân tâm. Mục tiêu của phiên này là:</p>
+          <p className="muted">{tr('Đã ghi vào Nhật ký phân tâm. Mục tiêu của phiên này là:')}</p>
           <p className="session-goal">“{goal}”</p>
-          <p className="small muted">Hít thở sâu 3 lần, sau đó tiếp tục.</p>
+          <p className="small muted">{tr('Hít thở sâu 3 lần, sau đó tiếp tục.')}</p>
           <button className="btn lg" onClick={onClose}>
-            Tiếp tục học
+            {tr('Tiếp tục học')}
           </button>
         </div>
       ) : (
@@ -78,9 +79,9 @@ export function DistractionModal({
           {!sessionId && (
             <div className="grid grid-2">
               <label className="field">
-                Môn học
+                {tr('Môn học')}
                 <select value={subject} onChange={(e) => setSubject(e.target.value)}>
-                  <option value="">— Không —</option>
+                  <option value="">{tr('— Không —')}</option>
                   {subjects.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.name}
@@ -89,22 +90,22 @@ export function DistractionModal({
                 </select>
               </label>
               <label className="field">
-                Thời điểm
+                {tr('Thời điểm')}
                 <input type="datetime-local" value={occurredAt} onChange={(e) => setOccurredAt(e.target.value)} />
               </label>
             </div>
           )}
           <label className="field">
-            Ghi chú (tuỳ chọn)
-            <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="VD: Mở Facebook xem thông báo nhóm lớp" />
+            {tr('Ghi chú (tuỳ chọn)')}
+            <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder={tr('VD: Mở Facebook xem thông báo nhóm lớp')} />
           </label>
           {error && <p className="error-text">{error}</p>}
           <div className="row" style={{ justifyContent: 'flex-end' }}>
             <button className="btn secondary" onClick={onClose}>
-              Huỷ
+              {tr('Huỷ')}
             </button>
             <button className="btn" onClick={save}>
-              Ghi nhận
+              {tr('Ghi nhận')}
             </button>
           </div>
         </div>

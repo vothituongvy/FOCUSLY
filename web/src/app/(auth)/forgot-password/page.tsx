@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { FormEvent, useState } from 'react';
 import { api, errorMessage } from '@/lib/api';
+import { tr } from '@/lib/i18n';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -26,8 +27,8 @@ export default function ForgotPasswordPage() {
 
   return (
     <form className="form" onSubmit={submit}>
-      <h2 style={{ textAlign: 'center' }}>Quên mật khẩu</h2>
-      <p className="muted small">Nhập email đã đăng ký, chúng tôi sẽ gửi liên kết đặt lại mật khẩu.</p>
+      <h2 style={{ textAlign: 'center' }}>{tr('Quên mật khẩu')}</h2>
+      <p className="muted small">{tr('Nhập email đã đăng ký, chúng tôi sẽ gửi liên kết đặt lại mật khẩu.')}</p>
       <label className="field">
         Email
         <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -35,10 +36,10 @@ export default function ForgotPasswordPage() {
       {msg && <p className="success-text">{msg}</p>}
       {error && <p className="error-text">{error}</p>}
       <button className="btn block" disabled={busy}>
-        {busy ? 'Đang gửi...' : 'Gửi liên kết'}
+        {busy ? tr('Đang gửi...') : tr('Gửi liên kết')}
       </button>
       <p className="small" style={{ textAlign: 'center' }}>
-        <Link href="/login">‹ Quay lại đăng nhập</Link>
+        <Link href="/login">{tr('‹ Quay lại đăng nhập')}</Link>
       </p>
     </form>
   );

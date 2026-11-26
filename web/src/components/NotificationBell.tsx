@@ -8,6 +8,7 @@ import { useSocketEvent } from '@/lib/socket';
 import { fmtRelative } from '@/lib/format';
 import type { AppNotification } from '@/lib/types';
 import { Icon, type IconName } from './Icon';
+import { tr } from '@/lib/i18n';
 
 const ICON: Record<string, IconName> = {
   study_reminder: 'calendar',
@@ -40,8 +41,13 @@ export function NotificationBell() {
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => ref.current && !ref.current.contains(e.target as Node) && setOpen(false);
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
     document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      window.removeEventListener('keydown', onKey);
+    };
   }, []);
 
   useSocketEvent<AppNotification>('notification:new', (n) => {
@@ -68,16 +74,22 @@ export function NotificationBell() {
   };
 
   return (
-    <div ref={ref} style={{ position: 'relative' }}>
-      <button className="nav-link" style={{ border: 'none', background: 'none', width: '100%', cursor: 'pointer', font: 'inherit' }} onClick={() => setOpen(!open)} aria-expanded={open}>
-        <Icon name="bell" />
-        <span className="nav-label">Thông báo</span>
-        {unread > 0 && <span className="count-badge">{unread > 99 ? '99+' : unread}</span>}
+    <div ref={ref} className="menu-wrap">
+      <button
+        className="icon-btn topbar-icon"
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        aria-label={unread > 0 ? tr('Thông báo ({0} chưa đọc)', unread) : tr('Thông báo')}
+        title={tr('Thông báo')}
+      >
+        <Icon name="bell" size={20} />
+        {unread > 0 && <span className="dot-badge">{unread > 99 ? '99+' : unread}</span>}
       </button>
       {open && (
         <div className="dropdown">
           <div className="row between" style={{ padding: '8px 12px', borderBottom: '1px solid var(--border)' }}>
-            <b>Thông báo</b>
+            <b>{tr('Thông báo')}</b>
             <button
               className="btn ghost sm"
               onClick={async () => {
@@ -86,10 +98,10 @@ export function NotificationBell() {
                 setItems((cur) => cur.map((x) => ({ ...x, readAt: x.readAt ?? new Date().toISOString() })));
               }}
             >
-              Đánh dấu đã đọc
+              {tr('Đánh dấu đã đọc')}
             </button>
           </div>
-          {items.length === 0 && <div className="empty">Chưa có thông báo.</div>}
+          {items.length === 0 && <div className="empty">{tr('Chưa có thông báo.')}</div>}
           {items.map((n) => (
             <button key={n.id} className={`notif-item ${n.readAt ? '' : 'unread'}`} onClick={() => openItem(n)}>
               <span style={{ color: 'var(--muted)', paddingTop: 2 }}>
@@ -103,7 +115,7 @@ export function NotificationBell() {
             </button>
           ))}
           <Link href="/notifications" className="small" style={{ display: 'block', textAlign: 'center', padding: 10 }} onClick={() => setOpen(false)}>
-            Xem tất cả thông báo
+            {tr('Xem tất cả thông báo')}
           </Link>
         </div>
       )}

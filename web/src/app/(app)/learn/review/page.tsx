@@ -7,6 +7,7 @@ import { errorMessage, get, post } from '@/lib/api';
 import { GRADES, previewInterval } from '@/lib/srs';
 import type { Card } from '@/lib/types';
 import { Empty, Progress, Spinner } from '@/components/ui';
+import { tr } from '@/lib/i18n';
 
 /** PHASE 2 – Ôn flashcard theo Spaced Repetition (phím tắt: Space lật thẻ, 1–4 chấm điểm) */
 function ReviewInner() {
@@ -67,13 +68,13 @@ function ReviewInner() {
       <div className="page-header">
         <div>
           <Link href="/learn" className="small">
-            ‹ Ôn tập
+            {tr('‹ Ôn tập')}
           </Link>
-          <h1>Ôn flashcard</h1>
+          <h1>{tr('Ôn flashcard')}</h1>
         </div>
         {!done && (
           <span className="muted">
-            Thẻ {index + 1}/{queue.length}
+            {tr('Thẻ {0}/{1}', index + 1, queue.length)}
           </span>
         )}
       </div>
@@ -81,22 +82,22 @@ function ReviewInner() {
 
       {queue.length === 0 ? (
         <Empty>
-          Không có thẻ nào đến hạn ôn <Link href="/learn">Quay lại</Link>
+          {tr('Không có thẻ nào đến hạn ôn')}{' '}<Link href="/learn">{tr('Quay lại')}</Link>
         </Empty>
       ) : done ? (
         <div className="card col" style={{ alignItems: 'center', textAlign: 'center', maxWidth: 520, margin: '0 auto' }}>
-          <h2>Hoàn thành phiên ôn tập</h2>
+          <h2>{tr('Hoàn thành phiên ôn tập')}</h2>
           <p className="muted">
-            {reviewed} lượt trong {Math.max(1, Math.round((Date.now() - startedAt) / 60000))} phút
+            {tr('{0} lượt trong {1} phút', reviewed, Math.max(1, Math.round((Date.now() - startedAt) / 60000)))}
           </p>
           <div className="row">
-            <span className="badge urgent">Quên {stats.again}</span>
-            <span className="badge high">Khó {stats.hard}</span>
-            <span className="badge done">Nhớ {stats.good}</span>
-            <span className="badge medium">Dễ {stats.easy}</span>
+            <span className="badge urgent">{tr('Quên {0}', stats.again)}</span>
+            <span className="badge high">{tr('Khó {0}', stats.hard)}</span>
+            <span className="badge done">{tr('Nhớ {0}', stats.good)}</span>
+            <span className="badge medium">{tr('Dễ {0}', stats.easy)}</span>
           </div>
           <Link href="/learn" className="btn mt-8">
-            Về trang ôn tập
+            {tr('Về trang ôn tập')}
           </Link>
         </div>
       ) : (
@@ -116,15 +117,15 @@ function ReviewInner() {
             {!flipped ? (
               <div style={{ textAlign: 'center' }}>
                 <button className="btn lg" onClick={() => setFlipped(true)}>
-                  Hiện đáp án (Space)
+                  {tr('Hiện đáp án (Space)')}
                 </button>
-                <p className="small muted mt-8">Hãy tự trả lời trong đầu trước khi lật thẻ – đó là Active Recall.</p>
+                <p className="small muted mt-8">{tr('Hãy tự trả lời trong đầu trước khi lật thẻ – đó là Active Recall.')}</p>
               </div>
             ) : (
               <div className="grade-row">
                 {GRADES.map((g) => (
                   <button key={g.key} className={`grade-btn ${g.key}`} onClick={() => grade(g.key, g.grade)}>
-                    {g.label} <small>{previewInterval(card.srs, g.grade)} · phím {g.hotkey}</small>
+                    {g.label} <small>{previewInterval(card.srs, g.grade)}{' '}{tr('· phím {0}', g.hotkey)}</small>
                   </button>
                 ))}
               </div>

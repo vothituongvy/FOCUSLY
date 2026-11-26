@@ -10,6 +10,7 @@ import type { Conversation, Insight, Material } from '@/lib/types';
 import { Markdown } from '@/components/Markdown';
 import { Empty, Spinner } from '@/components/ui';
 import { Icon } from '@/components/Icon';
+import { LOCALE, tr } from '@/lib/i18n';
 
 interface AIStatus {
   enabled: boolean;
@@ -29,24 +30,24 @@ function AIInner() {
     <div className="col" style={{ gap: 16 }}>
       <div className="page-header">
         <div>
-          <h1>Trợ lý AI học tập</h1>
-          <p className="muted">Hỏi đáp kiến thức, tóm tắt, giải thích, tạo câu hỏi và gợi ý kế hoạch học. AI chỉ gợi ý – bạn luôn có quyền sửa hoặc từ chối.</p>
+          <h1>{tr('Trợ lý AI học tập')}</h1>
+          <p className="muted">{tr('Hỏi đáp kiến thức, tóm tắt, giải thích, tạo câu hỏi và gợi ý kế hoạch học. AI chỉ gợi ý – bạn luôn có quyền sửa hoặc từ chối.')}</p>
         </div>
         {status.data && (
           <span className="small muted">
-            {status.data.enabled ? `Model ${status.data.model} · ${status.data.usedLastHour}/${status.data.limitPerHour} lượt trong 1 giờ` : ''}
+            {status.data.enabled ? tr('Model {0} · {1}/{2} lượt trong 1 giờ', status.data.model, status.data.usedLastHour, status.data.limitPerHour) : ''}
           </span>
         )}
       </div>
       {status.data && !status.data.enabled && (
-        <div className="banner warn">AI chưa được bật trên máy chủ. Thêm ANTHROPIC_API_KEY vào backend/.env rồi khởi động lại API.</div>
+        <div className="banner warn">{tr('AI chưa được bật trên máy chủ. Thêm ANTHROPIC_API_KEY vào backend/.env rồi khởi động lại API.')}</div>
       )}
       <div className="tabs">
         <button className={`tab ${tab === 'chat' ? 'active' : ''}`} onClick={() => setTab('chat')}>
-          <Icon name="ai" size={16} /> Hỏi đáp
+          <Icon name="ai" size={16} />{' '}{tr('Hỏi đáp')}
         </button>
         <button className={`tab ${tab === 'coach' ? 'active' : ''}`} onClick={() => setTab('coach')}>
-          <Icon name="focus" size={16} /> Gợi ý & kế hoạch học
+          <Icon name="focus" size={16} />{' '}{tr('Gợi ý & kế hoạch học')}
         </button>
       </div>
       {tab === 'chat' ? <Chat initialMaterial={params.get('material')} /> : <Coach />}
@@ -96,8 +97,8 @@ function Chat({ initialMaterial }: { initialMaterial: string | null }) {
 
   const textMaterials = (materials.data?.items ?? []).filter((m) => m.hasText);
   const suggestions = materialId
-    ? ['Tóm tắt các ý chính của tài liệu', 'Giải thích phần khó hiểu nhất', 'Đặt cho tôi 3 câu hỏi kiểm tra']
-    : ['useEffect chạy khi nào?', 'Giải thích Promise trong JavaScript bằng ví dụ', 'Cách học hiệu quả với Pomodoro?'];
+    ? [tr('Tóm tắt các ý chính của tài liệu'), tr('Giải thích phần khó hiểu nhất'), tr('Đặt cho tôi 3 câu hỏi kiểm tra')]
+    : [tr('Giải thích đạo hàm bằng ví dụ đời thường'), tr('Phân biệt thì hiện tại hoàn thành và quá khứ đơn'), tr('Cách học hiệu quả với Pomodoro?')];
 
   return (
     <div className="grid" style={{ gridTemplateColumns: '240px minmax(0,1fr)', alignItems: 'start' }}>
@@ -109,7 +110,7 @@ function Chat({ initialMaterial }: { initialMaterial: string | null }) {
             setError('');
           }}
         >
-          + Cuộc trò chuyện mới
+          {tr('+ Cuộc trò chuyện mới')}
         </button>
         {convs.data?.items.map((c) => (
           <div key={c.id} className="row" style={{ gap: 2 }}>
@@ -132,9 +133,9 @@ function Chat({ initialMaterial }: { initialMaterial: string | null }) {
 
       <div className="card col" style={{ minHeight: '70vh' }}>
         <div className="row">
-          <span className="small muted">Ngữ cảnh:</span>
+          <span className="small muted">{tr('Ngữ cảnh:')}</span>
           <select value={materialId} onChange={(e) => setMaterialId(e.target.value)} disabled={Boolean(conv?.id)} style={{ maxWidth: 360 }}>
-            <option value="">Kiến thức chung</option>
+            <option value="">{tr('Kiến thức chung')}</option>
             {textMaterials.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.title}
@@ -143,14 +144,14 @@ function Chat({ initialMaterial }: { initialMaterial: string | null }) {
           </select>
           {materialId && (
             <Link className="small" href={`/materials/${materialId}`}>
-              Mở tài liệu
+              {tr('Mở tài liệu')}
             </Link>
           )}
         </div>
         <div className="chat grow" style={{ overflow: 'auto', maxHeight: '58vh', padding: '6px 2px' }}>
           {!conv?.messages?.length && (
             <div className="col" style={{ alignItems: 'center', padding: 30, gap: 10 }}>
-              <p className="muted">Hỏi bất cứ điều gì bạn đang học.</p>
+              <p className="muted">{tr('Hỏi bất cứ điều gì bạn đang học.')}</p>
               <div className="chips" style={{ justifyContent: 'center' }}>
                 {suggestions.map((s) => (
                   <button key={s} className="chip" onClick={() => send(s)}>
@@ -165,7 +166,7 @@ function Chat({ initialMaterial }: { initialMaterial: string | null }) {
               {m.role === 'assistant' ? <Markdown text={m.content} /> : m.content}
             </div>
           ))}
-          {busy && <div className="bubble assistant muted">Đang suy nghĩ…</div>}
+          {busy && <div className="bubble assistant muted">{tr('Đang suy nghĩ…')}</div>}
           <div ref={endRef} />
         </div>
         {error && <p className="error-text">{error}</p>}
@@ -179,11 +180,11 @@ function Chat({ initialMaterial }: { initialMaterial: string | null }) {
                 void send();
               }
             }}
-            placeholder="Nhập câu hỏi… (Enter để gửi, Shift+Enter xuống dòng)"
+            placeholder={tr('Nhập câu hỏi… (Enter để gửi, Shift+Enter xuống dòng)')}
             style={{ minHeight: 48 }}
           />
           <button className="btn" disabled={busy || !input.trim()} onClick={() => send()}>
-            Gửi
+            {tr('Gửi')}
           </button>
         </div>
       </div>
@@ -241,7 +242,7 @@ function Coach() {
           priority: 'medium',
         });
       }
-      setMsg(`Đã thêm ${items.length} nhiệm vụ vào Kế hoạch học.`);
+      setMsg(tr('Đã thêm {0} nhiệm vụ vào Kế hoạch học.', items.length));
       setSelected(new Set());
     });
 
@@ -250,10 +251,10 @@ function Coach() {
       <div className="col" style={{ gap: 14 }}>
         <div className="row">
           <button className="btn" disabled={!!busy} onClick={() => run('reco', async () => setReco(await post<Reco>('/ai/recommendations')))}>
-            {busy === 'reco' ? 'AI đang phân tích dữ liệu...' : 'Đề xuất & lập kế hoạch 7 ngày'}
+            {busy === 'reco' ? tr('AI đang phân tích dữ liệu...') : tr('Đề xuất & lập kế hoạch 7 ngày')}
           </button>
           <button className="btn secondary" disabled={!!busy} onClick={() => run('perf', async () => setAnalysis((await post<{ analysis: string }>('/ai/performance', { range: 'week' })).analysis))}>
-            {busy === 'perf' ? 'Đang phân tích...' : 'Phân tích kết quả tuần'}
+            {busy === 'perf' ? tr('Đang phân tích...') : tr('Phân tích kết quả tuần')}
           </button>
         </div>
         {error && <p className="error-text">{error}</p>}
@@ -265,7 +266,7 @@ function Coach() {
         {reco && (
           <>
             <div className="card col">
-              <h3>Nhận xét</h3>
+              <h3>{tr('Nhận xét')}</h3>
               <p>{reco.summary}</p>
               {reco.recommendations.map((r) => (
                 <div key={r.title} className="card insight tip" style={{ boxShadow: 'none', padding: 12 }}>
@@ -276,9 +277,9 @@ function Coach() {
             </div>
             <div className="card col">
               <div className="row between">
-                <h3>Kế hoạch đề xuất</h3>
+                <h3>{tr('Kế hoạch đề xuất')}</h3>
                 <button className="btn sm" disabled={!selected.size || busy === 'accept'} onClick={accept}>
-                  Thêm {selected.size || ''} mục vào kế hoạch
+                  {tr('Thêm')}{' '}{selected.size || ''}{' '}{tr('mục vào kế hoạch')}
                 </button>
               </div>
               {msg && <p className="success-text">{msg}</p>}
@@ -295,11 +296,11 @@ function Coach() {
                         />
                       </td>
                       <td className="small" style={{ whiteSpace: 'nowrap' }}>
-                        {new Date(`${p.date}T12:00:00`).toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' })} {p.timeOfDay}
+                        {new Date(`${p.date}T12:00:00`).toLocaleDateString(LOCALE, { weekday: 'short', day: '2-digit', month: '2-digit' })} {p.timeOfDay}
                       </td>
                       <td>
                         {p.title}
-                        {p.taskId && <span className="badge" style={{ marginLeft: 6 }}>nhiệm vụ có sẵn</span>}
+                        {p.taskId && <span className="badge" style={{ marginLeft: 6 }}>{tr('nhiệm vụ có sẵn')}</span>}
                       </td>
                       <td className="small muted">{p.subject}</td>
                       <td className="small">{p.estimatedMinutes}p</td>
@@ -310,13 +311,13 @@ function Coach() {
             </div>
           </>
         )}
-        {!reco && !analysis && <Empty>AI sẽ đọc số liệu học tập (thời gian, nhiệm vụ, phân tâm, kết quả kiểm tra) để đề xuất cách cải thiện.</Empty>}
+        {!reco && !analysis && <Empty>{tr('AI sẽ đọc số liệu học tập (thời gian, nhiệm vụ, phân tâm, kết quả kiểm tra) để đề xuất cách cải thiện.')}</Empty>}
       </div>
 
       <div className="card col">
         <h3>Focus Intelligence</h3>
-        <p className="small muted">Phân tích tự động 30 ngày (không dùng AI)</p>
-        {!insights.data ? <Spinner /> : insights.data.insights.length === 0 ? <Empty>Cần thêm dữ liệu học tập.</Empty> : null}
+        <p className="small muted">{tr('Phân tích tự động 30 ngày (không dùng AI)')}</p>
+        {!insights.data ? <Spinner /> : insights.data.insights.length === 0 ? <Empty>{tr('Cần thêm dữ liệu học tập.')}</Empty> : null}
         {insights.data?.insights.map((i) => (
           <div key={i.id} className={`card insight ${i.kind}`} style={{ boxShadow: 'none', padding: 12 }}>
             <b className="small">{i.title}</b>
@@ -328,7 +329,7 @@ function Coach() {
             )}
           </div>
         ))}
-        <p className="small muted">Cập nhật {fmtRelative(new Date().toISOString())}</p>
+        <p className="small muted">{tr('Cập nhật {0}', fmtRelative(new Date().toISOString()))}</p>
       </div>
     </div>
   );

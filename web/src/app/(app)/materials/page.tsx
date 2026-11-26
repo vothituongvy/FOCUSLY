@@ -9,9 +9,10 @@ import { fmtRelative } from '@/lib/format';
 import type { Material } from '@/lib/types';
 import { Empty, Modal, Progress, Spinner } from '@/components/ui';
 import { Icon, type IconName } from '@/components/Icon';
+import { tr } from '@/lib/i18n';
 
 const TYPE_ICON: Record<string, IconName> = { pdf: 'materials', image: 'materials', text: 'journal', link: 'link', document: 'materials' };
-const TYPE_LABEL: Record<string, string> = { pdf: 'PDF', image: 'Ảnh', text: 'Văn bản', link: 'Link', document: 'Tài liệu' };
+const TYPE_LABEL: Record<string, string> = { pdf: 'PDF', image: tr('Ảnh'), text: tr('Văn bản'), link: 'Link', document: tr('Tài liệu') };
 const fmtSize = (b: number) => (b > 1e6 ? `${(b / 1e6).toFixed(1)} MB` : b > 0 ? `${Math.ceil(b / 1024)} KB` : '');
 
 export default function MaterialsPage() {
@@ -49,25 +50,25 @@ export default function MaterialsPage() {
     <div className="col" style={{ gap: 18 }}>
       <div className="page-header">
         <div>
-          <h1>Tài liệu học tập</h1>
-          <p className="muted">Lưu trữ, đọc, ghi chú, đánh dấu và theo dõi tiến độ đọc.</p>
+          <h1>{tr('Tài liệu học tập')}</h1>
+          <p className="muted">{tr('Lưu trữ, đọc, ghi chú, đánh dấu và theo dõi tiến độ đọc.')}</p>
         </div>
         <div className="row">
           <button className="btn secondary" onClick={() => setModal('link')}>
             + Link
           </button>
           <button className="btn secondary" onClick={() => setModal('text')}>
-            + Ghi chú văn bản
+            {tr('+ Ghi chú văn bản')}
           </button>
           <button className="btn" onClick={() => setModal('upload')}>
-            <Icon name="upload" size={16} /> Tải tài liệu
+            <Icon name="upload" size={16} />{' '}{tr('Tải tài liệu')}
           </button>
         </div>
       </div>
 
       {recent.data && recent.data.items.some((m) => m.lastOpenedAt) && (
         <div className="card">
-          <h3 style={{ marginBottom: 10 }}>Xem gần đây</h3>
+          <h3 style={{ marginBottom: 10 }}>{tr('Xem gần đây')}</h3>
           <div className="row wrap">
             {recent.data.items
               .filter((m) => m.lastOpenedAt)
@@ -83,7 +84,7 @@ export default function MaterialsPage() {
       <div className="card">
         <div className="row wrap" style={{ marginBottom: 14 }}>
           <input
-            placeholder="Tìm theo tên, mô tả, thẻ..."
+            placeholder={tr('Tìm theo tên, mô tả, thẻ...')}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -92,11 +93,11 @@ export default function MaterialsPage() {
             onKeyDown={(e) => e.key === 'Enter' && void deepSearch()}
             style={{ maxWidth: 280 }}
           />
-          <button className="btn secondary sm" onClick={deepSearch} title="Tìm cả trong nội dung PDF/văn bản">
-            <Icon name="search" size={16} /> Tìm trong nội dung
+          <button className="btn secondary sm" onClick={deepSearch} title={tr('Tìm cả trong nội dung PDF/văn bản')}>
+            <Icon name="search" size={16} />{' '}{tr('Tìm trong nội dung')}
           </button>
           <select value={subject} onChange={(e) => setSubject(e.target.value)} style={{ width: 170 }}>
-            <option value="">Mọi môn học</option>
+            <option value="">{tr('Mọi môn học')}</option>
             {subjects.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
@@ -104,7 +105,7 @@ export default function MaterialsPage() {
             ))}
           </select>
           <select value={category} onChange={(e) => setCategory(e.target.value)} style={{ width: 150 }}>
-            <option value="">Mọi phân loại</option>
+            <option value="">{tr('Mọi phân loại')}</option>
             {cats.data?.items.map((c) => (
               <option key={c} value={c}>
                 {c}
@@ -112,21 +113,21 @@ export default function MaterialsPage() {
             ))}
           </select>
           <select value={type} onChange={(e) => setType(e.target.value)} style={{ width: 130 }}>
-            <option value="">Mọi định dạng</option>
+            <option value="">{tr('Mọi định dạng')}</option>
             <option value="pdf">PDF</option>
-            <option value="image">Hình ảnh</option>
-            <option value="text">Văn bản</option>
+            <option value="image">{tr('Hình ảnh')}</option>
+            <option value="text">{tr('Văn bản')}</option>
             <option value="link">Link</option>
           </select>
           <button className={`chip ${bookmarked ? 'active' : ''}`} onClick={() => setBookmarked(!bookmarked)}>
-            ★ Đã đánh dấu
+            {tr('★ Đã đánh dấu')}
           </button>
         </div>
 
         {list.loading && !list.data ? (
           <Spinner />
         ) : items.length === 0 ? (
-          <Empty>Chưa có tài liệu. Tải PDF, ảnh hoặc thêm link để bắt đầu.</Empty>
+          <Empty>{tr('Chưa có tài liệu. Tải PDF, ảnh hoặc thêm link để bắt đầu.')}</Empty>
         ) : (
           <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))' }}>
             {items.map((m) => {
@@ -137,7 +138,7 @@ export default function MaterialsPage() {
                     <span className="badge"><Icon name={TYPE_ICON[m.type]} size={13} /> {TYPE_LABEL[m.type]}</span>
                     <button
                       className="icon-btn"
-                      title="Đánh dấu"
+                      title={tr('Đánh dấu')}
                       style={{ color: m.bookmarked ? '#f59e0b' : undefined }}
                       onClick={async () => {
                         await patch(`/materials/${m.id}`, { bookmarked: !m.bookmarked });
@@ -160,13 +161,13 @@ export default function MaterialsPage() {
                     <>
                       <Progress value={m.progress.percent / 100} />
                       <span className="small muted">
-                        Đã đọc {m.progress.percent}%{m.progress.totalPages ? ` · trang ${m.progress.page}/${m.progress.totalPages}` : ''}
+                        {tr('Đã đọc {0}%', m.progress.percent)}{m.progress.totalPages ? ` · trang ${m.progress.page}/${m.progress.totalPages}` : ''}
                       </span>
                     </>
                   ) : null}
                   <div className="row small muted">
-                    {m.hasText && <span className="badge">AI đọc được</span>}
-                    {m.lastOpenedAt && <span>Mở {fmtRelative(m.lastOpenedAt)}</span>}
+                    {m.hasText && <span className="badge">{tr('AI đọc được')}</span>}
+                    {m.lastOpenedAt && <span>{tr('Mở {0}', fmtRelative(m.lastOpenedAt))}</span>}
                   </div>
                 </div>
               );
@@ -198,7 +199,7 @@ function AddMaterialModal({ kind, onClose, onDone }: { kind: 'upload' | 'link' |
     setError('');
     try {
       if (kind === 'upload') {
-        if (!file) throw new Error('Chọn file');
+        if (!file) throw new Error(tr('Chọn file'));
         const fd = new FormData();
         fd.append('file', file);
         if (title) fd.append('title', title);
@@ -224,7 +225,7 @@ function AddMaterialModal({ kind, onClose, onDone }: { kind: 'upload' | 'link' |
   };
 
   return (
-    <Modal open onClose={onClose} title={kind === 'upload' ? 'Tải tài liệu lên' : kind === 'link' ? 'Thêm link tài liệu' : 'Thêm ghi chú văn bản'}>
+    <Modal open onClose={onClose} title={kind === 'upload' ? tr('Tải tài liệu lên') : kind === 'link' ? tr('Thêm link tài liệu') : tr('Thêm ghi chú văn bản')}>
       <form className="form" onSubmit={submit}>
         {kind === 'upload' && (
           <div
@@ -243,32 +244,32 @@ function AddMaterialModal({ kind, onClose, onDone }: { kind: 'upload' | 'link' |
                 {file.name} · {fmtSize(file.size)}
               </b>
             ) : (
-              <span className="muted">Kéo thả hoặc bấm để chọn PDF, ảnh, TXT/MD (≤ 20MB)</span>
+              <span className="muted">{tr('Kéo thả hoặc bấm để chọn PDF, ảnh, TXT/MD (≤ 20MB)')}</span>
             )}
             <input ref={fileRef} type="file" hidden accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.md,.csv,.docx" onChange={(e) => e.target.files?.[0] && setFile(e.target.files[0])} />
           </div>
         )}
         <label className="field">
-          Tiêu đề {kind === 'upload' && <span className="muted small">(mặc định theo tên file)</span>}
+          {tr('Tiêu đề')}{' '}{kind === 'upload' && <span className="muted small">{tr('(mặc định theo tên file)')}</span>}
           <input value={title} onChange={(e) => setTitle(e.target.value)} required={kind !== 'upload'} />
         </label>
         {kind === 'link' && (
           <label className="field">
             URL
-            <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://react.dev/reference/react/useEffect" required />
+            <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder={tr('https://vi.wikipedia.org/wiki/Quang_hợp')} required />
           </label>
         )}
         {kind === 'text' && (
           <label className="field">
-            Nội dung
+            {tr('Nội dung')}
             <textarea value={text} onChange={(e) => setText(e.target.value)} style={{ minHeight: 180 }} required />
           </label>
         )}
         <div className="grid grid-2">
           <label className="field">
-            Môn học
+            {tr('Môn học')}
             <select value={subject} onChange={(e) => setSubject(e.target.value)}>
-              <option value="">— Không —</option>
+              <option value="">{tr('— Không —')}</option>
               {subjects.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
@@ -277,13 +278,13 @@ function AddMaterialModal({ kind, onClose, onDone }: { kind: 'upload' | 'link' |
             </select>
           </label>
           <label className="field">
-            Phân loại
-            <input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Giáo trình, Bài giảng, Đề thi..." />
+            {tr('Phân loại')}
+            <input value={category} onChange={(e) => setCategory(e.target.value)} placeholder={tr('Giáo trình, Bài giảng, Đề thi...')} />
           </label>
         </div>
         {error && <p className="error-text">{error}</p>}
         <button className="btn" disabled={busy}>
-          {busy ? 'Đang xử lý...' : 'Lưu tài liệu'}
+          {busy ? tr('Đang xử lý...') : tr('Lưu tài liệu')}
         </button>
       </form>
     </Modal>

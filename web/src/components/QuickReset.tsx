@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { post } from '@/lib/api';
 import { Modal } from './ui';
 import { Icon } from '@/components/Icon';
+import { tr } from '@/lib/i18n';
 
 /**
  * PHASE 2 – Focus Recovery: quy trình "Quick Reset"
@@ -11,10 +12,10 @@ import { Icon } from '@/components/Icon';
  * 4. Hiển thị lại mục tiêu 5. Chọn tiếp tục hoặc kết thúc
  */
 const PHASES = [
-  { label: 'Hít vào', seconds: 4, scale: 1.15 },
-  { label: 'Giữ hơi', seconds: 4, scale: 1.15 },
-  { label: 'Thở ra', seconds: 4, scale: 0.8 },
-  { label: 'Nghỉ', seconds: 4, scale: 0.8 },
+  { label: tr('Hít vào'), seconds: 4, scale: 1.15 },
+  { label: tr('Giữ hơi'), seconds: 4, scale: 1.15 },
+  { label: tr('Thở ra'), seconds: 4, scale: 0.8 },
+  { label: tr('Nghỉ'), seconds: 4, scale: 0.8 },
 ];
 const CYCLES = 3; // ~48 giây (box breathing)
 
@@ -93,10 +94,10 @@ export function QuickReset({
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Quick Reset – lấy lại tập trung">
+    <Modal open={open} onClose={onClose} title={tr('Quick Reset – lấy lại tập trung')}>
       {step === 'choose' && (
         <div className="col" style={{ gap: 12 }}>
-          <p className="muted">Bị gián đoạn là bình thường. Chọn một cách để quay lại:</p>
+          <p className="muted">{tr('Bị gián đoạn là bình thường. Chọn một cách để quay lại:')}</p>
           <button
             className="btn block lg"
             onClick={() => {
@@ -104,7 +105,7 @@ export function QuickReset({
               setStep('breathing');
             }}
           >
-            Hít thở 4-4-4-4 (≈ 50 giây)
+            {tr('Hít thở 4-4-4-4 (≈ 50 giây)')}
           </button>
           <button
             className="btn secondary block"
@@ -113,7 +114,7 @@ export function QuickReset({
               setStep('goal');
             }}
           >
-            Xem lại mục tiêu
+            {tr('Xem lại mục tiêu')}
           </button>
           <button
             className="btn secondary block"
@@ -122,7 +123,7 @@ export function QuickReset({
               void finish('break');
             }}
           >
-            <Icon name="coffee" size={16} /> Nghỉ ngắn 5 phút
+            <Icon name="coffee" size={16} />{' '}{tr('Nghỉ ngắn 5 phút')}
           </button>
         </div>
       )}
@@ -133,28 +134,28 @@ export function QuickReset({
             <span>{phase.label}</span>
           </div>
           <p className="muted small">
-            Vòng {Math.min(CYCLES, Math.floor(tick / 16) + 1)}/{CYCLES}
+            {tr('Vòng {0}/{1}', Math.min(CYCLES, Math.floor(tick / 16) + 1), CYCLES)}
           </p>
           <button className="btn ghost" onClick={() => setStep('goal')}>
-            Bỏ qua
+            {tr('Bỏ qua')}
           </button>
         </div>
       )}
 
       {step === 'goal' && (
         <div className="col" style={{ alignItems: 'center', textAlign: 'center', gap: 14 }}>
-          <p className="muted">Mục tiêu ban đầu của bạn:</p>
-          <p className="session-goal">“{goal || 'Tập trung học'}”</p>
-          <p className="small muted">Chỉ cần làm bước nhỏ tiếp theo – không cần hoàn hảo.</p>
+          <p className="muted">{tr('Mục tiêu ban đầu của bạn:')}</p>
+          <p className="session-goal">“{goal || tr('Tập trung học')}”</p>
+          <p className="small muted">{tr('Chỉ cần làm bước nhỏ tiếp theo – không cần hoàn hảo.')}</p>
           <div className="row wrap" style={{ justifyContent: 'center' }}>
             <button className="btn lg" onClick={() => finish('resumed')}>
-              <Icon name="play" size={16} /> Tiếp tục học
+              <Icon name="play" size={16} />{' '}{tr('Tiếp tục học')}
             </button>
             <button className="btn secondary" onClick={() => finish('break')}>
-              Nghỉ ngắn
+              {tr('Nghỉ ngắn')}
             </button>
             <button className="btn ghost" onClick={() => finish('ended')}>
-              Kết thúc phiên
+              {tr('Kết thúc phiên')}
             </button>
           </div>
         </div>

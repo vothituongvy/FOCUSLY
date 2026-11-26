@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
+import { LangSwitch } from '@/components/LangSwitch';
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   const { status, init } = useAuth();
@@ -18,6 +19,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <div className="auth-wrap">
+      <LangSwitch className="lang-switch-corner" />
       <div className="card auth-card">
         <div className="brand">
           <span className="brand-logo" aria-hidden /> focusly

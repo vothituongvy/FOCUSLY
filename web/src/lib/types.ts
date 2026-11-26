@@ -1,3 +1,4 @@
+import { tr } from '@/lib/i18n';
 export type Priority = 'low' | 'medium' | 'high' | 'urgent';
 export type TaskStatus = 'todo' | 'in_progress' | 'done' | 'cancelled';
 export type SessionStatus = 'active' | 'paused' | 'on_break' | 'completed' | 'abandoned';
@@ -199,34 +200,34 @@ export interface ShieldState {
 }
 
 export const REASONS: { value: DistractionReason; label: string; icon: string }[] = [
-  { value: 'social_media', label: 'Mạng xã hội', icon: '' },
-  { value: 'notification', label: 'Thông báo', icon: '' },
-  { value: 'message', label: 'Tin nhắn', icon: '' },
-  { value: 'too_difficult', label: 'Nội dung quá khó', icon: '' },
-  { value: 'tired', label: 'Mệt mỏi, buồn ngủ', icon: '' },
-  { value: 'other_task', label: 'Muốn làm việc khác', icon: '' },
-  { value: 'environment', label: 'Môi trường xung quanh', icon: '' },
-  { value: 'other', label: 'Khác', icon: '' },
+  { value: 'social_media', label: tr('Mạng xã hội'), icon: '' },
+  { value: 'notification', label: tr('Thông báo'), icon: '' },
+  { value: 'message', label: tr('Tin nhắn'), icon: '' },
+  { value: 'too_difficult', label: tr('Nội dung quá khó'), icon: '' },
+  { value: 'tired', label: tr('Mệt mỏi, buồn ngủ'), icon: '' },
+  { value: 'other_task', label: tr('Muốn làm việc khác'), icon: '' },
+  { value: 'environment', label: tr('Môi trường xung quanh'), icon: '' },
+  { value: 'other', label: tr('Khác'), icon: '' },
 ];
 
 export const REASON_LABEL: Record<DistractionReason, string> = {
   ...Object.fromEntries(REASONS.map((r) => [r.value, r.label])),
-  left_app: 'Rời ứng dụng/tab',
-  blocked_site: 'Cố mở trang bị chặn',
+  left_app: tr('Rời ứng dụng/tab'),
+  blocked_site: tr('Cố mở trang bị chặn'),
 } as Record<DistractionReason, string>;
 
 export const PRIORITY_LABEL: Record<Priority, string> = {
-  low: 'Thấp',
-  medium: 'Trung bình',
+  low: tr('Thấp'),
+  medium: tr('Trung bình'),
   high: 'Cao',
-  urgent: 'Khẩn cấp',
+  urgent: tr('Khẩn cấp'),
 };
 
 export const STATUS_LABEL: Record<TaskStatus, string> = {
-  todo: 'Cần làm',
-  in_progress: 'Đang học',
-  done: 'Hoàn thành',
-  cancelled: 'Đã huỷ',
+  todo: tr('Cần làm'),
+  in_progress: tr('Đang học'),
+  done: tr('Hoàn thành'),
+  cancelled: tr('Đã huỷ'),
 };
 
 /* ======================= PHASE 2 ======================= */

@@ -9,6 +9,7 @@ import { FocusSetup } from '@/components/focus/FocusSetup';
 import { FocusRunning } from '@/components/focus/FocusRunning';
 import { SessionSummary } from '@/components/focus/SessionSummary';
 import { Spinner } from '@/components/ui';
+import { tr } from '@/lib/i18n';
 
 const OPEN = ['active', 'paused', 'on_break'];
 
@@ -63,8 +64,8 @@ function FocusInner() {
       {!session && !ended && (
         <div className="page-header">
           <div>
-            <h1>Phiên học tập trung</h1>
-            <p className="muted">Đặt mục tiêu rõ ràng, bật Focus Shield và bắt đầu.</p>
+            <h1>{tr('Phiên học tập trung')}</h1>
+            <p className="muted">{tr('Đặt mục tiêu rõ ràng, bật Focus Shield và bắt đầu.')}</p>
           </div>
         </div>
       )}

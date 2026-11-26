@@ -1,13 +1,47 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import { useNow, useResource } from '@/lib/hooks';
 import { fmtDate, fmtRelative, WEEKDAYS_VI } from '@/lib/format';
 import { PRIORITY_LABEL, type Dashboard, type FocusSession } from '@/lib/types';
 import { Icon, type IconName } from '@/components/Icon';
 import { Empty, Spinner } from '@/components/ui';
+import { LOCALE, tr } from '@/lib/i18n';
+
+/** Lời mời xem hướng dẫn cho người mới, ẩn được và nhớ trên trình duyệt này */
+function GuideHint() {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    try {
+      setShow(localStorage.getItem('focusly.guideHint') !== 'off');
+    } catch {
+      setShow(false);
+    }
+  }, []);
+  if (!show) return null;
+  const hide = () => {
+    setShow(false);
+    try {
+      localStorage.setItem('focusly.guideHint', 'off');
+    } catch {
+      /* bỏ qua */
+    }
+  };
+  return (
+    <div className="banner info" role="note">
+      <Icon name="help" size={18} />
+      <span className="grow">{tr('Mới dùng FOCUSLY? Xem hướng dẫn 3 bước để bắt đầu phiên học đầu tiên.')}</span>
+      <Link href="/guide" className="btn sm" onClick={hide}>
+        {tr('Xem hướng dẫn')}
+      </Link>
+      <button className="icon-btn" onClick={hide} aria-label={tr('Ẩn gợi ý')}>
+        <Icon name="x" size={16} />
+      </button>
+    </div>
+  );
+}
 
 const ACTIVITY_ICON: Record<string, IconName> = {
   session_ended: 'check',
@@ -18,15 +52,15 @@ const ACTIVITY_ICON: Record<string, IconName> = {
 
 function greeting() {
   const h = new Date().getHours();
-  if (h < 11) return 'Chào buổi sáng';
-  if (h < 14) return 'Chào buổi trưa';
-  if (h < 18) return 'Chào buổi chiều';
-  return 'Chào buổi tối';
+  if (h < 11) return tr('Chào buổi sáng');
+  if (h < 14) return tr('Chào buổi trưa');
+  if (h < 18) return tr('Chào buổi chiều');
+  return tr('Chào buổi tối');
 }
 
 /** "Thứ năm, 26 tháng 11" */
 function todayLabel() {
-  const s = new Date().toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long' });
+  const s = new Date().toLocaleDateString(LOCALE, { weekday: 'long', day: 'numeric', month: 'long' });
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
@@ -35,8 +69,8 @@ function spoken(minutes: number) {
   const m = Math.max(0, Math.round(minutes));
   const h = Math.floor(m / 60);
   const r = m % 60;
-  if (!h) return `${r} phút`;
-  return r ? `${h} giờ ${r} phút` : `${h} giờ`;
+  if (!h) return tr('{0} phút', r);
+  return r ? tr('{0} giờ {1} phút', h, r) : tr('{0} giờ', h);
 }
 
 /**
@@ -55,7 +89,7 @@ function DayRuler({ sessions }: { sessions: FocusSession[] }) {
   const hours = Array.from({ length: 24 - firstHour + 1 }, (_, i) => firstHour + i);
 
   return (
-    <div className="day-ruler" role="img" aria-label="Các khoảng thời gian bạn đã tập trung hôm nay">
+    <div className="day-ruler" role="img" aria-label={tr('Các khoảng thời gian bạn đã tập trung hôm nay')}>
       {hours.map((h) => (
         <div key={h}>
           <div className={`tick ${h % 3 === 0 ? 'major' : ''}`} style={{ left: pos(+start + h * 3600_000), height: h % 3 === 0 ? 22 : 12 }} />
@@ -73,10 +107,10 @@ function DayRuler({ sessions }: { sessions: FocusSession[] }) {
             key={i}
             className={`block ${g.type === 'break' ? 'break' : ''}`}
             style={{ left: pos(g.from), width: `calc(${pos(g.to)} - ${pos(g.from)})` }}
-            title={`${g.type === 'focus' ? 'Tập trung' : 'Nghỉ'} ${new Date(g.from).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}–${new Date(g.to).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`}
+            title={`${g.type === 'focus' ? tr('Tập trung') : tr('Nghỉ')} ${new Date(g.from).toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' })}–${new Date(g.to).toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' })}`}
           />
         ))}
-      <div className="now" style={{ left: pos(now) }} title="Bây giờ" />
+      <div className="now" style={{ left: pos(now) }} title={tr('Bây giờ')} />
     </div>
   );
 }
@@ -103,13 +137,14 @@ export default function DashboardPage() {
 
   const headline =
     focusMin < 1
-      ? `Hôm nay bạn chưa có phiên học nào. Mục tiêu là ${spoken(target)}.`
+      ? tr('Hôm nay bạn chưa có phiên học nào. Mục tiêu là {0}.', spoken(target))
       : left > 0
-        ? `Hôm nay bạn đã tập trung ${spoken(focusMin)}, còn ${spoken(left)} nữa là đạt mục tiêu.`
-        : `Hôm nay bạn đã tập trung ${spoken(focusMin)}, vượt mục tiêu ${spoken(target)}.`;
+        ? tr('Hôm nay bạn đã tập trung {0}, còn {1} nữa là đạt mục tiêu.', spoken(focusMin), spoken(left))
+        : tr('Hôm nay bạn đã tập trung {0}, vượt mục tiêu {1}.', spoken(focusMin), spoken(target));
 
   return (
     <div className="col" style={{ gap: 28 }}>
+      <GuideHint />
       <header className="row between wrap" style={{ alignItems: 'flex-end', gap: 20 }}>
         <div style={{ maxWidth: 680 }}>
           <p className="muted small">{todayLabel()}</p>
@@ -120,65 +155,65 @@ export default function DashboardPage() {
         </div>
         {data.activeSession ? (
           <Link href="/focus" className="btn marker lg">
-            <Icon name="focus" /> Quay lại phiên đang mở
+            <Icon name="focus" />{' '}{tr('Quay lại phiên đang mở')}
           </Link>
         ) : (
           <Link href="/focus" className="btn marker lg">
-            <Icon name="play" size={16} /> Bắt đầu tập trung
+            <Icon name="play" size={16} />{' '}{tr('Bắt đầu tập trung')}
           </Link>
         )}
       </header>
 
-      <section aria-label="Thời gian tập trung hôm nay">
+      <section aria-label={tr('Thời gian tập trung hôm nay')}>
         <DayRuler sessions={today.data?.items ?? []} />
         {data.activeSession && data.activeSession.device !== 'web' && (
-          <p className="small muted mt-8">Phiên hiện tại đang chạy trên điện thoại.</p>
+          <p className="small muted mt-8">{tr('Phiên hiện tại đang chạy trên điện thoại.')}</p>
         )}
       </section>
 
-      <section className="metrics" aria-label="Chỉ số hôm nay">
+      <section className="metrics" aria-label={tr('Chỉ số hôm nay')}>
         <div>
-          <div className="stat-label">Nhiệm vụ xong</div>
+          <div className="stat-label">{tr('Nhiệm vụ xong')}</div>
           <div className="stat-value">
             {data.tasks.completed}
             <span className="muted" style={{ fontSize: 18, fontWeight: 600 }}>/{data.tasks.total}</span>
           </div>
-          {data.tasks.overdue > 0 && <div className="small" style={{ color: 'var(--stop)' }}>{data.tasks.overdue} việc quá hạn</div>}
+          {data.tasks.overdue > 0 && <div className="small" style={{ color: 'var(--stop)' }}>{tr('{0} việc quá hạn', data.tasks.overdue)}</div>}
         </div>
         <div>
-          <div className="stat-label">Chuỗi ngày học</div>
+          <div className="stat-label">{tr('Chuỗi ngày học')}</div>
           <div className="stat-value row" style={{ gap: 6 }}>
             {data.streak.current}
-            <span className="muted" style={{ fontSize: 15, fontWeight: 600 }}>ngày</span>
+            <span className="muted" style={{ fontSize: 15, fontWeight: 600 }}>{tr('ngày')}</span>
           </div>
-          <div className="small muted">Dài nhất {data.streak.best} ngày</div>
+          <div className="small muted">{tr('Dài nhất {0} ngày', data.streak.best)}</div>
         </div>
         <div>
-          <div className="stat-label">Lần phân tâm</div>
+          <div className="stat-label">{tr('Lần phân tâm')}</div>
           <div className="stat-value">{data.distractionsToday.manual}</div>
-          <div className="small muted">Rời app/tab {data.distractionsToday.appLeaves} lần</div>
+          <div className="small muted">{tr('Rời app/tab {0} lần', data.distractionsToday.appLeaves)}</div>
         </div>
-        <div title={data.focusScore.breakdown.map((b) => `${b.label}: ${Math.round(b.value * 100)}% (trọng số ${b.weight})`).join('\n')}>
-          <div className="stat-label">Điểm tập trung</div>
+        <div title={data.focusScore.breakdown.map((b) => tr('{0}: {1}% (trọng số {2})', b.label, Math.round(b.value * 100), b.weight)).join('\n')}>
+          <div className="stat-label">{tr('Điểm tập trung')}</div>
           <div className="stat-value">
             {data.focusScore.score}
             <span className="muted" style={{ fontSize: 18, fontWeight: 600 }}>/100</span>
           </div>
-          <div className="small muted">Chỉ để tham khảo</div>
+          <div className="small muted">{tr('Chỉ để tham khảo')}</div>
         </div>
       </section>
 
       <div className="grid grid-3-1" style={{ gap: 20 }}>
         <section className="card">
           <div className="card-title">
-            <h3>Việc tiếp theo</h3>
+            <h3>{tr('Việc tiếp theo')}</h3>
             <Link href="/plan" className="small">
-              Mở kế hoạch
+              {tr('Mở kế hoạch')}
             </Link>
           </div>
           {data.upcomingTasks.length === 0 ? (
             <Empty>
-              Chưa có nhiệm vụ nào. <Link href="/plan">Thêm nhiệm vụ đầu tiên</Link>
+              {tr('Chưa có nhiệm vụ nào.')}{' '}<Link href="/plan">{tr('Thêm nhiệm vụ đầu tiên')}</Link>
             </Empty>
           ) : (
             <div className="list">
@@ -193,13 +228,13 @@ export default function DashboardPage() {
                       </div>
                       <div className="small muted">
                         {t.subject ? `${t.subject.name}, ` : ''}
-                        {t.estimatedMinutes} phút
-                        {t.deadline && <span style={{ color: overdue ? 'var(--stop)' : undefined }}>, hạn {fmtDate(t.deadline)}</span>}
+                        {tr('{0} phút', t.estimatedMinutes)}
+                        {t.deadline && <span style={{ color: overdue ? 'var(--stop)' : undefined }}>{tr(', hạn {0}', fmtDate(t.deadline))}</span>}
                       </div>
                     </div>
                     {(t.priority === 'high' || t.priority === 'urgent') && <span className={`badge ${t.priority}`}>{PRIORITY_LABEL[t.priority]}</span>}
-                    <Link href={`/focus?task=${t.id}`} className="btn sm secondary" aria-label={`Học ${t.title}`}>
-                      <Icon name="play" size={12} /> Học
+                    <Link href={`/focus?task=${t.id}`} className="btn sm secondary" aria-label={tr('Học {0}', t.title)}>
+                      <Icon name="play" size={12} />{' '}{tr('Học')}
                     </Link>
                   </div>
                 );
@@ -210,15 +245,15 @@ export default function DashboardPage() {
 
         <section className="card">
           <div className="card-title">
-            <h3>Bảy ngày qua</h3>
-            <span className="small muted">Mục tiêu {target} phút</span>
+            <h3>{tr('Bảy ngày qua')}</h3>
+            <span className="small muted">{tr('Mục tiêu {0} phút', target)}</span>
           </div>
           <div className="bars" style={{ height: 160 }}>
             {data.weeklyProgress.map((d) => {
               const isToday = d.date === data.date;
               const wd = WEEKDAYS_VI[new Date(`${d.date}T12:00:00`).getDay()];
               return (
-                <div className="bar-col" key={d.date} title={`${d.focusMinutes} phút, ${d.sessions} phiên`}>
+                <div className="bar-col" key={d.date} title={tr('{0} phút, {1} phiên', d.focusMinutes, d.sessions)}>
                   <span className="small muted tabular">{d.focusMinutes || ''}</span>
                   <div className={`bar ${isToday ? 'today' : d.focusMinutes < target ? 'under' : ''}`} style={{ height: `${(d.focusMinutes / maxMinutes) * 100}%` }} />
                   <span className="small" style={{ fontWeight: isToday ? 800 : 500 }}>
@@ -228,14 +263,14 @@ export default function DashboardPage() {
               );
             })}
           </div>
-          <p className="small muted mt-8">Cột vàng là ngày đạt mục tiêu.</p>
+          <p className="small muted mt-8">{tr('Cột vàng là ngày đạt mục tiêu.')}</p>
         </section>
       </div>
 
       <section>
-        <h3 style={{ marginBottom: 6 }}>Gần đây</h3>
+        <h3 style={{ marginBottom: 6 }}>{tr('Gần đây')}</h3>
         {data.recentActivities.length === 0 ? (
-          <p className="muted small">Các phiên học, nhiệm vụ đã xong và lần phân tâm sẽ hiện ở đây.</p>
+          <p className="muted small">{tr('Các phiên học, nhiệm vụ đã xong và lần phân tâm sẽ hiện ở đây.')}</p>
         ) : (
           <div className="list" style={{ maxWidth: 720 }}>
             {data.recentActivities.map((a, i) => (

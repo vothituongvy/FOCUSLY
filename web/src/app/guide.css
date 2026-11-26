@@ -1,0 +1,49 @@
+
+/* ---------- Hướng dẫn sử dụng ---------- */
+.guide { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 36px; align-items: start; }
+.guide-toc { position: sticky; top: 84px; display: flex; flex-direction: column; gap: 1px; padding-top: 4px; }
+.guide-toc a { display: block; padding: 6px 10px; border-radius: 7px; font-size: 14px; color: var(--ink-2); text-decoration: none; border-left: 3px solid transparent; }
+.guide-toc a:hover { background: var(--desk); color: var(--ink); text-decoration: none; }
+.guide-toc a.on { color: var(--ink); font-weight: 700; border-left-color: var(--marker); background: var(--marker-soft); border-radius: 0 7px 7px 0; }
+.guide-body { max-width: 72ch; display: flex; flex-direction: column; gap: 14px; }
+.guide-section { background: var(--paper); border: 1px solid var(--rule); border-radius: 14px; padding: 22px 24px; display: flex; flex-direction: column; gap: 12px; align-items: flex-start; scroll-margin-top: 84px; }
+.guide-section h2 { display: flex; align-items: center; gap: 10px; font-size: 20px; letter-spacing: -0.02em; margin: 0; }
+.guide-icon { width: 32px; height: 32px; border-radius: 9px; background: var(--marker-soft); color: var(--ink); display: grid; place-items: center; flex-shrink: 0; }
+.guide-intro { margin: 0; color: var(--ink-2); font-size: 15.5px; line-height: 1.6; }
+.guide-points, .guide-steps { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 7px; line-height: 1.6; }
+.guide-points li::marker { color: var(--muted); }
+.guide-steps { list-style: none; padding-left: 0; counter-reset: step; gap: 10px; }
+.guide-steps li { counter-increment: step; display: grid; grid-template-columns: 28px 1fr; gap: 10px; }
+.guide-steps li::before { content: counter(step); width: 26px; height: 26px; border-radius: 50%; background: var(--ink); color: #fff; font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+.guide-tip { margin: 0; padding: 10px 14px; border-left: 3px solid var(--marker); background: var(--marker-soft); border-radius: 0 9px 9px 0; font-size: 14.5px; line-height: 1.55; align-self: stretch; }
+@media (max-width: 900px) {
+  .guide { grid-template-columns: 1fr; gap: 16px; }
+  .guide-toc { position: static; flex-direction: row; overflow-x: auto; gap: 4px; padding-bottom: 4px; }
+  .guide-toc > div { display: none; }
+  .guide-toc a { white-space: nowrap; border-left: 0; border-bottom: 3px solid transparent; border-radius: 7px; }
+  .guide-toc a.on { border-bottom-color: var(--marker); border-radius: 7px 7px 0 0; }
+  .guide-section { padding: 18px; }
+}
+
+/* ---------- Ô tìm kiếm thanh trên ---------- */
+.search { position: relative; flex: 1; max-width: 440px; }
+.search-toggle { display: none; }
+.search-box { display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 6px 0 12px; border: 1px solid transparent; border-radius: 10px; background: var(--desk); color: var(--muted); }
+.search-box:hover { border-color: var(--rule-strong); }
+.search-box:focus-within { background: var(--paper); border-color: var(--ink); }
+.search-box input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit; font-size: 14px; color: var(--ink); padding: 0; box-shadow: none; height: 100%; }
+.search-box input::-webkit-search-cancel-button { display: none; }
+.search-panel { position: absolute; left: 0; right: 0; top: calc(100% + 6px); background: var(--paper); border: 1px solid var(--ink); border-radius: 12px; box-shadow: 6px 6px 0 rgba(22, 32, 58, .15); padding: 6px; z-index: 60; max-height: min(460px, 70vh); overflow: auto; }
+.search-group { font-size: 12px; color: var(--muted); padding: 8px 10px 4px; }
+.search-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: 0; background: none; border-radius: 8px; font: inherit; font-size: 14px; color: var(--ink); cursor: pointer; text-align: left; }
+.search-item svg { color: var(--muted); flex-shrink: 0; }
+.search-item.sel { background: var(--marker-soft); box-shadow: inset 3px 0 0 var(--marker); }
+.search-empty { padding: 16px; text-align: center; color: var(--muted); font-size: 14px; }
+@media (max-width: 900px) {
+  .search { flex: 0 0 auto; max-width: none; }
+  .search-toggle { display: inline-grid; }
+  .search-box { display: none; }
+  .search.expanded { position: absolute; left: 8px; right: 8px; top: 10px; z-index: 40; }
+  .search.expanded .search-toggle { display: none; }
+  .search.expanded .search-box { display: flex; background: var(--paper); border-color: var(--ink); }
+}

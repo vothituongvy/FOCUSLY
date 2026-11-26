@@ -11,6 +11,7 @@ import type { Material, MaterialNote } from '@/lib/types';
 import { Markdown } from '@/components/Markdown';
 import { Empty, Modal, Progress, Spinner } from '@/components/ui';
 import { Icon } from '@/components/Icon';
+import { tr } from '@/lib/i18n';
 
 type Tab = 'notes' | 'ai';
 
@@ -40,7 +41,7 @@ export default function MaterialDetailPage() {
   }, [material?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (m.loading && !material) return <Spinner />;
-  if (!material) return <p className="error-text">{m.error ?? 'Không tìm thấy tài liệu'}</p>;
+  if (!material) return <p className="error-text">{m.error ?? tr('Không tìm thấy tài liệu')}</p>;
 
   const saveProgress = async (p: number, total = material.progress.totalPages) => {
     const percent = total > 0 ? Math.min(100, Math.round((p / total) * 100)) : material.progress.percent;
@@ -61,7 +62,7 @@ export default function MaterialDetailPage() {
       <div className="page-header">
         <div>
           <Link href="/materials" className="small">
-            ‹ Tài liệu
+            {tr('‹ Tài liệu')}
           </Link>
           <h1 style={{ marginTop: 4 }}>
             {material.title}{' '}
@@ -78,28 +79,28 @@ export default function MaterialDetailPage() {
           </h1>
           <p className="muted small">
             {material.category}
-            {subject ? ` · ${subject.icon} ${subject.name}` : ''} · thêm {fmtDate(material.createdAt)}
+            {subject ? ` · ${subject.icon} ${subject.name}` : ''}{' '}{tr('· thêm {0}', fmtDate(material.createdAt))}
           </p>
         </div>
         <div className="row">
           <button className="btn secondary sm" onClick={() => setEditing(true)}>
-            Sửa
+            {tr('Sửa')}
           </button>
           {material.url && (
             <a className="btn secondary sm" href={material.url} target="_blank" rel="noreferrer">
-              Mở tab mới 
+              {tr('Mở tab mới')} 
             </a>
           )}
           <button
             className="btn ghost sm"
             style={{ color: 'var(--danger)' }}
             onClick={async () => {
-              if (!confirm('Xoá tài liệu này cùng ghi chú?')) return;
+              if (!confirm(tr('Xoá tài liệu này cùng ghi chú?'))) return;
               await del(`/materials/${id}`);
               router.push('/materials');
             }}
           >
-            Xoá
+            {tr('Xoá')}
           </button>
         </div>
       </div>
@@ -121,7 +122,7 @@ export default function MaterialDetailPage() {
                 </button>
                 <span className="small muted">/ {material.progress.totalPages || '?'}</span>
                 <button className="btn sm" onClick={() => saveProgress(page)}>
-                  Lưu tiến độ đọc
+                  {tr('Lưu tiến độ đọc')}
                 </button>
                 <button
                   className="btn ghost sm"
@@ -130,7 +131,7 @@ export default function MaterialDetailPage() {
                     void notes.reload();
                   }}
                 >
-                  <Icon name="bookmark" size={16} /> Đánh dấu trang
+                  <Icon name="bookmark" size={16} />{' '}{tr('Đánh dấu trang')}
                 </button>
                 <div className="grow" style={{ minWidth: 120 }}>
                   <Progress value={material.progress.percent / 100} />
@@ -143,7 +144,7 @@ export default function MaterialDetailPage() {
           {(material.type === 'text' || material.type === 'document') && (
             <>
               {text === null ? (
-                material.hasText ? <Spinner /> : <Empty>Không đọc được nội dung văn bản. <a href={material.url}>Tải file</a></Empty>
+                material.hasText ? <Spinner /> : <Empty>{tr('Không đọc được nội dung văn bản.')}{' '}<a href={material.url}>{tr('Tải file')}</a></Empty>
               ) : (
                 <TextReader
                   text={text}
@@ -167,7 +168,7 @@ export default function MaterialDetailPage() {
                       window.dispatchEvent(new CustomEvent('focusly:explain', { detail: selection }));
                     }}
                   >
-                    <Icon name="ai" size={16} /> Giải thích
+                    <Icon name="ai" size={16} />{' '}{tr('Giải thích')}
                   </button>
                 </div>
               )}
@@ -175,12 +176,12 @@ export default function MaterialDetailPage() {
           )}
           {material.type === 'link' && (
             <div className="card col">
-              <p>Tài liệu là một liên kết ngoài:</p>
+              <p>{tr('Tài liệu là một liên kết ngoài:')}</p>
               <a href={material.url} target="_blank" rel="noreferrer" style={{ wordBreak: 'break-all' }}>
                 {material.url}
               </a>
               <label className="field">
-                Tiến độ (%)
+                {tr('Tiến độ (%)')}
                 <input type="range" min={0} max={100} defaultValue={material.progress.percent} onMouseUp={(e) => patch(`/materials/${id}`, { progress: { percent: Number((e.target as HTMLInputElement).value) } }).then(() => m.reload())} />
               </label>
             </div>
@@ -192,7 +193,7 @@ export default function MaterialDetailPage() {
         <div className="card" style={{ position: 'sticky', top: 16, maxHeight: '88vh', overflow: 'auto' }}>
           <div className="tabs">
             <button className={`tab ${tab === 'notes' ? 'active' : ''}`} onClick={() => setTab('notes')}>
-              Ghi chú ({notes.data?.items.length ?? 0})
+              {tr('Ghi chú ({0})', notes.data?.items.length ?? 0)}
             </button>
             <button className={`tab ${tab === 'ai' ? 'active' : ''}`} onClick={() => setTab('ai')}>
               <Icon name="ai" size={16} /> AI
@@ -286,13 +287,13 @@ function NotesPanel({
   const icon = { note: '', highlight: '', bookmark: '' };
   return (
     <div className="col">
-      <textarea value={quote} onChange={(e) => setQuote(e.target.value)} placeholder="Đoạn trích quan trọng (tuỳ chọn)" style={{ minHeight: 50 }} />
-      <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder={page ? `Ghi chú cho trang ${page}...` : 'Ghi chú cá nhân...'} />
+      <textarea value={quote} onChange={(e) => setQuote(e.target.value)} placeholder={tr('Đoạn trích quan trọng (tuỳ chọn)')} style={{ minHeight: 50 }} />
+      <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder={page ? tr('Ghi chú cho trang {0}...', page) : tr('Ghi chú cá nhân...')} />
       <button className="btn sm" onClick={add}>
-        + Thêm ghi chú
+        {tr('+ Thêm ghi chú')}
       </button>
       <div className="list">
-        {notes.length === 0 && <Empty>Chưa có ghi chú.</Empty>}
+        {notes.length === 0 && <Empty>{tr('Chưa có ghi chú.')}</Empty>}
         {notes.map((n) => (
           <div key={n.id} className="list-item" style={{ alignItems: 'flex-start' }}>
             <span>{icon[n.kind]}</span>
@@ -357,14 +358,14 @@ function AIPanel({ material, reload }: { material: Material; reload: () => void 
     });
 
   if (!material.hasText) {
-    return <p className="small muted">AI cần nội dung văn bản. Tài liệu ảnh/link/PDF dạng scan chưa trích được chữ – bạn có thể thêm “Ghi chú văn bản” rồi dùng AI.</p>;
+    return <p className="small muted">{tr('AI cần nội dung văn bản. Tài liệu ảnh/link/PDF dạng scan chưa trích được chữ – bạn có thể thêm “Ghi chú văn bản” rồi dùng AI.')}</p>;
   }
 
   return (
     <div className="col">
       <div className="row wrap">
         <button className="btn sm" disabled={!!busy} onClick={() => run('sum', () => post('/ai/summarize', { materialId: material.id }).then(reload))}>
-          {busy === 'sum' ? 'Đang tóm tắt...' : 'Tóm tắt'}
+          {busy === 'sum' ? tr('Đang tóm tắt...') : tr('Tóm tắt')}
         </button>
         <button
           className="btn sm secondary"
@@ -377,7 +378,7 @@ function AIPanel({ material, reload }: { material: Material; reload: () => void 
             })
           }
         >
-          {busy === 'quiz' ? 'Đang tạo...' : 'Tạo 10 câu hỏi'}
+          {busy === 'quiz' ? tr('Đang tạo...') : tr('Tạo 10 câu hỏi')}
         </button>
         <button
           className="btn sm secondary"
@@ -390,25 +391,25 @@ function AIPanel({ material, reload }: { material: Material; reload: () => void 
             })
           }
         >
-          {busy === 'cards' ? 'Đang tạo...' : '🃏 Tạo flashcard'}
+          {busy === 'cards' ? tr('Đang tạo...') : tr('🃏 Tạo flashcard')}
         </button>
         <Link className="btn sm secondary" href={`/ai?material=${material.id}`}>
-          <Icon name="ai" size={16} /> Hỏi đáp
+          <Icon name="ai" size={16} />{' '}{tr('Hỏi đáp')}
         </Link>
       </div>
       {error && <p className="error-text">{error}</p>}
       {material.aiSummary && (
         <div className="card" style={{ boxShadow: 'none', background: 'var(--surface-2)' }}>
-          <b className="small">Tóm tắt AI</b>
+          <b className="small">{tr('Tóm tắt AI')}</b>
           <Markdown text={material.aiSummary} />
         </div>
       )}
       <div className="field">
-        Giải thích khái niệm khó
+        {tr('Giải thích khái niệm khó')}
         <div className="row">
           <input value={concept} onChange={(e) => setConcept(e.target.value)} placeholder="VD: Cleanup function" />
           <button className="btn sm" disabled={!concept || !!busy} onClick={() => explain()}>
-            {busy === 'explain' ? '...' : 'Giải thích'}
+            {busy === 'explain' ? '...' : tr('Giải thích')}
           </button>
         </div>
       </div>
@@ -417,7 +418,7 @@ function AIPanel({ material, reload }: { material: Material; reload: () => void 
           <Markdown text={explanation} />
         </div>
       )}
-      <p className="small muted">AI chỉ đưa gợi ý – bạn có thể sửa hoặc bỏ qua nội dung được tạo.</p>
+      <p className="small muted">{tr('AI chỉ đưa gợi ý – bạn có thể sửa hoặc bỏ qua nội dung được tạo.')}</p>
     </div>
   );
 }
@@ -433,25 +434,25 @@ function EditMaterial({ material, onClose, onSaved }: { material: Material; onCl
     totalPages: material.progress.totalPages,
   });
   return (
-    <Modal open onClose={onClose} title="Sửa tài liệu">
+    <Modal open onClose={onClose} title={tr('Sửa tài liệu')}>
       <div className="form">
         <label className="field">
-          Tiêu đề
+          {tr('Tiêu đề')}
           <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
         </label>
         <label className="field">
-          Mô tả
+          {tr('Mô tả')}
           <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
         </label>
         <div className="grid grid-2">
           <label className="field">
-            Phân loại
+            {tr('Phân loại')}
             <input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
           </label>
           <label className="field">
-            Môn học
+            {tr('Môn học')}
             <select value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })}>
-              <option value="">— Không —</option>
+              <option value="">{tr('— Không —')}</option>
               {subjects.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
@@ -460,12 +461,12 @@ function EditMaterial({ material, onClose, onSaved }: { material: Material; onCl
             </select>
           </label>
           <label className="field">
-            Thẻ (phân tách dấu phẩy)
+            {tr('Thẻ (phân tách dấu phẩy)')}
             <input value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} />
           </label>
           {material.type === 'pdf' && (
             <label className="field">
-              Tổng số trang
+              {tr('Tổng số trang')}
               <input type="number" min={0} value={form.totalPages} onChange={(e) => setForm({ ...form, totalPages: Number(e.target.value) })} />
             </label>
           )}
@@ -485,7 +486,7 @@ function EditMaterial({ material, onClose, onSaved }: { material: Material; onCl
             onClose();
           }}
         >
-          Lưu
+          {tr('Lưu')}
         </button>
       </div>
     </Modal>

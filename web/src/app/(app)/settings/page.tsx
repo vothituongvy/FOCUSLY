@@ -10,8 +10,9 @@ import { connectExtension, hasExtensionConfig, isExtensionInstalled } from '@/li
 import type { FocusScheduleItem, NotificationSettings, User } from '@/lib/types';
 import { Avatar, Toggle } from '@/components/ui';
 import { Icon } from '@/components/Icon';
+import { LANG, setLang, tr, type Lang } from '@/lib/i18n';
 
-type Tab = 'profile' | 'preferences' | 'shield' | 'notifications' | 'security';
+type Tab = 'profile' | 'preferences' | 'shield' | 'notifications' | 'security' | 'language';
 
 function Saved({ msg, error }: { msg: string; error: string }) {
   if (error) return <span className="error-text">{error}</span>;
@@ -33,7 +34,7 @@ function ProfileTab({ user }: { user: User }) {
     try {
       const r = await patch<{ user: User }>('/users/me', { name });
       setUser(r.user);
-      setMsg('Đã lưu ✓');
+      setMsg(tr('Đã lưu ✓'));
     } catch (err) {
       setError(errorMessage(err));
     }
@@ -46,7 +47,7 @@ function ProfileTab({ user }: { user: User }) {
     try {
       const r = await api<{ user: User }>('/users/me/avatar', { method: 'POST', body: fd });
       setUser(r.user);
-      setMsg('Đã cập nhật ảnh đại diện ✓');
+      setMsg(tr('Đã cập nhật ảnh đại diện ✓'));
     } catch (err) {
       setError(errorMessage(err));
     }
@@ -59,7 +60,7 @@ function ProfileTab({ user }: { user: User }) {
         <div className="col" style={{ gap: 6 }}>
           <div className="row">
             <button type="button" className="btn secondary sm" onClick={() => fileRef.current?.click()}>
-              Tải ảnh lên
+              {tr('Tải ảnh lên')}
             </button>
             {user.avatarUrl && (
               <button
@@ -70,16 +71,16 @@ function ProfileTab({ user }: { user: User }) {
                   setUser(r.user);
                 }}
               >
-                Xoá ảnh
+                {tr('Xoá ảnh')}
               </button>
             )}
           </div>
-          <span className="small muted">JPG, PNG, WEBP · tối đa 2MB</span>
+          <span className="small muted">{tr('JPG, PNG, WEBP · tối đa 2MB')}</span>
           <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
         </div>
       </div>
       <label className="field">
-        Họ tên
+        {tr('Họ tên')}
         <input required value={name} onChange={(e) => setName(e.target.value)} />
       </label>
       <label className="field">
@@ -87,7 +88,7 @@ function ProfileTab({ user }: { user: User }) {
         <input value={user.email} disabled />
       </label>
       <div className="row">
-        <button className="btn">Lưu</button>
+        <button className="btn">{tr('Lưu')}</button>
         <Saved msg={msg} error={error} />
       </div>
     </form>
@@ -127,7 +128,7 @@ function PreferencesTab({ user }: { user: User }) {
         },
       });
       setUser(r.user);
-      setMsg('Đã lưu ✓');
+      setMsg(tr('Đã lưu ✓'));
     } catch (err) {
       setError(errorMessage(err));
     }
@@ -136,15 +137,15 @@ function PreferencesTab({ user }: { user: User }) {
   return (
     <form className="form" onSubmit={save} style={{ maxWidth: 640 }}>
       <label className="field">
-        Mục tiêu học tập
-        <textarea value={p.learningGoal} onChange={(e) => setP({ ...p, learningGoal: e.target.value })} placeholder="VD: Trở thành React Native Developer trong 6 tháng" />
+        {tr('Mục tiêu học tập')}
+        <textarea value={p.learningGoal} onChange={(e) => setP({ ...p, learningGoal: e.target.value })} placeholder={tr('VD: Đạt IELTS 6.5 trước tháng 6')} />
       </label>
       <label className="field">
-        Môn học quan tâm (phân tách bằng dấu phẩy)
-        <input value={subjectsText} onChange={(e) => setSubjectsText(e.target.value)} placeholder="React Native, Tiếng Anh, Toán" />
+        {tr('Môn học quan tâm (phân tách bằng dấu phẩy)')}
+        <input value={subjectsText} onChange={(e) => setSubjectsText(e.target.value)} placeholder={tr('Tiếng Anh, Toán, Lịch sử')} />
       </label>
       <div className="field">
-        Khung giờ học mong muốn
+        {tr('Khung giờ học mong muốn')}
         {p.preferredStudyTimes.map((t, i) => (
           <div className="row" key={i}>
             <input
@@ -152,7 +153,7 @@ function PreferencesTab({ user }: { user: User }) {
               value={t.start}
               onChange={(e) => setP({ ...p, preferredStudyTimes: p.preferredStudyTimes.map((x, j) => (j === i ? { ...x, start: e.target.value } : x)) })}
             />
-            <span className="muted small">đến</span>
+            <span className="muted small">{tr('đến')}</span>
             <input
               type="time"
               value={t.end}
@@ -169,23 +170,23 @@ function PreferencesTab({ user }: { user: User }) {
           style={{ alignSelf: 'flex-start' }}
           onClick={() => setP({ ...p, preferredStudyTimes: [...p.preferredStudyTimes, { start: '19:00', end: '21:00' }] })}
         >
-          + Thêm khung giờ
+          {tr('+ Thêm khung giờ')}
         </button>
       </div>
       <div className="grid grid-2">
         <label className="field">
-          Thời lượng học mục tiêu mỗi ngày (phút)
+          {tr('Thời lượng học mục tiêu mỗi ngày (phút)')}
           <input type="number" min={0} max={1440} value={p.dailyTargetMinutes} onChange={(e) => setP({ ...p, dailyTargetMinutes: Number(e.target.value) })} />
         </label>
         <label className="field">
-          Ngôn ngữ
+          {tr('Ngôn ngữ')}
           <select value={p.language} onChange={(e) => setP({ ...p, language: e.target.value as 'vi' | 'en' })}>
-            <option value="vi">Tiếng Việt</option>
+            <option value="vi">{tr('Tiếng Việt')}</option>
             <option value="en">English</option>
           </select>
         </label>
         <label className="field">
-          Múi giờ
+          {tr('Múi giờ')}
           <select value={p.timezone} onChange={(e) => setP({ ...p, timezone: e.target.value })}>
             {zones.map((z) => (
               <option key={z} value={z}>
@@ -196,14 +197,14 @@ function PreferencesTab({ user }: { user: User }) {
         </label>
       </div>
       <div className="field">
-        Pomodoro mặc định
+        {tr('Pomodoro mặc định')}
         <div className="grid grid-4">
           {(
             [
-              ['focusMinutes', 'Tập trung'],
-              ['breakMinutes', 'Nghỉ ngắn'],
-              ['longBreakMinutes', 'Nghỉ dài'],
-              ['cyclesBeforeLongBreak', 'Số vòng'],
+              ['focusMinutes', tr('Tập trung')],
+              ['breakMinutes', tr('Nghỉ ngắn')],
+              ['longBreakMinutes', tr('Nghỉ dài')],
+              ['cyclesBeforeLongBreak', tr('Số vòng')],
             ] as const
           ).map(([k, l]) => (
             <label className="field" key={k}>
@@ -219,7 +220,7 @@ function PreferencesTab({ user }: { user: User }) {
         </div>
       </div>
       <div className="row">
-        <button className="btn">Lưu</button>
+        <button className="btn">{tr('Lưu')}</button>
         <Saved msg={msg} error={error} />
       </div>
     </form>
@@ -258,7 +259,7 @@ function ShieldTab({ user }: { user: User }) {
       });
       setBlockList(r.shield.blockList);
       await refreshUser();
-      setMsg('Đã lưu ✓');
+      setMsg(tr('Đã lưu ✓'));
     } catch (err) {
       setError(errorMessage(err));
     }
@@ -275,33 +276,33 @@ function ShieldTab({ user }: { user: User }) {
       <div className="card col" style={{ boxShadow: 'none' }}>
         <div className="row between">
           <div>
-            <b>Tự bật Focus Shield khi bắt đầu phiên</b>
-            <p className="small muted">Có thể tắt riêng cho từng phiên.</p>
+            <b>{tr('Tự bật Focus Shield khi bắt đầu phiên')}</b>
+            <p className="small muted">{tr('Có thể tắt riêng cho từng phiên.')}</p>
           </div>
           <Toggle on={autoEnable} onChange={setAutoEnable} />
         </div>
         <div className="row between">
           <div>
-            <b>Mặc định dùng Phiên nghiêm ngặt</b>
-            <p className="small muted">Khoá tab, chỉ mở trang được phép, đồng hồ dừng khi bạn rời FOCUSLY.</p>
+            <b>{tr('Mặc định dùng Phiên nghiêm ngặt')}</b>
+            <p className="small muted">{tr('Khoá tab, chỉ mở trang được phép, đồng hồ dừng khi bạn rời FOCUSLY.')}</p>
           </div>
           <Toggle on={strictDefault} onChange={setStrictDefault} />
         </div>
         <div className="row between">
           <div>
-            <b>Ẩn thành phần gây xao nhãng (Focus Mode)</b>
-            <p className="small muted">Che sidebar, thông báo, chỉ hiển thị đồng hồ và mục tiêu.</p>
+            <b>{tr('Ẩn thành phần gây xao nhãng (Focus Mode)')}</b>
+            <p className="small muted">{tr('Che sidebar, thông báo, chỉ hiển thị đồng hồ và mục tiêu.')}</p>
           </div>
           <Toggle on={hide} onChange={setHide} />
         </div>
       </div>
 
       <div className="card col" style={{ boxShadow: 'none' }}>
-        <h3>Block List – website gây phân tâm</h3>
+        <h3>{tr('Block List – website gây phân tâm')}</h3>
         <div className="row">
           <input value={domain} onChange={(e) => setDomain(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), add())} placeholder="vd: facebook.com" />
           <button type="button" className="btn secondary" onClick={add}>
-            Thêm
+            {tr('Thêm')}
           </button>
         </div>
         <div className="chips">
@@ -313,13 +314,13 @@ function ShieldTab({ user }: { user: User }) {
               </button>
             </span>
           ))}
-          {blockList.length === 0 && <span className="small muted">Chưa có website nào.</span>}
+          {blockList.length === 0 && <span className="small muted">{tr('Chưa có website nào.')}</span>}
         </div>
       </div>
 
       <div className="card col" style={{ boxShadow: 'none' }}>
-        <h3>Trang được phép trong Phiên nghiêm ngặt</h3>
-        <p className="small muted">Ngoài FOCUSLY, chỉ những trang này mở được khi phiên nghiêm ngặt đang chạy. Thêm tài liệu bạn cần, ví dụ react.dev.</p>
+        <h3>{tr('Trang được phép trong Phiên nghiêm ngặt')}</h3>
+        <p className="small muted">{tr('Ngoài FOCUSLY, chỉ những trang này mở được khi phiên nghiêm ngặt đang chạy. Thêm trang bạn cần khi học, ví dụ từ điển hay trang bài giảng của trường.')}</p>
         <div className="row">
           <input
             value={allowDomain}
@@ -331,7 +332,7 @@ function ShieldTab({ user }: { user: User }) {
               if (d && !allowList.includes(d)) setAllowList([...allowList, d]);
               setAllowDomain('');
             }}
-            placeholder="vd: developer.mozilla.org"
+            placeholder="vd: vi.wikipedia.org"
           />
           <button
             type="button"
@@ -342,7 +343,7 @@ function ShieldTab({ user }: { user: User }) {
               setAllowDomain('');
             }}
           >
-            Cho phép
+            {tr('Cho phép')}
           </button>
         </div>
         <div className="chips">
@@ -354,12 +355,12 @@ function ShieldTab({ user }: { user: User }) {
               </button>
             </span>
           ))}
-          {allowList.length === 0 && <span className="small muted">Chỉ FOCUSLY được mở trong phiên nghiêm ngặt.</span>}
+          {allowList.length === 0 && <span className="small muted">{tr('Chỉ FOCUSLY được mở trong phiên nghiêm ngặt.')}</span>}
         </div>
       </div>
 
       <div className="card col" style={{ boxShadow: 'none' }}>
-        <h3>Focus Schedule – khung giờ tự bật chặn website</h3>
+        <h3>{tr('Focus Schedule – khung giờ tự bật chặn website')}</h3>
         {schedule.map((s, i) => (
           <div key={i} className="row wrap" style={{ borderBottom: '1px solid var(--border)', paddingBottom: 10 }}>
             <div className="chips">
@@ -378,7 +379,7 @@ function ShieldTab({ user }: { user: User }) {
               ))}
             </div>
             <input type="time" value={s.start} style={{ width: 120 }} onChange={(e) => setSchedule(schedule.map((x, j) => (j === i ? { ...x, start: e.target.value } : x)))} />
-            <span className="muted small">đến</span>
+            <span className="muted small">{tr('đến')}</span>
             <input type="time" value={s.end} style={{ width: 120 }} onChange={(e) => setSchedule(schedule.map((x, j) => (j === i ? { ...x, end: e.target.value } : x)))} />
             <Toggle on={s.enabled} onChange={(v) => setSchedule(schedule.map((x, j) => (j === i ? { ...x, enabled: v } : x)))} />
             <button className="icon-btn" onClick={() => setSchedule(schedule.filter((_, j) => j !== i))}>
@@ -391,13 +392,13 @@ function ShieldTab({ user }: { user: User }) {
           style={{ alignSelf: 'flex-start' }}
           onClick={() => setSchedule([...schedule, { days: [1, 2, 3, 4, 5], start: '19:00', end: '21:00', enabled: true }])}
         >
-          + Thêm khung giờ
+          {tr('+ Thêm khung giờ')}
         </button>
       </div>
 
       <div className="row">
         <button className="btn" onClick={save}>
-          Lưu cấu hình Shield
+          {tr('Lưu cấu hình Shield')}
         </button>
         <Saved msg={msg} error={error} />
       </div>
@@ -405,12 +406,12 @@ function ShieldTab({ user }: { user: User }) {
       <div className="card col" style={{ boxShadow: 'none' }}>
         <h3>Chrome Extension</h3>
         <p className="small muted">
-          Extension chặn các website trong Block List khi phiên học đang chạy – kể cả khi bạn bắt đầu phiên trên điện thoại (Device Sync).
+          {tr('Extension chặn các website trong Block List khi phiên học đang chạy – kể cả khi bạn bắt đầu phiên trên điện thoại (Device Sync).')}
         </p>
         {!hasExtensionConfig() ? (
-          <p className="small">Chưa cấu hình NEXT_PUBLIC_EXTENSION_ID. Xem hướng dẫn trong extension/README.md.</p>
+          <p className="small">{tr('Chưa cấu hình NEXT_PUBLIC_EXTENSION_ID. Xem hướng dẫn trong extension/README.md.')}</p>
         ) : ext === 'missing' ? (
-          <p className="small">Chưa phát hiện extension. Cài extension (Load unpacked) rồi tải lại trang.</p>
+          <p className="small">{tr('Chưa phát hiện extension. Cài extension (Load unpacked) rồi tải lại trang.')}</p>
         ) : (
           <div className="row">
             <button
@@ -421,7 +422,7 @@ function ShieldTab({ user }: { user: User }) {
                 setExt(r?.ok ? 'connected' : 'installed');
               }}
             >
-              {ext === 'connected' ? '✓ Đã kết nối – kết nối lại' : 'Kết nối extension với tài khoản'}
+              {ext === 'connected' ? tr('✓ Đã kết nối – kết nối lại') : tr('Kết nối extension với tài khoản')}
             </button>
           </div>
         )}
@@ -444,28 +445,28 @@ function NotificationsTab() {
   }, []);
   if (!s) return null;
   const toggles: [keyof NotificationSettings, string, string][] = [
-    ['studyReminder', 'Nhắc lịch học', 'Theo khung giờ học mong muốn trong Sở thích học tập'],
-    ['taskReminder', 'Nhắc nhiệm vụ sắp đến hạn', ''],
-    ['breakReminder', 'Nhắc nghỉ giữa phiên', 'Khi hết thời gian Pomodoro'],
-    ['dailySummary', 'Tổng kết cuối ngày', ''],
-    ['reviewReminder', 'Nhắc ôn flashcard đến hạn', 'Lúc 8:00 nếu có ≥ 5 thẻ'],
-    ['push', 'Gửi thông báo đẩy đến điện thoại', pushAvailable ? '' : 'Máy chủ chưa cấu hình Firebase (FCM)'],
+    ['studyReminder', tr('Nhắc lịch học'), tr('Theo khung giờ học mong muốn trong Sở thích học tập')],
+    ['taskReminder', tr('Nhắc nhiệm vụ sắp đến hạn'), ''],
+    ['breakReminder', tr('Nhắc nghỉ giữa phiên'), tr('Khi hết thời gian Pomodoro')],
+    ['dailySummary', tr('Tổng kết cuối ngày'), ''],
+    ['reviewReminder', tr('Nhắc ôn flashcard đến hạn'), tr('Lúc 8:00 nếu có ≥ 5 thẻ')],
+    ['push', tr('Gửi thông báo đẩy đến điện thoại'), pushAvailable ? '' : tr('Máy chủ chưa cấu hình Firebase (FCM)')],
   ];
   const save = async (next: NotificationSettings) => {
     setS(next);
     await put('/notifications/settings', next);
-    setMsg('Đã lưu ✓');
+    setMsg(tr('Đã lưu ✓'));
   };
   return (
     <div className="col" style={{ maxWidth: 640, gap: 14 }}>
       <div className="card row between" style={{ boxShadow: 'none' }}>
         <div>
-          <b>Thông báo trình duyệt</b>
-          <p className="small muted">Trạng thái: {perm === 'granted' ? 'đã cho phép' : perm === 'denied' ? 'đã chặn (mở lại trong cài đặt trình duyệt)' : 'chưa cấp quyền'}</p>
+          <b>{tr('Thông báo trình duyệt')}</b>
+          <p className="small muted">{tr('Trạng thái:')}{' '}{perm === 'granted' ? tr('đã cho phép') : perm === 'denied' ? tr('đã chặn (mở lại trong cài đặt trình duyệt)') : tr('chưa cấp quyền')}</p>
         </div>
         {perm === 'default' && (
           <button className="btn sm" onClick={async () => setPerm(await Notification.requestPermission())}>
-            Cho phép
+            {tr('Cho phép')}
           </button>
         )}
       </div>
@@ -480,25 +481,25 @@ function NotificationsTab() {
       ))}
       <div className="grid grid-2">
         <label className="field">
-          Nhắc nhiệm vụ trước (phút)
+          {tr('Nhắc nhiệm vụ trước (phút)')}
           <input type="number" min={5} max={1440} value={s.taskReminderMinutes} onChange={(e) => setS({ ...s, taskReminderMinutes: Number(e.target.value) })} onBlur={() => save(s)} />
         </label>
         <label className="field">
-          Giờ tổng kết ngày
+          {tr('Giờ tổng kết ngày')}
           <input type="time" value={s.dailySummaryTime} onChange={(e) => save({ ...s, dailySummaryTime: e.target.value })} />
         </label>
         <label className="field">
-          Giờ yên lặng – bắt đầu
+          {tr('Giờ yên lặng – bắt đầu')}
           <input type="time" value={s.quietStart} onChange={(e) => save({ ...s, quietStart: e.target.value })} />
         </label>
         <label className="field">
-          Giờ yên lặng – kết thúc
+          {tr('Giờ yên lặng – kết thúc')}
           <input type="time" value={s.quietEnd} onChange={(e) => save({ ...s, quietEnd: e.target.value })} />
         </label>
       </div>
       <div className="row">
-        <button className="btn secondary sm" onClick={() => post('/notifications/test').then(() => setMsg('Đã gửi thông báo thử'))}>
-          Gửi thông báo thử
+        <button className="btn secondary sm" onClick={() => post('/notifications/test').then(() => setMsg(tr('Đã gửi thông báo thử')))}>
+          {tr('Gửi thông báo thử')}
         </button>
         {msg && <span className="success-text">{msg}</span>}
       </div>
@@ -530,7 +531,7 @@ function SecurityTab({ user }: { user: User }) {
     setMsg('');
     try {
       await post('/users/me/change-password', { currentPassword: current || undefined, newPassword: next, logoutOtherDevices: true });
-      setMsg('Đổi mật khẩu thành công. Các thiết bị khác đã bị đăng xuất.');
+      setMsg(tr('Đổi mật khẩu thành công. Các thiết bị khác đã bị đăng xuất.'));
       setCurrent('');
       setNext('');
       void sessions.reload();
@@ -542,26 +543,26 @@ function SecurityTab({ user }: { user: User }) {
   return (
     <div className="col" style={{ maxWidth: 680, gap: 22 }}>
       <form className="form card" style={{ boxShadow: 'none' }} onSubmit={change}>
-        <h3>{user.hasPassword ? 'Đổi mật khẩu' : 'Đặt mật khẩu (tài khoản Google)'}</h3>
+        <h3>{user.hasPassword ? tr('Đổi mật khẩu') : tr('Đặt mật khẩu (tài khoản Google)')}</h3>
         {user.hasPassword && (
           <label className="field">
-            Mật khẩu hiện tại
+            {tr('Mật khẩu hiện tại')}
             <input type="password" required value={current} onChange={(e) => setCurrent(e.target.value)} />
           </label>
         )}
         <label className="field">
-          Mật khẩu mới (≥ 8 ký tự, có chữ và số)
+          {tr('Mật khẩu mới (≥ 8 ký tự, có chữ và số)')}
           <input type="password" required minLength={8} value={next} onChange={(e) => setNext(e.target.value)} />
         </label>
         <div className="row">
-          <button className="btn">Cập nhật</button>
+          <button className="btn">{tr('Cập nhật')}</button>
           <Saved msg={msg} error={error} />
         </div>
       </form>
 
       <div className="card" style={{ boxShadow: 'none' }}>
         <div className="row between" style={{ marginBottom: 8 }}>
-          <h3>Phiên đăng nhập</h3>
+          <h3>{tr('Phiên đăng nhập')}</h3>
           <button
             className="btn sm secondary"
             onClick={async () => {
@@ -569,7 +570,7 @@ function SecurityTab({ user }: { user: User }) {
               void sessions.reload();
             }}
           >
-            Đăng xuất thiết bị khác
+            {tr('Đăng xuất thiết bị khác')}
           </button>
         </div>
         <div className="list">
@@ -577,10 +578,10 @@ function SecurityTab({ user }: { user: User }) {
             <div className="list-item" key={s.id}>
               <div className="grow">
                 <div style={{ fontWeight: 600 }}>
-                  {s.platform} {s.current && <span className="badge done">Thiết bị này</span>}
+                  {s.platform} {s.current && <span className="badge done">{tr('Thiết bị này')}</span>}
                 </div>
                 <div className="small muted truncate">
-                  {s.userAgent || 'Không rõ'} · {s.ip} · hoạt động {fmtRelative(s.lastUsedAt)}
+                  {s.userAgent || tr('Không rõ')}{' '}{tr('· {0} · hoạt động {1}', s.ip, fmtRelative(s.lastUsedAt))}
                 </div>
               </div>
               {!s.current && (
@@ -591,12 +592,34 @@ function SecurityTab({ user }: { user: User }) {
                     void sessions.reload();
                   }}
                 >
-                  Đăng xuất
+                  {tr('Đăng xuất')}
                 </button>
               )}
             </div>
           ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function LanguageTab() {
+  return (
+    <div className="col" style={{ maxWidth: 560, gap: 12 }}>
+      <h3>{tr('Ngôn ngữ giao diện')}</h3>
+      <p className="small muted">{tr('Chọn ngôn ngữ hiển thị của FOCUSLY trên trình duyệt này.')}</p>
+      <div className="list">
+        {(
+          [
+            ['vi', 'Tiếng Việt'],
+            ['en', 'English'],
+          ] as [Lang, string][]
+        ).map(([l, label]) => (
+          <label key={l} className={`option ${LANG === l ? 'selected' : ''}`}>
+            <input type="radio" name="lang" checked={LANG === l} onChange={() => LANG !== l && setLang(l)} />
+            {label}
+          </label>
+        ))}
       </div>
     </div>
   );
@@ -619,19 +642,20 @@ function SettingsInner() {
     <div>
       <div className="page-header">
         <div>
-          <h1>Cài đặt</h1>
-          <p className="muted">Hồ sơ, sở thích học tập, Focus Shield và bảo mật.</p>
+          <h1>{tr('Cài đặt')}</h1>
+          <p className="muted">{tr('Hồ sơ, sở thích học tập, Focus Shield và bảo mật.')}</p>
         </div>
       </div>
       <div className="card">
         <div className="tabs">
           {(
             [
-              ['profile', 'Hồ sơ'],
-              ['preferences', 'Sở thích học tập'],
+              ['profile', tr('Hồ sơ')],
+              ['preferences', tr('Sở thích học tập')],
               ['shield', 'Focus Shield'],
-              ['notifications', 'Thông báo'],
-              ['security', 'Bảo mật'],
+              ['notifications', tr('Thông báo')],
+              ['security', tr('Bảo mật')],
+              ['language', tr('Ngôn ngữ')],
             ] as [Tab, string][]
           ).map(([k, l]) => (
             <button key={k} className={`tab ${tab === k ? 'active' : ''}`} onClick={() => setTab(k)}>
@@ -646,6 +670,7 @@ function SettingsInner() {
             {tab === 'shield' && <ShieldTab user={u} />}
             {tab === 'notifications' && <NotificationsTab />}
             {tab === 'security' && <SecurityTab user={u} />}
+            {tab === 'language' && <LanguageTab />}
           </>
         )}
       </div>

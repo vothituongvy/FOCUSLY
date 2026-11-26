@@ -9,8 +9,9 @@ import { REASON_LABEL, REASONS, type Distraction, type DistractionStats } from '
 import { DistractionModal } from '@/components/DistractionModal';
 import { Empty, Spinner } from '@/components/ui';
 import { Icon } from '@/components/Icon';
+import { tr } from '@/lib/i18n';
 
-const CATEGORY: Record<string, string> = { digital: 'Kỹ thuật số', internal: 'Bên trong', external: 'Bên ngoài' };
+const CATEGORY: Record<string, string> = { digital: tr('Kỹ thuật số'), internal: tr('Bên trong'), external: tr('Bên ngoài') };
 const ICON: Record<string, string> = { ...Object.fromEntries(REASONS.map((r) => [r.value, r.icon])), left_app: '' };
 
 export default function JournalPage() {
@@ -34,17 +35,17 @@ export default function JournalPage() {
     <div className="col" style={{ gap: 18 }}>
       <div className="page-header">
         <div>
-          <h1>Nhật ký phân tâm</h1>
-          <p className="muted">Hiểu điều gì làm bạn mất tập trung để cải thiện thói quen học.</p>
+          <h1>{tr('Nhật ký phân tâm')}</h1>
+          <p className="muted">{tr('Hiểu điều gì làm bạn mất tập trung để cải thiện thói quen học.')}</p>
         </div>
         <div className="row">
           <select value={days} onChange={(e) => setDays(Number(e.target.value))} style={{ width: 140 }}>
-            <option value={7}>7 ngày</option>
-            <option value={30}>30 ngày</option>
-            <option value={90}>90 ngày</option>
+            <option value={7}>{tr('7 ngày')}</option>
+            <option value={30}>{tr('30 ngày')}</option>
+            <option value={90}>{tr('90 ngày')}</option>
           </select>
           <button className="btn" onClick={() => setAdding(true)}>
-            + Ghi nhận
+            {tr('+ Ghi nhận')}
           </button>
         </div>
       </div>
@@ -55,30 +56,30 @@ export default function JournalPage() {
         <>
           <div className="grid grid-4">
             <div className="card">
-              <div className="stat-label">Lần phân tâm ghi nhận</div>
+              <div className="stat-label">{tr('Lần phân tâm ghi nhận')}</div>
               <div className="stat-value">{s.manualCount}</div>
-              <div className="small muted">{days} ngày qua</div>
+              <div className="small muted">{tr('{0} ngày qua', days)}</div>
             </div>
             <div className="card">
-              <div className="stat-label">Rời app/tab (tự động)</div>
+              <div className="stat-label">{tr('Rời app/tab (tự động)')}</div>
               <div className="stat-value">{s.autoCount}</div>
-              <div className="small muted">Khi bật Focus Shield</div>
+              <div className="small muted">{tr('Khi bật Focus Shield')}</div>
             </div>
             <div className="card">
-              <div className="stat-label">Tần suất</div>
+              <div className="stat-label">{tr('Tần suất')}</div>
               <div className="stat-value">{s.perFocusHour ?? '—'}</div>
-              <div className="small muted">lần / giờ tập trung</div>
+              <div className="small muted">{tr('lần / giờ tập trung')}</div>
             </div>
             <div className="card">
-              <div className="stat-label">Thường mất tập trung sau</div>
+              <div className="stat-label">{tr('Thường mất tập trung sau')}</div>
               <div className="stat-value">{s.medianMinuteIntoSession != null ? `${Math.round(s.medianMinuteIntoSession)}p` : '—'}</div>
-              <div className="small muted">trung vị, tính từ đầu phiên</div>
+              <div className="small muted">{tr('trung vị, tính từ đầu phiên')}</div>
             </div>
           </div>
 
           {s.insights.length > 0 && (
             <div className="card col">
-              <h3>Gợi ý cải thiện</h3>
+              <h3>{tr('Gợi ý cải thiện')}</h3>
               {s.insights.map((t) => (
                 <div key={t} className="banner info">
                   {t}
@@ -89,8 +90,8 @@ export default function JournalPage() {
 
           <div className="grid grid-2">
             <div className="card col">
-              <h3>Nguyên nhân</h3>
-              {s.byReason.length === 0 && <Empty>Chưa có dữ liệu.</Empty>}
+              <h3>{tr('Nguyên nhân')}</h3>
+              {s.byReason.length === 0 && <Empty>{tr('Chưa có dữ liệu.')}</Empty>}
               {s.byReason.map((r) => (
                 <div className="hbar" key={r.reason}>
                   <span className="truncate">
@@ -113,10 +114,10 @@ export default function JournalPage() {
               )}
             </div>
             <div className="card col">
-              <h3>Theo khung giờ</h3>
+              <h3>{tr('Theo khung giờ')}</h3>
               <div className="bars" style={{ height: 120, gap: 3 }}>
                 {s.byHour.map((h) => (
-                  <div className="bar-col" key={h.hour} title={`${h.hour}:00 – ${h.count} lần`}>
+                  <div className="bar-col" key={h.hour} title={tr('{0}:00 – {1} lần', h.hour, h.count)}>
                     <div className="bar" style={{ height: `${(h.count / maxHour) * 100}%`, background: h.count ? undefined : 'var(--surface-2)' }} />
                     <span style={{ fontSize: 10 }} className="muted">
                       {h.hour % 3 === 0 ? h.hour : ''}
@@ -124,13 +125,13 @@ export default function JournalPage() {
                   </div>
                 ))}
               </div>
-              <h3 className="mt-8">Theo môn học</h3>
-              {s.bySubject.length === 0 && <p className="small muted">Chưa có dữ liệu.</p>}
+              <h3 className="mt-8">{tr('Theo môn học')}</h3>
+              {s.bySubject.length === 0 && <p className="small muted">{tr('Chưa có dữ liệu.')}</p>}
               {s.bySubject.map((b) => (
                 <div className="row between small" key={b.subjectId ?? 'none'}>
                   <span>{b.name}</span>
                   <span>
-                    <b>{b.count}</b> lần
+                    <b>{b.count}</b>{' '}{tr('lần')}
                     {b.medianMinuteIntoSession != null && <span className="muted"> · sau ~{Math.round(b.medianMinuteIntoSession)}p</span>}
                   </span>
                 </div>
@@ -139,10 +140,10 @@ export default function JournalPage() {
           </div>
 
           <div className="card">
-            <h3 style={{ marginBottom: 8 }}>Xu hướng theo ngày</h3>
+            <h3 style={{ marginBottom: 8 }}>{tr('Xu hướng theo ngày')}</h3>
             <div className="bars" style={{ height: 110, gap: 3 }}>
               {s.trend.map((t) => (
-                <div className="bar-col" key={t.date} title={`${t.date}: ${t.count} lần · ${t.focusMinutes} phút học`}>
+                <div className="bar-col" key={t.date} title={tr('{0}: {1} lần · {2} phút học', t.date, t.count, t.focusMinutes)}>
                   <div className="bar" style={{ height: `${(t.count / maxTrend) * 100}%`, background: t.count ? '#f59e0b' : 'var(--surface-2)' }} />
                 </div>
               ))}
@@ -157,9 +158,9 @@ export default function JournalPage() {
 
       <div className="card">
         <div className="row between" style={{ marginBottom: 8 }}>
-          <h3>Lịch sử</h3>
+          <h3>{tr('Lịch sử')}</h3>
           <select value={reason} onChange={(e) => setReason(e.target.value)} style={{ width: 200 }}>
-            <option value="">Tất cả nguyên nhân</option>
+            <option value="">{tr('Tất cả nguyên nhân')}</option>
             {Object.entries(REASON_LABEL).map(([k, v]) => (
               <option key={k} value={k}>
                 {v}
@@ -170,7 +171,7 @@ export default function JournalPage() {
         {!list.data ? (
           <Spinner />
         ) : list.data.items.length === 0 ? (
-          <Empty>Chưa có ghi nhận nào. Tuyệt vời! </Empty>
+          <Empty>{tr('Chưa có ghi nhận nào. Tuyệt vời!')}{' '}</Empty>
         ) : (
           <div className="list">
             {list.data.items.map((d) => {
@@ -179,12 +180,12 @@ export default function JournalPage() {
                 <div className="list-item" key={d.id}>
                   <div className="grow">
                     <div style={{ fontWeight: 600 }}>
-                      {REASON_LABEL[d.reason]} {d.source === 'auto' && <span className="badge">tự động</span>}
+                      {REASON_LABEL[d.reason]} {d.source === 'auto' && <span className="badge">{tr('tự động')}</span>}
                     </div>
                     <div className="small muted">
                       {fmtDate(d.occurredAt, true)}
                       {subj && ` · ${subj.icon} ${subj.name}`}
-                      {d.minuteIntoSession != null && ` · phút thứ ${Math.round(d.minuteIntoSession)}`}
+                      {d.minuteIntoSession != null && tr(' · phút thứ {0}', Math.round(d.minuteIntoSession))}
                       {d.durationSeconds ? ` · ${fmtDuration(d.durationSeconds)}` : ''}
                       {d.note && ` · ${d.note}`}
                     </div>
@@ -192,7 +193,7 @@ export default function JournalPage() {
                   <button
                     className="icon-btn"
                     onClick={async () => {
-                      if (!confirm('Xoá ghi nhận này?')) return;
+                      if (!confirm(tr('Xoá ghi nhận này?'))) return;
                       await del(`/distractions/${d.id}`);
                       void list.reload();
                       void stats.reload();

@@ -1,7 +1,12 @@
 import type { Metadata, Viewport } from 'next';
 import { Be_Vietnam_Pro } from 'next/font/google';
 import './globals.css';
+import './shell.css';
+import './guide.css';
 import { PwaRegister } from '@/components/PwaRegister';
+import { cookies } from 'next/headers';
+import { tr } from '@/lib/i18n';
+import { LangGate } from '@/components/LangGate';
 
 // Be Vietnam Pro: thiết kế cho tiếng Việt, dấu rõ ràng ở mọi cỡ chữ
 const vn = Be_Vietnam_Pro({
@@ -13,7 +18,7 @@ const vn = Be_Vietnam_Pro({
 
 export const metadata: Metadata = {
   title: { default: 'FOCUSLY – Learn with focus. Grow with consistency.', template: '%s · FOCUSLY' },
-  description: 'Nền tảng quản lý học tập và sự tập trung trên Web & Mobile.',
+  description: tr('Nền tảng quản lý học tập và sự tập trung trên Web & Mobile.'),
   manifest: '/manifest.webmanifest',
   icons: { icon: '/icons/icon.svg', apple: '/icons/apple-touch-icon.png' },
   appleWebApp: { capable: true, title: 'FOCUSLY', statusBarStyle: 'default' },
@@ -25,11 +30,12 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const lang = (await cookies()).get('focusly_lang')?.value === 'en' ? 'en' : 'vi';
   return (
-    <html lang="vi" className={vn.variable}>
+    <html lang={lang} className={vn.variable}>
       <body>
-        {children}
+        {lang === 'en' ? <LangGate>{children}</LangGate> : children}
         <PwaRegister />
       </body>
     </html>

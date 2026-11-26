@@ -1,4 +1,5 @@
 'use client';
+import { LANG, tr } from '@/lib/i18n';
 
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000').replace(/\/$/, '');
 
@@ -65,7 +66,7 @@ type Options = Omit<RequestInit, 'body'> & { body?: unknown; auth?: boolean };
 export async function api<T = unknown>(path: string, opts: Options = {}, retry = true): Promise<T> {
   const { body, auth = true, headers, ...rest } = opts;
   const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
-  const h: Record<string, string> = { 'X-Client-Platform': 'web', ...(headers as Record<string, string>) };
+  const h: Record<string, string> = { 'X-Client-Platform': 'web', 'X-Lang': LANG, ...(headers as Record<string, string>) };
   if (!isForm && body !== undefined) h['Content-Type'] = 'application/json';
   if (auth && tokens.access) h.Authorization = `Bearer ${tokens.access}`;
 
@@ -84,7 +85,7 @@ export async function api<T = unknown>(path: string, opts: Options = {}, retry =
   const text = await res.text();
   const data = text ? JSON.parse(text) : null;
   if (!res.ok) {
-    throw new ApiError(res.status, data?.error?.message ?? `Lỗi ${res.status}`, data?.error?.code, data);
+    throw new ApiError(res.status, data?.error?.message ?? tr('Lỗi {0}', res.status), data?.error?.code, data);
   }
   return data as T;
 }
@@ -101,6 +102,6 @@ export function errorMessage(e: unknown): string {
     const field = details?.fieldErrors && Object.values(details.fieldErrors).flat()[0];
     return field ? `${e.message}: ${field}` : e.message;
   }
-  if (e instanceof Error) return e.message === 'Failed to fetch' ? 'Không kết nối được máy chủ' : e.message;
-  return 'Đã có lỗi xảy ra';
+  if (e instanceof Error) return e.message === 'Failed to fetch' ? tr('Không kết nối được máy chủ') : e.message;
+  return tr('Đã có lỗi xảy ra');
 }

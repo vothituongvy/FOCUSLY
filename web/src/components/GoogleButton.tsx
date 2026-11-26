@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { tr } from '@/lib/i18n';
 
 const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? '';
 
@@ -40,15 +41,15 @@ export function GoogleButton({ onCredential }: { onCredential: (idToken: string)
 
   if (!CLIENT_ID) {
     return (
-      <button className="btn secondary block" type="button" disabled title="Cấu hình NEXT_PUBLIC_GOOGLE_CLIENT_ID để bật">
-        Đăng nhập bằng Google (chưa cấu hình)
+      <button className="btn secondary block" type="button" disabled title={tr('Cấu hình NEXT_PUBLIC_GOOGLE_CLIENT_ID để bật')}>
+        {tr('Đăng nhập bằng Google (chưa cấu hình)')}
       </button>
     );
   }
   return (
     <div style={{ display: 'flex', justifyContent: 'center', minHeight: 44 }}>
       <div ref={ref} />
-      {!ready && <span className="muted small">Đang tải Google...</span>}
+      {!ready && <span className="muted small">{tr('Đang tải Google...')}</span>}
     </div>
   );
 }
