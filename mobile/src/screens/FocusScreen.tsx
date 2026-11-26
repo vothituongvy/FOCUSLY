@@ -135,7 +135,7 @@ function Setup() {
         )}
         {mode === 'custom' && <Field label={tr('Thời lượng (phút)')} value={custom} onChangeText={setCustom} keyboardType="number-pad" />}
       </Card>
-      <View style={{ gap: 8 }}>
+      <Card style={{ gap: 8 }}>
         <Text style={s.label}>{tr('4. Mức bảo vệ khỏi xao nhãng')}</Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           {LEVELS.map((l) => {
@@ -184,8 +184,10 @@ function Setup() {
             )}
           </View>
         )}
-      </View>
+      </Card>
+      <Card>
       <Field label={tr('5. Mục tiêu của phiên học')} value={goal} onChangeText={setGoal} placeholder={tr('VD: Làm xong 20 câu trắc nghiệm chương 3')} />
+      </Card>
       <Button
         title={tr('Bắt đầu phiên học')}
         icon="play"
@@ -518,10 +520,10 @@ function Summary({ session }: { session: FocusSession }) {
   ];
   return (
     <Screen>
-      <View style={{ alignItems: 'center', gap: 6 }}>
+      <Card style={{ alignItems: 'center', gap: 6 }}>
         <H1>{session.status === 'abandoned' ? tr('Đã huỷ phiên') : tr('Tổng kết phiên học')}</H1>
         <Muted>{session.goal}</Muted>
-      </View>
+      </Card>
       <Card>
         {rows.map(([k, v]) => (
           <Row key={k} style={{ justifyContent: 'space-between' }}>

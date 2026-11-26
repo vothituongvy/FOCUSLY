@@ -62,7 +62,7 @@ export function ProfileScreen() {
 
   return (
     <Screen header={<AppHeader title={tr('Cá nhân')} />}>
-      <Row>
+      <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
         {user.avatarUrl && !avatarBroken ? (
           <Image onError={() => setAvatarBroken(true)} source={{ uri: user.avatarUrl }} style={{ width: 64, height: 64, borderRadius: 32 }} />
         ) : (
@@ -74,7 +74,7 @@ export function ProfileScreen() {
           <Text style={{ fontSize: 20, fontWeight: '800', color: colors.text }}>{user.name}</Text>
           <Muted>{user.email}</Muted>
         </View>
-      </Row>
+      </Card>
 
       <Card style={{ padding: 0, gap: 0 }}>
         {MENU.map((m, i) => (

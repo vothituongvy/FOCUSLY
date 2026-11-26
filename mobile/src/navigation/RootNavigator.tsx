@@ -1,5 +1,5 @@
-import React from 'react';
-import { View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Animated, View } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -25,14 +25,34 @@ const AuthStack = createNativeStackNavigator<AuthStackParams>();
 const AppStack = createNativeStackNavigator<AppStackParams>();
 const Tab = createBottomTabNavigator<TabParams>();
 
-/** Icon tab: tab đang chọn được "tô dạ quang" phía sau */
-const icon =
-  (name: IconName) =>
-  ({ focused }: { focused: boolean }) => (
-    <View style={{ width: 54, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: focused ? colors.marker : 'transparent' }}>
-      <Icon name={name} size={24} color={focused ? colors.text : colors.muted} strokeWidth={focused ? 2 : 1.75} />
+/** Icon tab: tab đang chọn được "tô dạ quang" phía sau, nảy nhẹ khi chọn */
+function TabIcon({ name, focused }: { name: IconName; focused: boolean }) {
+  const v = useRef(new Animated.Value(focused ? 1 : 0)).current;
+  useEffect(() => {
+    Animated.spring(v, { toValue: focused ? 1 : 0, useNativeDriver: true, speed: 18, bounciness: 10 }).start();
+  }, [focused, v]);
+  return (
+    <View style={{ width: 54, height: 32, alignItems: 'center', justifyContent: 'center' }}>
+      <Animated.View
+        style={{
+          position: 'absolute',
+          width: 54,
+          height: 32,
+          borderRadius: 16,
+          backgroundColor: colors.marker,
+          opacity: v,
+          transform: [{ scaleX: v.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }) }],
+        }}
+      />
+      <Animated.View style={{ transform: [{ scale: v.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) }] }}>
+        <Icon name={name} size={24} color={focused ? colors.text : colors.muted} strokeWidth={focused ? 2 : 1.75} />
+      </Animated.View>
     </View>
   );
+}
+const icon =
+  (name: IconName) =>
+  ({ focused }: { focused: boolean }) => <TabIcon name={name} focused={focused} />;
 
 function Tabs() {
   const running = useSession((s) => s.session);
@@ -49,6 +69,7 @@ function Tabs() {
       )}
       screenOptions={{
         headerShown: false,
+        animation: 'shift',
         tabBarActiveTintColor: colors.text,
         tabBarInactiveTintColor: colors.muted,
         tabBarLabelStyle: { fontSize: 11.5, fontWeight: '700', marginTop: 4 },
@@ -79,6 +100,7 @@ export function RootNavigator() {
             headerTintColor: colors.text,
             headerTitleStyle: { fontWeight: '700', fontSize: 17 },
             contentStyle: { backgroundColor: colors.bg },
+            animation: 'slide_from_right',
           }}
         >
           <AppStack.Screen name="Tabs" component={Tabs} options={{ headerShown: false }} />

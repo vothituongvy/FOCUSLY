@@ -72,7 +72,7 @@ export function PlanScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={[]}>
       <AppHeader title={tr('Kế hoạch')} subtitle={tr('{0} nhiệm vụ', list.length)} right={<IconButton name="plus" label={tr('Thêm nhiệm vụ')} onPress={() => nav.navigate('TaskEdit', { subjectId })} />} />
       <SyncBar />
-      <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12, gap: 10 }}>
+      <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12, gap: 10, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border, marginBottom: 12 }}>
         <Chips>
           <Chip label={tr('Tất cả')} active={!subjectId} onPress={() => setSubjectId(null)} />
           {subjects.map((sub) => (
@@ -153,6 +153,7 @@ export function TaskEditScreen({ route, navigation }: NativeStackScreenProps<App
 
   return (
     <Screen>
+      <Card>
       <Field label={tr('Nhiệm vụ')} value={title} onChangeText={setTitle} placeholder={tr('VD: Ôn thì hiện tại hoàn thành')} />
       <Text style={s.label}>{tr('Môn học')}</Text>
       <Chips>
@@ -210,6 +211,7 @@ export function TaskEditScreen({ route, navigation }: NativeStackScreenProps<App
       <Field label={tr('Kết quả mong muốn')} value={outcome} onChangeText={setOutcome} />
       <Field label={tr('Ghi chú')} value={desc} onChangeText={setDesc} multiline />
       {!!error && <Text style={s.error}>{error}</Text>}
+      </Card>
       <Button title={task ? tr('Lưu thay đổi') : tr('Tạo nhiệm vụ')} onPress={save} />
       {task && (
         <Button
@@ -254,6 +256,7 @@ export function SubjectEditScreen({ route, navigation }: NativeStackScreenProps<
 
   return (
     <Screen>
+      <Card>
       <Field label={tr('Tên môn học')} value={name} onChangeText={setName} placeholder={tr('VD: Tiếng Anh')} />
       <Text style={s.label}>{tr('Biểu tượng')}</Text>
       <Chips>
@@ -271,6 +274,7 @@ export function SubjectEditScreen({ route, navigation }: NativeStackScreenProps<
           />
         ))}
       </Row>
+      </Card>
       <Button title={tr('Lưu')} onPress={save} />
       {subject && (
         <Button

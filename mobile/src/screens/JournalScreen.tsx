@@ -53,10 +53,10 @@ export function JournalScreen() {
           />
         }
       >
-        <Row style={{ justifyContent: 'space-between' }}>
-          <H1>{tr('Nhật ký phân tâm')}</H1>
-          <Button title="+ Ghi" small onPress={() => setAdding(true)} />
-        </Row>
+        <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <Muted style={{ flex: 1 }}>{tr('Hiểu điều gì làm bạn mất tập trung để cải thiện thói quen học.')}</Muted>
+          <Button title={tr('+ Ghi nhận')} small onPress={() => setAdding(true)} />
+        </Card>
 
         {stats && (
           <>

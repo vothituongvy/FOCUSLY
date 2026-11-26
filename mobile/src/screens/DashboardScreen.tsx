@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { Animated, Pressable, RefreshControl, ScrollView, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -13,7 +13,8 @@ import type { Dashboard, FocusSession } from '../types';
 import type { TabParams } from '../navigation/types';
 import { AppHeader } from '../components/AppHeader';
 import { Icon, type IconName } from '../components/Icon';
-import { Button, Card, Empty, Muted, ProgressBar, Section, SyncBar } from '../components/ui';
+import { Button, Card, Empty, Muted, Paper, ProgressBar, Section, SyncBar } from '../components/ui';
+import { FadeIn, useAnimatedNumber } from '../components/motion';
 import { LOCALE, tr } from '../i18n';
 
 
@@ -90,6 +91,12 @@ function DayRuler({ sessions }: { sessions: FocusSession[] }) {
   );
 }
 
+/** Cột biểu đồ mọc dần lên */
+function GrowBar({ pct, style }: { pct: number; style: StyleProp<ViewStyle> }) {
+  const h = useAnimatedNumber(pct, 700);
+  return <Animated.View style={[style, { height: h.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] }) }]} />;
+}
+
 function Metric({
   icon,
   tint,
@@ -108,7 +115,7 @@ function Metric({
   noteColor?: string;
 }) {
   return (
-    <View style={{ width: '48.5%', backgroundColor: colors.surface, borderRadius: 14, borderWidth: 1, borderColor: colors.border, padding: 14, gap: 8 }}>
+    <Paper style={{ backgroundColor: colors.surface, borderRadius: 14, borderWidth: 1, borderColor: colors.border, padding: 14, gap: 8 }} radius={14}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: tint, alignItems: 'center', justifyContent: 'center' }}>
           <Icon name={icon} size={18} color={colors.text} />
@@ -126,7 +133,7 @@ function Metric({
           {note}
         </Text>
       )}
-    </View>
+    </Paper>
   );
 }
 
@@ -190,6 +197,7 @@ export function DashboardScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 32 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.text]} tintColor={colors.text} />}>
         {offline && <Muted style={{ color: colors.warning }}>{tr('Đang hiển thị dữ liệu đã lưu vì không có mạng.')}</Muted>}
 
+        <FadeIn>
         <Card style={{ padding: 18, gap: 14 }}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
             <View>
@@ -223,16 +231,26 @@ export function DashboardScreen() {
             <Button title={tr('Bắt đầu tập trung')} icon="play" variant="marker" onPress={() => nav.navigate('Focus')} />
           )}
         </Card>
+        </FadeIn>
 
         {data && (
           <>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 10 }}>
-              <Metric icon="check" tint={colors.successSoft} label={tr('Nhiệm vụ xong')} value={String(data.tasks.completed)} unit={`/${data.tasks.total}`} note={data.tasks.overdue ? tr('{0} việc quá hạn', data.tasks.overdue) : undefined} noteColor={colors.danger} />
-              <Metric icon="flame" tint={colors.markerSoft} label={tr('Chuỗi ngày học')} value={String(data.streak.current)} unit={tr(' ngày')} note={tr('Dài nhất {0} ngày', data.streak.best)} />
-              <Metric icon="zap" tint={colors.dangerSoft} label={tr('Lần phân tâm')} value={String(data.distractionsToday.manual)} note={tr('Rời app {0} lần', data.distractionsToday.appLeaves)} />
-              <Metric icon="focus" tint="#e6ecfb" label={tr('Điểm tập trung')} value={String(data.focusScore.score)} unit="/100" note={tr('Chỉ để tham khảo')} />
+              <FadeIn delay={80} style={{ width: '48.5%' }}>
+                <Metric icon="check" tint={colors.successSoft} label={tr('Nhiệm vụ xong')} value={String(data.tasks.completed)} unit={`/${data.tasks.total}`} note={data.tasks.overdue ? tr('{0} việc quá hạn', data.tasks.overdue) : undefined} noteColor={colors.danger} />
+              </FadeIn>
+              <FadeIn delay={140} style={{ width: '48.5%' }}>
+                <Metric icon="flame" tint={colors.markerSoft} label={tr('Chuỗi ngày học')} value={String(data.streak.current)} unit={tr(' ngày')} note={tr('Dài nhất {0} ngày', data.streak.best)} />
+              </FadeIn>
+              <FadeIn delay={200} style={{ width: '48.5%' }}>
+                <Metric icon="zap" tint={colors.dangerSoft} label={tr('Lần phân tâm')} value={String(data.distractionsToday.manual)} note={tr('Rời app {0} lần', data.distractionsToday.appLeaves)} />
+              </FadeIn>
+              <FadeIn delay={260} style={{ width: '48.5%' }}>
+                <Metric icon="focus" tint="#e6ecfb" label={tr('Điểm tập trung')} value={String(data.focusScore.score)} unit="/100" note={tr('Chỉ để tham khảo')} />
+              </FadeIn>
             </View>
 
+            <FadeIn delay={340}>
             <Section title={tr('Việc tiếp theo')}>
               <Card style={{ paddingVertical: 4, gap: 0 }}>
                 {data.upcomingTasks.length === 0 && <Empty text={tr('Chưa có nhiệm vụ. Thêm ở tab Kế hoạch.')} />}
@@ -263,6 +281,9 @@ export function DashboardScreen() {
               </Card>
             </Section>
 
+            </FadeIn>
+
+            <FadeIn delay={420}>
             <Section title={tr('Bảy ngày qua')} action={<Muted>{tr('Mục tiêu {0} phút', target)}</Muted>}>
               <Card>
                 <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: 120, gap: 8 }}>
@@ -272,10 +293,10 @@ export function DashboardScreen() {
                     return (
                       <View key={d.date} style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end', height: '100%', gap: 4 }}>
                         <Text style={{ fontSize: 10, color: colors.muted }}>{d.focusMinutes || ''}</Text>
-                        <View
+                        <GrowBar
+                          pct={Math.max(2, (d.focusMinutes / max) * 82)}
                           style={{
                             width: '78%',
-                            height: `${Math.max(2, (d.focusMinutes / max) * 82)}%`,
                             backgroundColor: today ? colors.text : met ? colors.marker : '#d5dbe5',
                             borderWidth: met || today ? 1 : 0,
                             borderColor: colors.text,
@@ -291,6 +312,7 @@ export function DashboardScreen() {
                 <Muted>{tr('Cột vàng là ngày đạt mục tiêu.')}</Muted>
               </Card>
             </Section>
+            </FadeIn>
           </>
         )}
       </ScrollView>

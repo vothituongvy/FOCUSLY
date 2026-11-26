@@ -1,6 +1,7 @@
 import React, { ReactNode } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Pressable,
   ScrollView,
   StyleProp,
@@ -16,12 +17,22 @@ import { colors, radius } from '../theme';
 import { useData } from '../store/data';
 import { Icon, type IconName } from './Icon';
 import { tr } from '../i18n';
+import { FadeIn, useAnimatedNumber, usePressScale } from './motion';
 
 /**
  * Khung màn hình: header cố định phía trên (nếu có) + nội dung cuộn.
  */
 export function Screen({ children, scroll = true, padded = true, header }: { children: ReactNode; scroll?: boolean; padded?: boolean; header?: ReactNode }) {
-  const content = <View style={[padded && { padding: 16, gap: 14 }]}>{children}</View>;
+  // Nội dung nằm trên một "trang giấy" trắng đặt trên nền bàn, hiện ra nhẹ nhàng khi mở màn hình
+  const content = padded ? (
+    <FadeIn style={{ padding: 12 }}>
+      <Paper style={s.sheet} radius={18} depth={5}>
+        {children}
+      </Paper>
+    </FadeIn>
+  ) : (
+    <View>{children}</View>
+  );
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={header ? [] : ['top']}>
       {header}
@@ -61,8 +72,27 @@ export function Muted({ children, style }: { children: ReactNode; style?: object
   return <Text style={[s.muted, style]}>{children}</Text>;
 }
 
+const LAYOUT_KEYS = ['flex', 'flexGrow', 'flexShrink', 'flexBasis', 'width', 'minWidth', 'maxWidth', 'alignSelf', 'margin', 'marginTop', 'marginBottom', 'marginLeft', 'marginRight', 'marginHorizontal', 'marginVertical', 'position', 'top', 'left', 'right', 'bottom'] as const;
+
+/**
+ * Lớp "giấy lót" dưới mỗi thẻ: một tấm màu mực nhạt lệch xuống-phải,
+ * giống bóng cứng trên bản Web (thẻ như tờ giấy đặt chồng lên nhau).
+ */
+export function Paper({ children, style, radius: r = radius + 2, depth = 4 }: { children: ReactNode; style?: StyleProp<ViewStyle>; radius?: number; depth?: number }) {
+  const flat = (StyleSheet.flatten(style) ?? {}) as Record<string, unknown>;
+  const outer: Record<string, unknown> = {};
+  const inner: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(flat)) ((LAYOUT_KEYS as readonly string[]).includes(k) ? outer : inner)[k] = v;
+  return (
+    <View style={[outer as ViewStyle, { paddingRight: depth, paddingBottom: depth }]}>
+      <View style={{ position: 'absolute', top: depth, left: depth, right: 0, bottom: 0, borderRadius: r, backgroundColor: 'rgba(22, 32, 58, 0.13)' }} />
+      <View style={[{ borderRadius: r, flexGrow: 1 }, inner as ViewStyle]}>{children}</View>
+    </View>
+  );
+}
+
 export function Card({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
-  return <View style={[s.card, style]}>{children}</View>;
+  return <Paper style={[s.card, style]}>{children}</Paper>;
 }
 
 /** Tiêu đề nhóm nội dung trên nền bàn (không đóng khung) */
@@ -106,19 +136,21 @@ export function Button({
     danger: { bg: colors.surface, fg: colors.danger, border: '#efc4bb' },
     marker: { bg: colors.marker, fg: colors.text, border: colors.text },
   }[variant];
+  const press = usePressScale();
   return (
+    <Animated.View style={[style, press.style]}>
     <Pressable
       onPress={onPress}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
       disabled={disabled || loading}
       accessibilityRole="button"
       accessibilityLabel={title}
       style={({ pressed }) => [
         s.btn,
-        small && { paddingVertical: 7, paddingHorizontal: 12, borderRadius: 8 },
+        small && { paddingVertical: 8, paddingHorizontal: 13, borderRadius: 9 },
         { backgroundColor: v.bg, borderColor: v.border, opacity: disabled ? 0.45 : 1 },
         variant === 'marker' && !pressed && { borderBottomWidth: 3, borderRightWidth: 3 }, // bóng cứng kiểu in ấn
-        pressed && { transform: [{ translateY: 1 }] },
-        style,
       ]}
     >
       {loading ? (
@@ -130,6 +162,7 @@ export function Button({
         </View>
       )}
     </Pressable>
+    </Animated.View>
   );
 }
 
@@ -169,9 +202,18 @@ export function Chips({ children }: { children: ReactNode }) {
 
 export function ProgressBar({ value, color = colors.marker }: { value: number; color?: string }) {
   const pct = Math.min(100, Math.max(0, value * 100));
+  const w = useAnimatedNumber(pct, 700);
   return (
     <View style={{ height: 10, backgroundColor: colors.surface2, borderRadius: 5, overflow: 'hidden', borderWidth: 1, borderColor: colors.border }}>
-      <View style={{ width: `${pct}%`, height: '100%', backgroundColor: color, borderRightWidth: pct > 0 && pct < 100 ? 1 : 0, borderRightColor: colors.text }} />
+      <Animated.View
+        style={{
+          width: w.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] }),
+          height: '100%',
+          backgroundColor: color,
+          borderRightWidth: pct > 0 && pct < 100 ? 1 : 0,
+          borderRightColor: colors.text,
+        }}
+      />
     </View>
   );
 }
@@ -213,11 +255,6 @@ export const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     gap: 10,
-    shadowColor: '#16203a',
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
   },
   btn: { borderRadius: 11, paddingVertical: 12, paddingHorizontal: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   iconBtn: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
@@ -233,6 +270,14 @@ export const s = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   chip: { borderWidth: 1, borderColor: colors.borderStrong, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: colors.surface },
+  sheet: {
+    backgroundColor: colors.surface,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 16,
+    gap: 14,
+  },
   syncBar: { paddingVertical: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   error: { color: colors.danger, fontSize: 13 },
 });

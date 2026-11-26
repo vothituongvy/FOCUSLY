@@ -5,6 +5,7 @@ import { fmtClock, timerInfo } from '../offline/sessionLogic';
 import { colors } from '../theme';
 import { tr } from '../i18n';
 import { Icon } from './Icon';
+import { FadeIn } from './motion';
 
 /**
  * Thanh nhỏ nằm trên thanh tab khi đang có phiên học mà bạn đang xem màn hình khác:
@@ -26,7 +27,7 @@ export function SessionBar({ onOpen }: { onOpen: () => void }) {
   const dot = session.status === 'active' ? colors.marker : session.status === 'on_break' ? '#7fd1a6' : colors.focusMuted;
 
   return (
-    <View style={{ paddingHorizontal: 12, paddingTop: 8, backgroundColor: colors.bg }}>
+    <FadeIn from={20} style={{ paddingHorizontal: 12, paddingTop: 8, backgroundColor: colors.bg }}>
       <Pressable
         onPress={onOpen}
         accessibilityRole="button"
@@ -52,6 +53,6 @@ export function SessionBar({ onOpen }: { onOpen: () => void }) {
         <Text style={{ color: colors.focusText, fontWeight: '800', fontSize: 17, fontVariant: ['tabular-nums'] }}>{fmtClock(info.total)}</Text>
         <Icon name="chevronRight" size={18} color={colors.focusMuted} />
       </Pressable>
-    </View>
+    </FadeIn>
   );
 }

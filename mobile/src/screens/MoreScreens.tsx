@@ -24,12 +24,14 @@ export function MaterialsScreen() {
   const list = materials.filter((m) => (!onlyBookmarked || m.bookmarked) && (!q || m.title.toLowerCase().includes(q.toLowerCase())));
   return (
     <Screen>
+      <Card>
       <H1>{tr('Tài liệu')}</H1>
       <Muted>{tr('Xem nhanh trên điện thoại. Tải lên & ghi chú đầy đủ trên Web.')}</Muted>
       <TextInput style={s.input} value={q} onChangeText={setQ} placeholder={tr('Tìm tài liệu...')} placeholderTextColor="#a0a5c0" />
       <Chips>
         <Chip label={tr('★ Đã đánh dấu')} active={onlyBookmarked} onPress={() => setOnlyBookmarked(!onlyBookmarked)} />
       </Chips>
+      </Card>
       {list.length === 0 && <Empty text={tr('Chưa có tài liệu.')} />}
       {list.map((m) => (
         <Card key={m.id}>
@@ -250,11 +252,13 @@ export function AnalyticsScreen() {
   const max = Math.max(1, ...(a?.series.map((x) => Math.max(x.focusMinutes, x.plannedMinutes)) ?? [1]));
   return (
     <Screen>
+      <Card>
       <Chips>
         <Chip label={tr('Hôm nay')} active={range === 'day'} onPress={() => setRange('day')} />
         <Chip label={tr('7 ngày')} active={range === 'week'} onPress={() => setRange('week')} />
         <Chip label={tr('30 ngày')} active={range === 'month'} onPress={() => setRange('month')} />
       </Chips>
+      </Card>
       {offline && <Muted style={{ color: colors.warning }}>{tr('Dữ liệu đã lưu (offline)')}</Muted>}
       {!m ? (
         <ActivityIndicator color={colors.primary} />
