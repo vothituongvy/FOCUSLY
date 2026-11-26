@@ -410,6 +410,16 @@ function ShieldTab({ user }: { user: User }) {
         </p>
         {!hasExtensionConfig() ? (
           <p className="small">{tr('Chưa cấu hình NEXT_PUBLIC_EXTENSION_ID. Xem hướng dẫn trong extension/README.md.')}</p>
+        ) : ext === 'missing' && EXTENSION_STORE_URL ? (
+          <div className="col" style={{ gap: 8 }}>
+            <p className="small">{tr('Chưa phát hiện extension trên trình duyệt này.')}</p>
+            <div className="row">
+              <a className="btn" href={EXTENSION_STORE_URL} target="_blank" rel="noreferrer">
+                {tr('Thêm vào Chrome')}
+              </a>
+            </div>
+            <p className="small muted">{tr('Cài xong, tải lại trang này rồi bấm "Kết nối extension với tài khoản".')}</p>
+          </div>
         ) : ext === 'missing' ? (
           <div className="col" style={{ gap: 8 }}>
             <p className="small">{tr('Chưa phát hiện extension trên trình duyệt này. Cài theo 4 bước:')}</p>
@@ -445,6 +455,8 @@ function ShieldTab({ user }: { user: User }) {
 }
 
 const EXTENSION_ZIP_URL = 'https://github.com/vothituongvy/FOCUSLY/releases/download/extension/focusly-extension.zip';
+// Link trang extension trên Chrome Web Store (khi đã được duyệt) -> người dùng cài bằng 1 nút
+const EXTENSION_STORE_URL = (process.env.NEXT_PUBLIC_EXTENSION_STORE_URL ?? '').trim();
 
 /* ============ Thông báo (Phase 2) ============ */
 function NotificationsTab() {

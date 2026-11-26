@@ -972,5 +972,8 @@
  "Mở chrome://extensions, bật \"Chế độ dành cho nhà phát triển\" (góc trên bên phải).": "Open chrome://extensions and turn on \"Developer mode\" (top right).",
  "Bấm \"Tải tiện ích đã giải nén\" và chọn thư mục focusly-extension vừa giải nén.": "Click \"Load unpacked\" and pick the unzipped focusly-extension folder.",
  "Tải lại trang này rồi bấm \"Kết nối extension với tài khoản\".": "Reload this page, then click \"Connect extension to account\".",
- "Tải extension": "Download extension"
+ "Tải extension": "Download extension",
+ "Chưa phát hiện extension trên trình duyệt này.": "Extension not found in this browser.",
+ "Thêm vào Chrome": "Add to Chrome",
+ "Cài xong, tải lại trang này rồi bấm \"Kết nối extension với tài khoản\".": "After installing, reload this page and click \"Connect extension to account\"."
 }
