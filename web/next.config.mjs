@@ -10,6 +10,8 @@ const securityHeaders = [
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Hiện tên file/dòng thật trong Console khi có lỗi trên bản deploy
+  productionBrowserSourceMaps: true,
   // Phase 4: build "standalone" để đóng gói Docker gọn nhẹ (Vercel bỏ qua tuỳ chọn này)
   output: process.env.NEXT_OUTPUT === 'standalone' ? 'standalone' : undefined,
   images: { unoptimized: true },

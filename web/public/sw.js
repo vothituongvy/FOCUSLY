@@ -3,7 +3,7 @@
  * - Trang HTML: network-first, khi offline trả bản đã cache hoặc /offline.html
  * - KHÔNG cache API (dữ liệu cá nhân, luôn lấy mới)
  */
-const VERSION = 'focusly-v2';
+const VERSION = 'focusly-v3';
 const STATIC = `${VERSION}-static`;
 const PAGES = `${VERSION}-pages`;
 const PRECACHE = ['/offline.html', '/icons/icon-192.png', '/manifest.webmanifest'];
@@ -33,8 +33,10 @@ self.addEventListener('fetch', (e) => {
         (hit) =>
           hit ||
           fetch(req).then((res) => {
-            const copy = res.clone();
-            caches.open(STATIC).then((c) => c.put(req, copy));
+            if (res.ok) {
+              const copy = res.clone();
+              caches.open(STATIC).then((c) => c.put(req, copy));
+            }
             return res;
           }),
       ),
