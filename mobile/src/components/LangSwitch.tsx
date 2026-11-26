@@ -14,7 +14,7 @@ export function LangSwitch({ compact = false }: { compact?: boolean }) {
     <View
       accessibilityRole="radiogroup"
       accessibilityLabel="Ngôn ngữ / Language"
-      style={{ flexDirection: 'row', gap: 4, padding: 3, backgroundColor: colors.bg, borderRadius: 10, alignSelf: compact ? 'flex-end' : 'flex-start' }}
+      style={{ flexDirection: 'row', gap: 4, padding: 3, backgroundColor: colors.surface2, borderRadius: 10, alignSelf: compact ? 'flex-end' : 'flex-start' }}
     >
       {OPTIONS.map((o) => {
         const on = LANG === o.id;

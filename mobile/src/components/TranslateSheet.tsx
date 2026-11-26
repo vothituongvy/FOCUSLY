@@ -62,7 +62,7 @@ export function TranslateSheet({ visible, onClose }: { visible: boolean; onClose
             </Pressable>
           </View>
 
-          <View style={{ flexDirection: 'row', gap: 4, padding: 3, backgroundColor: colors.bg, borderRadius: 10, alignSelf: 'flex-start' }}>
+          <View style={{ flexDirection: 'row', gap: 4, padding: 3, backgroundColor: colors.surface2, borderRadius: 10, alignSelf: 'flex-start' }}>
             {DIRS.map((d) => (
               <Pressable
                 key={d.id}

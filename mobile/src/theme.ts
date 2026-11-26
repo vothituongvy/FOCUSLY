@@ -3,7 +3,7 @@
  * Một màu nhấn duy nhất (marker) cho thứ đang được "tô": tab đang chọn, thời gian đã tập trung, nút bắt đầu học.
  */
 export const colors = {
-  bg: '#e9edf2', // mặt bàn
+  bg: '#ffffff', // nền trắng cho mọi màn hình
   surface: '#ffffff', // trang giấy
   surface2: '#f3f5f8',
   border: '#dde2ea',

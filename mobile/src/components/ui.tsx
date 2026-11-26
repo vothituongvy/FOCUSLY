@@ -25,10 +25,8 @@ import { FadeIn, useAnimatedNumber, usePressScale } from './motion';
 export function Screen({ children, scroll = true, padded = true, header }: { children: ReactNode; scroll?: boolean; padded?: boolean; header?: ReactNode }) {
   // Nội dung nằm trên một "trang giấy" trắng đặt trên nền bàn, hiện ra nhẹ nhàng khi mở màn hình
   const content = padded ? (
-    <FadeIn style={{ padding: 12 }}>
-      <Paper style={s.sheet} radius={18} depth={5}>
-        {children}
-      </Paper>
+    <FadeIn style={{ padding: 16 }}>
+      <View style={{ gap: 14 }}>{children}</View>
     </FadeIn>
   ) : (
     <View>{children}</View>
@@ -74,18 +72,15 @@ export function Muted({ children, style }: { children: ReactNode; style?: object
 
 const LAYOUT_KEYS = ['flex', 'flexGrow', 'flexShrink', 'flexBasis', 'width', 'minWidth', 'maxWidth', 'alignSelf', 'margin', 'marginTop', 'marginBottom', 'marginLeft', 'marginRight', 'marginHorizontal', 'marginVertical', 'position', 'top', 'left', 'right', 'bottom'] as const;
 
-/**
- * Lớp "giấy lót" dưới mỗi thẻ: một tấm màu mực nhạt lệch xuống-phải,
- * giống bóng cứng trên bản Web (thẻ như tờ giấy đặt chồng lên nhau).
- */
+/** Khung thẻ: tách kiểu bố cục (flex, margin…) ra lớp ngoài, kiểu hiển thị vào lớp trong */
 export function Paper({ children, style, radius: r = radius + 2, depth = 4 }: { children: ReactNode; style?: StyleProp<ViewStyle>; radius?: number; depth?: number }) {
   const flat = (StyleSheet.flatten(style) ?? {}) as Record<string, unknown>;
   const outer: Record<string, unknown> = {};
   const inner: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(flat)) ((LAYOUT_KEYS as readonly string[]).includes(k) ? outer : inner)[k] = v;
+  void depth;
   return (
-    <View style={[outer as ViewStyle, { paddingRight: depth, paddingBottom: depth }]}>
-      <View style={{ position: 'absolute', top: depth, left: depth, right: 0, bottom: 0, borderRadius: r, backgroundColor: 'rgba(22, 32, 58, 0.13)' }} />
+    <View style={outer as ViewStyle}>
       <View style={[{ borderRadius: r, flexGrow: 1 }, inner as ViewStyle]}>{children}</View>
     </View>
   );
