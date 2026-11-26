@@ -12,10 +12,10 @@ const PROD_URL = 'https://focusly-api-ef5a.onrender.com';
 export const API_URL = __DEV__ ? DEV_URL : PROD_URL;
 
 /** OAuth Client ID loại "Web application" (dùng để lấy idToken trên Android) */
-export const GOOGLE_WEB_CLIENT_ID = '';
+export const GOOGLE_WEB_CLIENT_ID = '87109894039-ol0hdo9ssm8jslhco2kuqjv18vid9p4o.apps.googleusercontent.com';
 
 /** Phiên bản app – giữ khớp với versionName trong android/app/build.gradle */
-export const APP_VERSION = '1.0.0';
+export const APP_VERSION = '1.0.1';
 /** Repo GitHub chứa các bản APK (Releases). Repo phải để công khai để người dùng tải được. */
 export const GITHUB_REPO = 'vothituongvy/FOCUSLY';
 
