@@ -15,6 +15,7 @@ import { QuickReset } from '../components/QuickReset';
 import { PLATFORM } from '../config';
 import { focusLockAvailable, isScreenLocked, lockScreen } from '../focusLock';
 import { AppHeader } from '../components/AppHeader';
+import { ForecastHint } from '../components/FocusForecast';
 import { Icon, type IconName } from '../components/Icon';
 import { TranslateSheet } from '../components/TranslateSheet';
 import { tr } from '../i18n';
@@ -136,6 +137,17 @@ function Setup() {
           </Row>
         )}
         {mode === 'custom' && <Field label={tr('Thời lượng (phút)')} value={custom} onChangeText={setCustom} keyboardType="number-pad" />}
+        <ForecastHint
+          minutes={mode === 'pomodoro' ? pomo.focusMinutes : mode === 'custom' ? Number(custom) || undefined : undefined}
+          strict={strict}
+          onUseMinutes={(m) => {
+            if (mode === 'pomodoro') setPomo({ ...pomo, focusMinutes: m });
+            else {
+              setMode('custom');
+              setCustom(String(m));
+            }
+          }}
+        />
       </Card>
       <Card style={{ gap: 8 }}>
         <Text style={s.label}>{tr('4. Mức bảo vệ khỏi xao nhãng')}</Text>

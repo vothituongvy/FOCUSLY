@@ -11,6 +11,7 @@ import type { Conversation, Insight } from '../types';
 import type { AppStackParams } from '../navigation/types';
 import { Button, Card, Chip, Chips, Empty, H3, KeyboardView, Muted, Row, Screen, s } from '../components/ui';
 import { Icon } from '../components/Icon';
+import { ForecastCard } from '../components/FocusForecast';
 import { LOCALE, tr } from '../i18n';
 
 const plain = (t: string) => t.replace(/\*\*/g, '').replace(/^#+\s/gm, '').replace(/`/g, '');
@@ -83,7 +84,7 @@ export function AIChatScreen({ route }: { route: { params?: { materialId?: strin
 
   const suggestions = material
     ? [tr('Tóm tắt ý chính'), tr('Giải thích phần khó nhất'), tr('Hỏi tôi 3 câu kiểm tra')]
-    : [tr('Giải thích đạo hàm bằng ví dụ'), tr('Phân biệt hiện tại hoàn thành và quá khứ đơn'), tr('Lập kế hoạch ôn thi 2 tuần')];
+    : [tr('Hôm nay mình học được bao lâu?'), tr('Mình nên học lúc mấy giờ?'), tr('Việc cần làm tiếp theo?'), tr('Cho mình mẹo tập trung')];
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['bottom']}>
@@ -275,6 +276,7 @@ export function AICoachScreen() {
 
   return (
     <Screen>
+      <ForecastCard />
       <Card>
         <H3>{tr('AI phân tích việc học của bạn')}</H3>
         <Muted>{tr('AI sẽ đọc số liệu học tập (thời gian, nhiệm vụ, phân tâm, kết quả kiểm tra) để đề xuất cách cải thiện.')}</Muted>
