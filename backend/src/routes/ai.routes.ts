@@ -42,7 +42,7 @@ async function sourceText(userId: string, materialId?: string | null, topic?: st
   }
   if (topic && brain.useBrain()) {
     const t = await brain.topicText(userId, topic);
-    if (!t.text) throw badRequest(`FOCUSLY Brain soạn câu hỏi từ tài liệu của bạn, nhưng chưa thấy tài liệu nào nói về “${topic}”. Hãy thêm tài liệu về chủ đề này, hoặc dùng “Tạo từ file”.`);
+    if (!t.text) throw badRequest(`Không tìm thấy nội dung về “${topic}” trong tài liệu của bạn lẫn trên Wikipedia. Thử gõ đúng tên khái niệm (VD: “Quang hợp”), hoặc dùng “Tạo từ file”.`);
     return { label: `chủ đề "${topic}"`, content: t.text, material: null };
   }
   if (topic) return { label: `chủ đề "${topic}"`, content: `Chủ đề: ${topic}`, material: null };
@@ -194,12 +194,14 @@ router.post(
       req.body,
     );
     if (brain.useBrain()) {
+      // Người dùng gõ cả câu hỏi ("Tài liệu này nói về gì?") thay vì tên khái niệm -> chuyển sang trợ lý hỏi đáp
+      const isQuestion = data.concept.split(/\s+/).length > 5 || /[?？]$|\b(gì|sao|thế nào|như nào|tại sao|vì sao|what|how|why)\b/iu.test(data.concept);
+      if (isQuestion) return res.json({ explanation: await brain.answer(uid(req), data.concept, data.materialId ?? null) });
       let text = data.context ?? '';
       if (data.materialId) text += '\n' + ((await loadMaterialText(uid(req), data.materialId))?.text ?? '');
       else text += '\n' + (await brain.topicText(uid(req), data.concept)).text;
-      const explanation =
-        brain.explainFromText(data.concept, text) ??
-        `Mình chưa tìm thấy “${data.concept}” trong tài liệu của bạn. Thêm tài liệu có nội dung về khái niệm này (mục Tài liệu) rồi hỏi lại nhé.`;
+      // không thấy câu định nghĩa -> tìm đoạn liên quan trong tài liệu, rồi tới Wikipedia
+      const explanation = brain.explainFromText(data.concept, text) ?? (await brain.answer(uid(req), data.concept, data.materialId ?? null));
       return res.json({ explanation });
     }
     let ctx = data.context ?? '';

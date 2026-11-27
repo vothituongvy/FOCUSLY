@@ -8,7 +8,7 @@ import { Fragment, ReactNode } from 'react';
  */
 function inline(text: string, keyBase: string): ReactNode[] {
   const parts: ReactNode[] = [];
-  const re = /(\*\*[^*]+\*\*|`[^`]+`|\*[^*]+\*)/g;
+  const re = /(\[[^\]]+\]\(https?:\/\/[^)\s]+\)|\*\*[^*]+\*\*|`[^`]+`|\*[^*]+\*|(?<![A-Za-z0-9])_[^_\n]+_(?![A-Za-z0-9]))/g;
   let last = 0;
   let m: RegExpExecArray | null;
   let i = 0;
@@ -16,7 +16,11 @@ function inline(text: string, keyBase: string): ReactNode[] {
     if (m.index > last) parts.push(text.slice(last, m.index));
     const tok = m[0];
     const k = `${keyBase}-${i++}`;
-    if (tok.startsWith('**')) parts.push(<strong key={k}>{tok.slice(2, -2)}</strong>);
+    const link = /^\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)$/.exec(tok);
+    // chỉ cho phép liên kết http(s) – mở tab mới
+    if (link) parts.push(<a key={k} href={link[2]} target="_blank" rel="noopener noreferrer">{link[1]}</a>);
+    else if (tok.startsWith('**')) parts.push(<strong key={k}>{tok.slice(2, -2)}</strong>);
+    else if (tok.startsWith('_')) parts.push(<em key={k}>{tok.slice(1, -1)}</em>);
     else if (tok.startsWith('`')) parts.push(<code key={k} className="md-code">{tok.slice(1, -1)}</code>);
     else parts.push(<em key={k}>{tok.slice(1, -1)}</em>);
     last = m.index + tok.length;

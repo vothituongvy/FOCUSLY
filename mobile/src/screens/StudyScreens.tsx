@@ -14,6 +14,12 @@ import { ImportFileSheet, pickFile, type Picked } from '../components/ImportFile
 import { LOCALE, tr } from '../i18n';
 
 const plain = (t: string) => t.replace(/\*\*/g, '').replace(/^#+\s/gm, '').replace(/`/g, '');
+/** Word / Excel / PowerPoint: mở bằng trình xem Office Online để thấy đủ hình ảnh, bảng, định dạng */
+const isOffice = (mime: string, name: string) => /officedocument|msword|ms-excel|ms-powerpoint/.test(mime || '') || /\.(docx?|xlsx?|pptx?)$/i.test(name || '');
+const viewUrl = (m: { url: string; mimeType: string; originalName: string }) => {
+  const u = absUrl(m.url);
+  return isOffice(m.mimeType, m.originalName) && u.startsWith('https://') ? `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(u)}` : u;
+};
 const absUrl = (u: string) => (/^https?:\/\//.test(u) ? u : `${API_URL}${u.startsWith('/') ? '' : '/'}${u}`);
 
 interface CardDraft {
@@ -106,7 +112,7 @@ export function MaterialDetailScreen({ route, navigation }: NativeStackScreenPro
         </Row>
         {!!m.description && <Text style={{ color: colors.text2 }}>{m.description}</Text>}
         <Row>
-          {!!m.url && <Button title={m.type === 'link' ? tr('Mở link') : tr('Mở tài liệu')} small icon="link" onPress={() => void Linking.openURL(absUrl(m.url))} />}
+          {!!m.url && <Button title={m.type === 'link' ? tr('Mở link') : tr('Mở tài liệu')} small icon="link" onPress={() => void Linking.openURL(viewUrl(m))} />}
           {m.hasText && <Button title={tr('Hỏi AI')} small variant="secondary" icon="ai" onPress={() => navigation.navigate('AIChat', { materialId: m.id })} />}
         </Row>
       </Card>

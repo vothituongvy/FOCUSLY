@@ -11,9 +11,11 @@ import { TaskModel } from '../../models/Learning';
 import { UserModel } from '../../models/User';
 import { DistractionModel } from '../../models/Distraction';
 import { dayKey, safeTimeZone } from '../../utils/time';
-import { bm25, type Doc, fold, isVietnamese, sentences, seeded } from './text';
+import { bm25, type Doc, fold, isVietnamese, keyphrases, sentences, seeded, summarize } from './text';
 import { definitions, explainFromText, makeQuiz, makeSummary } from './generate';
 import { forecastFor } from './forecast';
+import { answerFromWiki, fetchWiki, lookup } from './wiki';
+import { notifyChange } from '../realtime';
 
 const has = (q: string, re: RegExp) => re.test(q);
 
@@ -69,6 +71,28 @@ export async function answer(userId: string, message: string, materialId?: strin
   const tz = safeTimeZone(user?.profile?.timezone);
   const name = (user?.name ?? '').split(' ').pop() ?? '';
 
+  /* ---------- "lưu bài X": lưu bài Wikipedia thành tài liệu của người dùng ---------- */
+  const save = /^(?:lưu bài|luu bai|lưu|save)\s+["“]?(.{2,120}?)["”]?\s*$/iu.exec(message.trim());
+  if (save) {
+    const title = save[1];
+    const a = (await fetchWiki(title, isVietnamese(title) ? 'vi' : 'en')) ?? (await lookup(title));
+    if (!a) return `Mình không tìm thấy bài Wikipedia “${title}”. Thử gõ đúng tên bài, ví dụ “lưu bài Quang hợp”.`;
+    const exists = await MaterialModel.findOne({ user: userId, url: a.url, deletedAt: null }).select('_id title');
+    if (exists) return `Bài “${a.title}” đã có trong Tài liệu của bạn. Mở mục Tài liệu để tóm tắt hoặc tạo flashcard, câu hỏi từ bài.`;
+    const doc = await MaterialModel.create({
+      user: userId,
+      title: a.title.slice(0, 200),
+      description: `Wikipedia (${a.lang === 'vi' ? 'tiếng Việt' : 'tiếng Anh'}) – nội dung theo giấy phép CC BY-SA.`,
+      category: 'Wikipedia',
+      type: 'link',
+      url: a.url,
+      textContent: a.text,
+      hasText: true,
+    });
+    notifyChange(userId, 'materials', 'create', doc.toJSON());
+    return `Đã lưu **${a.title}** vào Tài liệu (${Math.round(a.text.length / 1000)}k ký tự). Giờ bạn có thể mở tài liệu này để **tóm tắt**, **tạo flashcard** hoặc **tạo 10 câu hỏi** – và hỏi mình bất cứ điều gì trong bài.`;
+  }
+
   /* ---------- chào hỏi / giới thiệu ---------- */
   if (has(q, /^(xin chao|chao|hello|hi|hey|alo)\b/) || has(q, /(ban la ai|ban lam duoc gi|giup duoc gi|what can you do)/)) {
     return [
@@ -77,7 +101,8 @@ export async function answer(userId: string, message: string, materialId?: strin
       'Bạn có thể hỏi mình:',
       '- "Hôm nay mình học được bao lâu?" · "Việc cần làm hôm nay?" · "Có bao nhiêu thẻ cần ôn?"',
       '- "Mình nên học lúc mấy giờ?" · "Sao mình hay bị phân tâm?" · "Cho mình mẹo tập trung"',
-      '- Câu hỏi kiến thức trong tài liệu của bạn: "Quang hợp là gì?", "Giải thích chu trình Calvin"',
+      '- Câu hỏi kiến thức: "Quang hợp là gì?", "Giải thích định luật Newton" – mình tìm trong tài liệu của bạn, không có thì tra Wikipedia',
+      '- "Lưu bài Quang hợp" – lưu bài Wikipedia thành tài liệu để tạo flashcard, câu hỏi',
       '- Khi đang mở một tài liệu: "Tóm tắt ý chính", "Hỏi tôi 3 câu kiểm tra"',
     ].join('\n');
   }
@@ -87,6 +112,21 @@ export async function answer(userId: string, message: string, materialId?: strin
     const m = await materialText(userId, materialId);
     if (m?.text) {
       if (has(q, /(tom tat|y chinh|summar|main idea)/)) return makeSummary(m.text, m.title);
+      // "Tài liệu này nói về gì?" -> giới thiệu ngắn: ý chính + từ khoá
+      if (has(q, /(noi ve (gi|cai gi|van de gi)|ve cai gi|ve chu de gi|noi dung (chinh|la gi|gi)|chu de (chinh|la gi)|tai lieu nay|bai nay|about|overview|gioi thieu)/)) {
+        const main = summarize(m.text, 4);
+        const keys = keyphrases(m.text, 8).map((k) => k.text);
+        return [
+          `**“${m.title}”** chủ yếu nói về:`,
+          ...main.map((s) => `- ${s}`),
+          '',
+          keys.length ? `**Từ khoá chính:** ${keys.join(' · ')}` : '',
+          '',
+          '_Muốn chi tiết hơn: bấm “Tóm tắt” hoặc hỏi về một phần cụ thể._',
+        ]
+          .filter((l, i, arr) => l !== '' || arr[i - 1] !== '')
+          .join('\n');
+      }
       if (has(q, /(hoi toi|kiem tra|cau hoi|quiz|test me|on tap)/)) {
         const quiz = makeQuiz(m.text, 3, ['mcq', 'short', 'true_false'], m.title).questions;
         if (quiz.length) {
@@ -174,23 +214,26 @@ export async function answer(userId: string, message: string, materialId?: strin
   }
 
   /* ---------- câu hỏi kiến thức: tìm trong tài liệu của người dùng ---------- */
+  // 1) tài liệu, flashcard, ghi chú của chính người dùng  2) không có -> tra Wikipedia
   const docs = await knowledge(userId, materialId);
-  if (!docs.length) {
-    return vi
-      ? 'Mình trả lời dựa trên tài liệu, flashcard và ghi chú của bạn, nhưng bạn chưa có tài liệu nào có nội dung chữ. Hãy thêm tài liệu (PDF, Word, ghi chú văn bản) ở mục Tài liệu rồi hỏi lại nhé.'
-      : 'I answer from your own materials, flashcards and notes, but you have no text materials yet. Add one in Materials and ask again.';
-  }
   const concept = conceptOf(message);
-  if (concept && !materialId) {
+  if (concept && !materialId && docs.length) {
     const all = docs.filter((d) => d.source !== 'Flashcard' && d.source !== 'Ghi chú').map((d) => d.text).join('\n');
     const ex = explainFromText(concept, all);
     if (ex) return ex;
   }
-  const hits = bm25(docs, message);
-  if (!hits.length || hits[0].score < 1.2) {
+  const hits = docs.length ? bm25(docs, message) : [];
+  // đang hỏi trong một tài liệu mà không khớp từ khoá nào -> giới thiệu tài liệu thay vì đi tra Wikipedia
+  if (materialId && !hits.length && docs.length) {
+    const main = summarize(docs.map((d) => d.text).join('\n'), 4);
+    return [`Mình không thấy đoạn nào khớp trực tiếp với câu hỏi. Tài liệu **“${docs[0].source}”** chủ yếu nói về:`, ...main.map((x) => `- ${x}`), '', '_Thử hỏi bằng tên một khái niệm trong bài, VD: “X là gì?”._'].join('\n');
+  }
+  if (!hits.length || (hits[0].score < 1.2 && !materialId)) {
+    const wiki = await answerFromWiki(message, concept);
+    if (wiki) return wiki.text;
     return vi
-      ? `Mình chưa tìm thấy nội dung về “${message.slice(0, 80)}” trong tài liệu, flashcard và ghi chú của bạn. Thử hỏi bằng từ khoá khác, hoặc thêm tài liệu về chủ đề này ở mục Tài liệu.`
-      : `I couldn't find “${message.slice(0, 80)}” in your materials, flashcards or notes. Try other keywords or add a material on this topic.`;
+      ? `Mình chưa tìm thấy nội dung về “${message.slice(0, 80)}” trong tài liệu của bạn lẫn trên Wikipedia. Thử hỏi ngắn gọn bằng tên khái niệm (VD: “Quang hợp là gì?”), hoặc thêm tài liệu về chủ đề này ở mục Tài liệu.`
+      : `I couldn't find “${message.slice(0, 80)}” in your materials or on Wikipedia. Try asking with just the concept name, or add a material on this topic.`;
   }
   const top = hits.slice(0, 3).filter((h) => h.score >= hits[0].score * 0.45);
   const bySource = new Map<string, string[]>();

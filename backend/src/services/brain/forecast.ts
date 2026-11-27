@@ -78,6 +78,8 @@ export function toSample(s: {
 export interface Forecast {
   trained: boolean;
   samples: number;
+  /** số phiên của cộng đồng dùng làm nền cho dự báo */
+  communitySamples: number;
   successRate: number | null;
   /** độ tin cậy 0..1 – tăng dần theo số phiên đã học */
   confidence: number;
@@ -90,6 +92,29 @@ export interface Forecast {
 }
 
 const cache = new Map<string, { at: number; value: Forecast }>();
+
+/* ---------- Model CỘNG ĐỒNG: học từ phiên học của mọi người dùng (chỉ dùng con số giờ/độ dài/kết quả) ----------
+ * Dùng làm "điểm xuất phát" cho người mới: chưa đủ phiên riêng thì dự báo theo xu hướng chung,
+ * càng học nhiều thì model riêng của bạn càng chiếm phần lớn. Train lại mỗi 6 giờ.
+ */
+let community: { at: number; w: number[] | null; samples: number } = { at: 0, w: null, samples: 0 };
+
+async function communityModel() {
+  if (Date.now() - community.at < 6 * 3600_000) return community;
+  const since = new Date(Date.now() - 180 * 86_400_000);
+  const rows = await FocusSessionModel.find({ deletedAt: null, startedAt: { $gte: since }, status: { $in: ['completed', 'abandoned'] } })
+    .select('user startedAt plannedMinutes actualFocusSeconds distractionCount status strict shieldEnabled')
+    .sort({ startedAt: -1 })
+    .limit(5000)
+    .lean();
+  const users = await UserModel.find({ _id: { $in: [...new Set(rows.map((r) => String(r.user)))] } }).select('profile.timezone').lean();
+  const tzOf = new Map(users.map((u) => [String(u._id), safeTimeZone(u.profile?.timezone)]));
+  const samples = rows.map((r) => toSample(r as never, tzOf.get(String(r.user)) ?? 'Asia/Ho_Chi_Minh'));
+  const good = samples.filter((x) => x.good).length;
+  const w = samples.length >= 30 && good > 0 && good < samples.length ? train(samples, { iters: 400 }) : null;
+  community = { at: Date.now(), w, samples: samples.length };
+  return community;
+}
 
 export async function forecastFor(userId: string, opts: { minutes?: number; strict?: boolean; fresh?: boolean } = {}): Promise<Forecast> {
   const key = `${userId}:${opts.minutes ?? ''}:${opts.strict ? 1 : 0}`;
@@ -113,14 +138,18 @@ export async function forecastFor(userId: string, opts: { minutes?: number; stri
   const trained = samples.length >= MIN_SAMPLES && good > 0 && good < samples.length;
   const w = trained ? train(samples) : null;
   const confidence = Math.min(1, samples.length / 40);
-  // xác suất nền khi chưa đủ dữ liệu: tỉ lệ thành công chung (làm mượt) hoặc 0.6
-  const prior = rate == null ? 0.6 : (good + 3) / (samples.length + 5);
+  // xác suất nền khi chưa đủ dữ liệu: model cộng đồng (nếu có) hoặc tỉ lệ thành công của bạn (làm mượt)
+  const base = rate == null ? 0.6 : (good + 3) / (samples.length + 5);
+  const comm = await communityModel().catch(() => ({ w: null, samples: 0 }));
   const now = new Date();
   const wd = weekdayIn(now, tz);
 
+  const priorAt = (hour: number, weekday: number, minutes: number) =>
+    comm.w ? 0.5 * predictWith(comm.w, hour, weekday, minutes, Boolean(opts.strict), true) + 0.5 * base : base;
   const probAt = (hour: number, weekday = wd, minutes = typical) => {
+    const prior = priorAt(hour, weekday, minutes);
     const model = w ? predictWith(w, hour, weekday, minutes, Boolean(opts.strict), true) : prior;
-    // trộn với mức nền theo độ tin cậy
+    // trộn model riêng với mức nền theo độ tin cậy
     return confidence * model + (1 - confidence) * prior;
   };
 
@@ -156,6 +185,7 @@ export async function forecastFor(userId: string, opts: { minutes?: number; stri
   const value: Forecast = {
     trained,
     samples: samples.length,
+    communitySamples: comm.samples,
     successRate: rate == null ? null : round(rate),
     confidence: round(confidence),
     typicalMinutes: typical,

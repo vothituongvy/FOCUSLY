@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Linking, Modal, Pressable, ScrollView, View } from 'react-native';
 import { Text, TextInput } from '../components/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -14,7 +14,26 @@ import { Icon } from '../components/Icon';
 import { ForecastCard } from '../components/FocusForecast';
 import { LOCALE, tr } from '../i18n';
 
-const plain = (t: string) => t.replace(/\*\*/g, '').replace(/^#+\s/gm, '').replace(/`/g, '');
+const plain = (t: string) => t.replace(/\*\*/g, '').replace(/^#+\s/gm, '').replace(/`/g, '').replace(/(^|\s)_([^_\n]+)_(?=\s|$)/g, '$1$2');
+
+/** Hiện câu trả lời, biến [chữ](https://...) thành liên kết bấm được (VD: nguồn Wikipedia) */
+function RichText({ text }: { text: string }) {
+  const parts = plain(text).split(/(\[[^\]]+\]\(https?:\/\/[^)\s]+\))/g);
+  return (
+    <Text selectable style={{ color: colors.text, lineHeight: 21 }}>
+      {parts.map((p, i) => {
+        const m = /^\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)$/.exec(p);
+        return m ? (
+          <Text key={i} style={{ fontWeight: '700', textDecorationLine: 'underline' }} onPress={() => void Linking.openURL(m[2])}>
+            {m[1]}
+          </Text>
+        ) : (
+          p
+        );
+      })}
+    </Text>
+  );
+}
 
 /* ======================= Trợ lý AI: hỏi đáp ======================= */
 export function AIChatScreen({ route }: { route: { params?: { materialId?: string; conversationId?: string } } }) {
@@ -123,7 +142,7 @@ export function AIChatScreen({ route }: { route: { params?: { materialId?: strin
                 borderColor: m.role === 'user' ? colors.marker : colors.border,
               }}
             >
-              <Text selectable style={{ color: colors.text, lineHeight: 21 }}>{m.role === 'assistant' ? plain(m.content) : m.content}</Text>
+              {m.role === 'assistant' ? <RichText text={m.content} /> : <Text selectable style={{ color: colors.text, lineHeight: 21 }}>{m.content}</Text>}
             </View>
           ))}
           {busy && (

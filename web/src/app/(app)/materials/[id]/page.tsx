@@ -27,6 +27,9 @@ export default function MaterialDetailPage() {
   const [selection, setSelection] = useState('');
   const [editing, setEditing] = useState(false);
   const material = m.data?.item;
+  // Word / Excel / PowerPoint: xem "Bản gốc" (giữ hình ảnh, bảng, định dạng) hoặc "Chế độ đọc" (chữ thuần, highlight được)
+  const office = Boolean(material && isOfficeFile(material.mimeType, material.originalName) && /^https:\/\//.test(material.url));
+  const [view, setView] = useState<'original' | 'reader'>('original');
 
   useEffect(() => {
     void post(`/materials/${id}/open`).catch(() => undefined);
@@ -141,7 +144,26 @@ export default function MaterialDetailPage() {
             </>
           )}
           {material.type === 'image' && <img src={material.url} alt={material.title} style={{ maxWidth: '100%', borderRadius: 12, border: '1px solid var(--border)' }} />}
-          {(material.type === 'text' || material.type === 'document') && (
+          {office && (
+            <div className="tabs" style={{ marginBottom: 0 }}>
+              <button className={`tab ${view === 'original' ? 'active' : ''}`} onClick={() => setView('original')}>
+                {tr('Bản gốc (có hình ảnh)')}
+              </button>
+              <button className={`tab ${view === 'reader' ? 'active' : ''}`} onClick={() => setView('reader')}>
+                {tr('Chế độ đọc & ghi chú')}
+              </button>
+            </div>
+          )}
+          {office && view === 'original' && (
+            <>
+              <iframe className="viewer" src={officeViewerUrl(material.url)} title={material.title} />
+              <p className="small muted">
+                {tr('Hiển thị bằng trình xem Microsoft Office. Muốn highlight hoặc ghi chú, chuyển sang “Chế độ đọc & ghi chú”.')}{' '}
+                <a href={material.url}>{tr('Tải file gốc')}</a>
+              </p>
+            </>
+          )}
+          {(material.type === 'text' || material.type === 'document') && !(office && view === 'original') && (
             <>
               {text === null ? (
                 material.hasText ? <Spinner /> : <Empty>{tr('Không đọc được nội dung văn bản.')}{' '}<a href={material.url}>{tr('Tải file')}</a></Empty>
@@ -492,3 +514,9 @@ function EditMaterial({ material, onClose, onSaved }: { material: Material; onCl
     </Modal>
   );
 }
+
+/** File Office (Word, Excel, PowerPoint) – xem được bản gốc qua trình xem Office Online */
+function isOfficeFile(mime: string, name: string) {
+  return /officedocument|msword|ms-excel|ms-powerpoint/.test(mime || '') || /\.(docx?|xlsx?|pptx?)$/i.test(name || '');
+}
+const officeViewerUrl = (url: string) => `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;

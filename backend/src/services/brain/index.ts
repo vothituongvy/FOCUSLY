@@ -12,6 +12,8 @@
 import { env } from '../../config/env';
 import { MaterialModel } from '../../models/Learn';
 import { bm25, sentences, type Doc } from './text';
+import { lookup } from './wiki';
+export { answerFromWiki, lookup as wikiLookup } from './wiki';
 
 export { makeFlashcards, makeQuiz, makeSummary, explainFromText } from './generate';
 export { answer, translateFree } from './assistant';
@@ -34,7 +36,11 @@ export async function topicText(userId: string, topic: string): Promise<{ text: 
       .forEach((s, i) => docs.push({ id: `${m._id}:${i}`, text: s, source: m.title }));
   }
   const hits = bm25(docs, topic);
-  if (!hits.length) return { text: '', sources: [] };
+  if (!hits.length || hits[0].score < 1.2) {
+    // tài liệu của người dùng không có chủ đề này -> dùng bài Wikipedia
+    const a = await lookup(topic);
+    return a ? { text: a.text, sources: [`Wikipedia – ${a.title}`] } : { text: '', sources: [] };
+  }
   const best = hits[0].score;
   const keep = hits.filter((h) => h.score >= best * 0.25).slice(0, 80);
   // giữ thứ tự gốc trong tài liệu để câu văn liền mạch
