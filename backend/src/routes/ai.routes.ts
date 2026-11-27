@@ -3,7 +3,7 @@ import multer from 'multer';
 import { z } from 'zod';
 import { env } from '../config/env';
 import { requireAuth, uid } from '../middleware/auth';
-import { ah, badRequest, notFound, parse } from '../utils/http';
+import { ah, badRequest, HttpError, notFound, parse } from '../utils/http';
 import { ConversationModel } from '../models/AI';
 import { MaterialModel, RecallModel } from '../models/Learn';
 import { FocusSessionModel } from '../models/FocusSession';
@@ -11,6 +11,10 @@ import { SubjectModel, TaskModel } from '../models/Learning';
 import { findOwned } from '../services/entities';
 import { aiEnabled, complete, completeJson, relevantChunks, TRANSLATE_LIMIT_PER_HOUR, TUTOR_SYSTEM, usedLastHour } from '../services/ai';
 import { computeInsights } from '../services/analytics';
+import { CardModel } from '../models/Learn';
+import { UserModel } from '../models/User';
+import { dayKey, safeTimeZone } from '../utils/time';
+import * as brain from '../services/brain';
 import { extractText } from '../services/textExtract';
 import { parseCards, parseQuiz } from '../services/importParse';
 
@@ -36,6 +40,11 @@ async function sourceText(userId: string, materialId?: string | null, topic?: st
     const r = await loadMaterialText(userId, materialId);
     return { label: `tài liệu "${r!.material.title}"`, content: relevantChunks(r!.text, query || r!.material.title, 14_000), material: r!.material };
   }
+  if (topic && brain.useBrain()) {
+    const t = await brain.topicText(userId, topic);
+    if (!t.text) throw badRequest(`FOCUSLY Brain soạn câu hỏi từ tài liệu của bạn, nhưng chưa thấy tài liệu nào nói về “${topic}”. Hãy thêm tài liệu về chủ đề này, hoặc dùng “Tạo từ file”.`);
+    return { label: `chủ đề "${topic}"`, content: t.text, material: null };
+  }
   if (topic) return { label: `chủ đề "${topic}"`, content: `Chủ đề: ${topic}`, material: null };
   throw badRequest('Cần materialId hoặc topic');
 }
@@ -46,7 +55,8 @@ router.get(
   ah(async (req, res) => {
     res.json({
       enabled: aiEnabled(),
-      model: env.ai.model,
+      provider: brain.useBrain() ? 'brain' : 'claude',
+      model: brain.useBrain() ? 'FOCUSLY Brain' : env.ai.model,
       usedLastHour: await usedLastHour(uid(req)),
       limitPerHour: env.ai.maxRequestsPerHour,
       translateUsedLastHour: await usedLastHour(uid(req), 'translate'),
@@ -104,22 +114,27 @@ router.post(
       });
     }
     const materialId = data.materialId ?? (conv.material ? String(conv.material) : null);
-    let system = TUTOR_SYSTEM;
-    if (materialId) {
-      const src = await loadMaterialText(userId, materialId);
-      system += `\n\nTÀI LIỆU THAM KHẢO – "${src!.material.title}":\n${relevantChunks(src!.text, data.message, 12_000)}`;
-    } else if (conv.subject) {
-      const s = await SubjectModel.findById(conv.subject).select('name');
-      if (s) system += `\n\nNgười học đang học môn: ${s.name}.`;
+    let reply: string;
+    if (brain.useBrain()) {
+      reply = await brain.answer(userId, data.message, materialId);
+    } else {
+      let system = TUTOR_SYSTEM;
+      if (materialId) {
+        const src = await loadMaterialText(userId, materialId);
+        system += `\n\nTÀI LIỆU THAM KHẢO – "${src!.material.title}":\n${relevantChunks(src!.text, data.message, 12_000)}`;
+      } else if (conv.subject) {
+        const s = await SubjectModel.findById(conv.subject).select('name');
+        if (s) system += `\n\nNgười học đang học môn: ${s.name}.`;
+      }
+      const history = (conv.messages as unknown as { role: 'user' | 'assistant'; content: string }[]).slice(-20).map((m) => ({ role: m.role, content: m.content }));
+      reply = await complete({
+        userId,
+        feature: 'chat',
+        system,
+        messages: [...history, { role: 'user', content: data.message }],
+        maxTokens: 1800,
+      });
     }
-    const history = (conv.messages as unknown as { role: 'user' | 'assistant'; content: string }[]).slice(-20).map((m) => ({ role: m.role, content: m.content }));
-    const reply = await complete({
-      userId,
-      feature: 'chat',
-      system,
-      messages: [...history, { role: 'user', content: data.message }],
-      maxTokens: 1800,
-    });
     conv.messages.push({ role: 'user', content: data.message, at: new Date() }, { role: 'assistant', content: reply, at: new Date() });
     await conv.save();
     res.json({ conversationId: conv.id, reply, item: conv });
@@ -132,6 +147,13 @@ router.post(
   ah(async (req, res) => {
     const data = parse(z.object({ materialId: z.string(), length: z.enum(['short', 'detailed']).default('short') }), req.body);
     const src = await loadMaterialText(uid(req), data.materialId);
+    if (brain.useBrain()) {
+      const summary = brain.makeSummary(src!.text, src!.material.title, data.length === 'detailed');
+      src!.material.aiSummary = summary;
+      src!.material.aiSummaryAt = new Date();
+      await src!.material.save();
+      return res.json({ summary, item: src!.material });
+    }
     const summary = await complete({
       userId: uid(req),
       feature: 'summary',
@@ -171,6 +193,15 @@ router.post(
       }),
       req.body,
     );
+    if (brain.useBrain()) {
+      let text = data.context ?? '';
+      if (data.materialId) text += '\n' + ((await loadMaterialText(uid(req), data.materialId))?.text ?? '');
+      else text += '\n' + (await brain.topicText(uid(req), data.concept)).text;
+      const explanation =
+        brain.explainFromText(data.concept, text) ??
+        `Mình chưa tìm thấy “${data.concept}” trong tài liệu của bạn. Thêm tài liệu có nội dung về khái niệm này (mục Tài liệu) rồi hỏi lại nhé.`;
+      return res.json({ explanation });
+    }
     let ctx = data.context ?? '';
     if (data.materialId) {
       const src = await loadMaterialText(uid(req), data.materialId);
@@ -209,6 +240,11 @@ const genQuestion = z.object({
 
 /** AI soạn câu hỏi từ một nguồn (chủ đề, tài liệu, file) rồi loại câu lỗi */
 async function aiQuiz(userId: string, src: { label: string; content: string }, count: number, types: readonly QType[], difficulty: string) {
+  if (brain.useBrain()) {
+    const out = brain.makeQuiz(src.content, count, types, src.label.replace(/^(tài liệu|chủ đề)\s+/, '').replace(/["“”]/g, ''));
+    if (!out.questions.length) throw badRequest('Nội dung quá ngắn để soạn câu hỏi. Hãy dùng tài liệu dài hơn (ít nhất vài đoạn văn).');
+    return out;
+  }
   const out = await completeJson({
     userId,
     feature: 'quiz_generation',
@@ -244,6 +280,11 @@ ${src.content}`,
 const cardsSchema = z.object({ title: z.string(), cards: z.array(z.object({ front: z.string().min(1), back: z.string().min(1), hint: z.string().optional() })).min(1) });
 
 async function aiCards(userId: string, src: { label: string; content: string }, count: number) {
+  if (brain.useBrain()) {
+    const out = brain.makeFlashcards(src.content, count, src.label.replace(/^(tài liệu|chủ đề)\s+/, '').replace(/["“”]/g, ''));
+    if (!out.cards.length) throw badRequest('Nội dung quá ngắn để tạo flashcard. Hãy dùng tài liệu dài hơn (ít nhất vài đoạn văn).');
+    return out;
+  }
   const out = await completeJson({
     userId,
     feature: 'flashcard_generation',
@@ -383,6 +424,13 @@ router.post(
   ah(async (req, res) => {
     const { text, to } = parse(translateSchema, req.body);
     const short = text.split(/\s+/).length <= 4;
+    if (brain.useBrain()) {
+      try {
+        return res.json({ ...(await brain.translateFree(text, to)), short });
+      } catch {
+        throw new HttpError(503, 'Dịch vụ dịch miễn phí đang bận, thử lại sau ít phút.', 'TRANSLATE_BUSY');
+      }
+    }
     const result = await completeJson({
       userId: uid(req),
       feature: 'translate',
@@ -408,6 +456,14 @@ router.post(
     const recall = await findOwned(RecallModel, uid(req), recallId);
     if (!recall) throw notFound();
     const session = recall.session ? await FocusSessionModel.findById(recall.session).select('goal task') : null;
+    if (brain.useBrain()) {
+      const task = session?.task ? await TaskModel.findById(session.task).select('title description expectedOutcome') : null;
+      const reference = [task?.title, task?.expectedOutcome, task?.description, session?.goal].filter(Boolean).join('. ');
+      const feedback = brain.recallFeedback(recall.content, reference, session?.goal ?? '');
+      recall.aiFeedback = feedback;
+      await recall.save();
+      return res.json({ feedback, item: recall });
+    }
     const feedback = await complete({
       userId: uid(req),
       feature: 'recall_feedback',
@@ -444,6 +500,11 @@ router.post(
     ]);
     const subjName = new Map(subjects.map((s) => [String(s._id), s.name]));
     const today = new Date().toISOString().slice(0, 10);
+    if (brain.useBrain()) {
+      const input = await coachInput(userId, insights, analytics, tasks.map((t) => ({ ...t, subjectName: t.subject ? subjName.get(String(t.subject)) ?? null : null })));
+      const out = brain.recommendations(input);
+      return res.json({ ...out, ruleInsights: insights, note: 'Gợi ý từ FOCUSLY Brain – chọn mục muốn thêm vào kế hoạch.' });
+    }
     const ctx = {
       today,
       dailyTargetMinutes: analytics.dailyTargetMinutes,
@@ -501,6 +562,10 @@ router.post(
   ah(async (req, res) => {
     const { range } = parse(z.object({ range: z.enum(['week', 'month']).default('week') }), req.body ?? {});
     const { insights, analytics } = await computeInsights(uid(req));
+    if (brain.useBrain()) {
+      const input = await coachInput(uid(req), insights, analytics, []);
+      return res.json({ analysis: brain.performanceReport(input, range) });
+    }
     const text = await complete({
       userId: uid(req),
       feature: 'performance',
@@ -515,6 +580,52 @@ Dữ liệu: ${JSON.stringify({ metrics: analytics.metrics, previous: analytics.
       ],
     });
     res.json({ analysis: text });
+  }),
+);
+
+/** Gom dữ liệu cho huấn luyện viên FOCUSLY Brain */
+async function coachInput(
+  userId: string,
+  insights: Awaited<ReturnType<typeof computeInsights>>['insights'],
+  analytics: Awaited<ReturnType<typeof computeInsights>>['analytics'],
+  tasks: { _id: unknown; title: string; subject?: unknown; subjectName?: string | null; deadline?: Date | null; estimatedMinutes?: number; priority?: string }[],
+): Promise<brain.CoachInput> {
+  const user = await UserModel.findById(userId).select('profile').lean();
+  const tz = safeTimeZone(user?.profile?.timezone);
+  const [forecast, dueCards] = await Promise.all([
+    brain.forecastFor(userId),
+    CardModel.countDocuments({ user: userId, deletedAt: null, suspended: { $ne: true }, 'srs.due': { $lte: new Date() } }),
+  ]);
+  return {
+    today: dayKey(new Date(), tz),
+    dailyTargetMinutes: analytics.dailyTargetMinutes,
+    metrics: analytics.metrics,
+    previous: analytics.previous,
+    bySubject: analytics.bySubject,
+    insights,
+    forecast,
+    dueCards,
+    tasks: tasks.map((t) => ({
+      id: String(t._id),
+      title: t.title,
+      subjectId: t.subject ? String(t.subject) : null,
+      subject: t.subjectName ?? null,
+      deadline: t.deadline ?? null,
+      estimatedMinutes: t.estimatedMinutes ?? 30,
+      priority: t.priority ?? 'medium',
+    })),
+  };
+}
+
+/* ---------------- Model dự báo tập trung (FOCUSLY Brain) ----------------
+ * GET /ai/forecast?minutes=45&strict=1
+ * Khả năng giữ tập trung theo từng giờ, khung giờ tốt nhất, độ dài phiên gợi ý – học từ lịch sử phiên của chính người dùng.
+ */
+router.get(
+  '/forecast',
+  ah(async (req, res) => {
+    const q = parse(z.object({ minutes: z.coerce.number().int().min(5).max(240).optional(), strict: z.enum(['0', '1']).optional(), fresh: z.enum(['0', '1']).optional() }), req.query);
+    res.json(await brain.forecastFor(uid(req), { minutes: q.minutes, strict: q.strict === '1', fresh: q.fresh === '1' }));
   }),
 );
 

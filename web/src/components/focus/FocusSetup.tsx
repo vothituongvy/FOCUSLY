@@ -8,6 +8,7 @@ import { useLearning } from '@/lib/learning';
 import { extensionShieldOn, isExtensionInstalled } from '@/lib/extension';
 import type { FocusSession, Task } from '@/lib/types';
 import { Icon, type IconName } from '@/components/Icon';
+import { ForecastHint } from '@/components/FocusForecast';
 import { LOCALE, tr } from '@/lib/i18n';
 
 type Mode = 'pomodoro' | 'custom' | 'free';
@@ -197,6 +198,17 @@ export function FocusSetup({ initialTaskId, onStarted }: { initialTaskId?: strin
           </label>
         )}
         {mode === 'free' && <p className="small muted">{tr('Đồng hồ đếm lên, bạn tự kết thúc khi xong.')}</p>}
+        <ForecastHint
+          minutes={mode === 'pomodoro' ? pomo.focusMinutes : mode === 'custom' ? customMinutes : undefined}
+          strict={strict}
+          onUseMinutes={(m) => {
+            if (mode === 'pomodoro') setPomo({ ...pomo, focusMinutes: m });
+            else {
+              setMode('custom');
+              setCustomMinutes(m);
+            }
+          }}
+        />
 
         <div className="field">
           {tr('4. Mức bảo vệ khỏi xao nhãng')}

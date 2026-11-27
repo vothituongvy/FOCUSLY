@@ -1,0 +1,229 @@
+/**
+ * FOCUSLY Brain – Trợ lý hỏi đáp.
+ * 1) Hiểu ý định câu hỏi (hôm nay học bao lâu, việc cần làm, thẻ cần ôn, giờ học tốt, phân tâm, mẹo học…)
+ *    -> trả lời bằng chính dữ liệu học tập của người dùng.
+ * 2) Câu hỏi kiến thức -> tìm câu trả lời trong tài liệu, flashcard, ghi chú của người dùng (BM25) và trích dẫn nguồn.
+ * Không bịa: nếu không tìm thấy thì nói rõ và gợi ý cách thêm tài liệu.
+ */
+import { CardModel, MaterialModel, MaterialNoteModel } from '../../models/Learn';
+import { FocusSessionModel } from '../../models/FocusSession';
+import { TaskModel } from '../../models/Learning';
+import { UserModel } from '../../models/User';
+import { DistractionModel } from '../../models/Distraction';
+import { dayKey, safeTimeZone } from '../../utils/time';
+import { bm25, type Doc, fold, isVietnamese, sentences, seeded } from './text';
+import { definitions, explainFromText, makeQuiz, makeSummary } from './generate';
+import { forecastFor } from './forecast';
+
+const has = (q: string, re: RegExp) => re.test(q);
+
+const TIPS = [
+  'Chia việc lớn thành phiên 25–50 phút, mỗi phiên một mục tiêu cụ thể (VD: "làm xong 10 câu chương 3").',
+  'Trước khi học, cất điện thoại khỏi tầm mắt và bật Focus Shield – chỉ cần thấy điện thoại cũng làm giảm tập trung.',
+  'Sau mỗi phiên, viết lại 3 ý vừa học mà không nhìn tài liệu (Active Recall) – cách nhớ lâu hiệu quả nhất.',
+  'Ôn flashcard theo lịch lặp lại ngắt quãng mỗi ngày 10–15 phút thay vì ôn dồn trước kỳ thi.',
+  'Khi thấy buồn ngủ hoặc chán: đứng dậy đi lại 3 phút, uống nước, rồi bắt đầu lại bằng việc dễ nhất.',
+  'Học môn khó vào khung giờ bạn tỉnh táo nhất; để việc nhẹ (ôn thẻ, đọc lướt) cho lúc mệt.',
+  'Giải thích bài cho người khác (hoặc cho chính mình) – chỗ nào nói không trôi là chỗ chưa hiểu.',
+];
+
+/** Kho kiến thức của người dùng: câu trong tài liệu + flashcard + ghi chú */
+async function knowledge(userId: string, materialId?: string | null): Promise<Doc[]> {
+  const docs: Doc[] = [];
+  const mats = await MaterialModel.find({ user: userId, deletedAt: null, hasText: true, ...(materialId ? { _id: materialId } : {}) })
+    .select('+textContent title')
+    .sort({ lastOpenedAt: -1, updatedAt: -1 })
+    .limit(materialId ? 1 : 25)
+    .lean();
+  for (const m of mats) {
+    const sents = sentences((m as { textContent?: string }).textContent ?? '', 25, 400).slice(0, 1500);
+    sents.forEach((s, i) => docs.push({ id: `${m._id}:${i}`, text: s, source: m.title }));
+  }
+  if (!materialId) {
+    const cards = await CardModel.find({ user: userId, deletedAt: null }).select('front back').limit(800).lean();
+    cards.forEach((c) => docs.push({ id: `card:${c._id}`, text: `${c.front} – ${c.back}`, source: 'Flashcard' }));
+    const notes = await MaterialNoteModel.find({ user: userId, deletedAt: null }).select('content quote').limit(400).lean();
+    notes.forEach((n) => docs.push({ id: `note:${n._id}`, text: [n.quote, n.content].filter(Boolean).join(' – '), source: 'Ghi chú' }));
+  }
+  return docs;
+}
+
+async function materialText(userId: string, materialId: string) {
+  const m = await MaterialModel.findOne({ _id: materialId, user: userId }).select('+textContent title').lean();
+  return m ? { title: m.title, text: (m as { textContent?: string }).textContent ?? '' } : null;
+}
+
+/** Lấy khái niệm từ câu "giải thích X", "X là gì", "what is X" */
+function conceptOf(msg: string): string | null {
+  const m =
+    /(?:giải thích|giai thich|định nghĩa|khái niệm|explain|define)\s+(?:cho (?:mình|tôi|em)\s+)?(?:về\s+)?["“]?(.{2,80}?)["”]?\s*[?.!]*$/iu.exec(msg) ??
+    /^["“]?(.{2,80}?)["”]?\s+(?:là gì|la gi|nghĩa là gì|có nghĩa là gì)\s*[?.!]*$/iu.exec(msg) ??
+    /^(?:what is|what are|what's)\s+(.{2,80}?)\s*\??$/iu.exec(msg);
+  return m ? m[1].trim() : null;
+}
+
+export async function answer(userId: string, message: string, materialId?: string | null): Promise<string> {
+  const q = fold(message);
+  const vi = isVietnamese(message) || !/^[\x00-\x7f]*$/.test(message) || !/\b(what|how|when|why|explain|summar|quiz|today|task)\b/i.test(message);
+  const user = await UserModel.findById(userId).select('name profile').lean();
+  const tz = safeTimeZone(user?.profile?.timezone);
+  const name = (user?.name ?? '').split(' ').pop() ?? '';
+
+  /* ---------- chào hỏi / giới thiệu ---------- */
+  if (has(q, /^(xin chao|chao|hello|hi|hey|alo)\b/) || has(q, /(ban la ai|ban lam duoc gi|giup duoc gi|what can you do)/)) {
+    return [
+      `Chào ${name || 'bạn'}! Mình là **FOCUSLY Brain** – trợ lý học tập chạy ngay trong FOCUSLY.`,
+      '',
+      'Bạn có thể hỏi mình:',
+      '- "Hôm nay mình học được bao lâu?" · "Việc cần làm hôm nay?" · "Có bao nhiêu thẻ cần ôn?"',
+      '- "Mình nên học lúc mấy giờ?" · "Sao mình hay bị phân tâm?" · "Cho mình mẹo tập trung"',
+      '- Câu hỏi kiến thức trong tài liệu của bạn: "Quang hợp là gì?", "Giải thích chu trình Calvin"',
+      '- Khi đang mở một tài liệu: "Tóm tắt ý chính", "Hỏi tôi 3 câu kiểm tra"',
+    ].join('\n');
+  }
+
+  /* ---------- đang hỏi về một tài liệu cụ thể ---------- */
+  if (materialId) {
+    const m = await materialText(userId, materialId);
+    if (m?.text) {
+      if (has(q, /(tom tat|y chinh|summar|main idea)/)) return makeSummary(m.text, m.title);
+      if (has(q, /(hoi toi|kiem tra|cau hoi|quiz|test me|on tap)/)) {
+        const quiz = makeQuiz(m.text, 3, ['mcq', 'short', 'true_false'], m.title).questions;
+        if (quiz.length) {
+          const body = quiz.map((x, i) => {
+            const opts = x.options.length ? '\n' + x.options.map((o, k) => `   ${String.fromCharCode(65 + k)}. ${o}`).join('\n') : x.type === 'true_false' ? '\n   (Đúng / Sai)' : '';
+            return `${i + 1}. ${x.prompt}${opts}`;
+          });
+          const keys = quiz.map((x, i) => `${i + 1}: ${x.type === 'mcq' ? String.fromCharCode(65 + (x.correctIndex ?? 0)) : x.type === 'true_false' ? (x.correctBoolean ? 'Đúng' : 'Sai') : x.acceptedAnswers[0]}`);
+          return [`**3 câu kiểm tra từ “${m.title}”:**`, '', ...body, '', `_Đáp án: ${keys.join(' · ')}_`].join('\n');
+        }
+      }
+      const concept = conceptOf(message);
+      if (concept) {
+        const ex = explainFromText(concept, m.text);
+        if (ex) return ex;
+      }
+      // "giải thích phần khó nhất / khái niệm quan trọng" -> liệt kê các định nghĩa cần nắm
+      if (has(q, /(kho hieu|kho nhat|phan kho|khai niem|quan trong|key concept|hardest)/)) {
+        const defs = definitions(m.text).slice(0, 6);
+        if (defs.length) return ['**Những khái niệm cần nắm chắc:**', ...defs.map((d) => `- **${d.term}**: ${d.definition}`), '', '_Mẹo: che phần giải thích, tự nói lại từng khái niệm rồi kiểm tra._'].join('\n');
+      }
+    }
+  }
+
+  /* ---------- câu hỏi về dữ liệu học tập của chính người dùng ---------- */
+  if (has(q, /(hom nay|today).*(hoc|tap trung|focus|bao lau)|(hoc|tap trung).*(bao lau|duoc bao nhieu)/)) {
+    const since = new Date(Date.now() - 36 * 3600_000);
+    const today = dayKey(new Date(), tz);
+    const ss = (await FocusSessionModel.find({ user: userId, deletedAt: null, startedAt: { $gte: since } }).select('startedAt actualFocusSeconds status').lean()).filter((s) => dayKey(s.startedAt, tz) === today);
+    const min = Math.round(ss.reduce((a, s) => a + (s.actualFocusSeconds ?? 0), 0) / 60);
+    const target = user?.profile?.dailyTargetMinutes ?? 120;
+    const left = Math.max(0, target - min);
+    return min
+      ? `Hôm nay bạn đã tập trung **${min} phút** qua ${ss.length} phiên (mục tiêu ${target} phút). ${left ? `Còn ${left} phút nữa là đạt mục tiêu – một phiên ${Math.min(left, 50)} phút là gần xong!` : 'Bạn đã đạt mục tiêu hôm nay 🎉'}`
+      : `Hôm nay bạn chưa có phiên học nào. Mục tiêu là ${target} phút – bắt đầu bằng một phiên 25 phút ở tab Tập trung nhé.`;
+  }
+
+  if (has(q, /(nhiem vu|viec can lam|lam gi|ke hoach hom nay|to ?do|task)/)) {
+    const tasks = await TaskModel.find({ user: userId, deletedAt: null, status: { $in: ['todo', 'in_progress'] } })
+      .sort({ deadline: 1, scheduledDate: 1 })
+      .limit(6)
+      .select('title deadline estimatedMinutes')
+      .lean();
+    if (!tasks.length) return 'Bạn không còn nhiệm vụ nào chưa xong. Thêm nhiệm vụ mới ở tab Kế hoạch, hoặc mở "Đề xuất & kế hoạch" để FOCUSLY Brain gợi ý.';
+    return ['**Việc nên làm tiếp:**', ...tasks.map((t, i) => `${i + 1}. ${t.title} – ${t.estimatedMinutes ?? 30} phút${t.deadline ? `, hạn ${new Date(t.deadline).toLocaleDateString('vi-VN', { timeZone: tz })}` : ''}`), '', 'Gợi ý: bắt đầu với việc đầu tiên – nó gần hạn nhất.'].join('\n');
+  }
+
+  if (has(q, /(the|flashcard|on tap|on bai).*(can on|den han|bao nhieu)|can on gi/)) {
+    const due = await CardModel.countDocuments({ user: userId, deletedAt: null, suspended: { $ne: true }, 'srs.due': { $lte: new Date() } });
+    return due ? `Bạn có **${due} thẻ** đến hạn ôn. Mở tab Ôn tập và ôn khoảng ${Math.min(30, Math.ceil(due / 2))} phút là xong.` : 'Không có thẻ nào đến hạn. Bạn có thể học bài mới hoặc tạo thêm flashcard từ tài liệu.';
+  }
+
+  if (has(q, /(gio nao|khung gio|luc nao|may gio|best time|when should)/) || has(q, /(nen hoc).*(bao lau|may phut)/)) {
+    const f = await forecastFor(userId);
+    if (!f.trained) return `FOCUSLY Brain cần ít nhất 6 phiên học (bạn đang có ${f.samples}) để biết bạn học tốt nhất lúc nào. Cứ học đều vài ngày, mình sẽ tự rút ra!`;
+    return [
+      `Theo **model dự báo tập trung** học từ ${f.samples} phiên của bạn:`,
+      `- Khung giờ tốt nhất: ${f.bestHours.map((b) => `**${b.hour}h** (${Math.round(b.probability * 100)}%)`).join(', ')}`,
+      `- Độ dài phiên phù hợp: khoảng **${f.suggestedMinutes} phút**`,
+      `- Bây giờ (${f.now.hour}h): khả năng giữ tập trung ${Math.round(f.now.probability * 100)}% – ${f.now.level === 'high' ? 'thời điểm tốt để học bài khó' : f.now.level === 'medium' ? 'ổn, nên chọn việc vừa sức' : 'dễ phân tâm, thử phiên ngắn + Phiên nghiêm ngặt'}`,
+    ].join('\n');
+  }
+
+  if (has(q, /(phan tam|xao nhang|distract|mat tap trung|khong tap trung)/)) {
+    const since = new Date(Date.now() - 30 * 86_400_000);
+    const ds = await DistractionModel.find({ user: userId, occurredAt: { $gte: since }, deletedAt: null }).select('reason').lean();
+    const by = new Map<string, number>();
+    ds.forEach((d) => by.set(d.reason, (by.get(d.reason) ?? 0) + 1));
+    const top = [...by.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
+    const label: Record<string, string> = { phone: 'điện thoại', social_media: 'mạng xã hội', noise: 'tiếng ồn', tired: 'mệt mỏi', hungry: 'đói', thoughts: 'suy nghĩ lan man', left_app: 'rời app', other: 'lý do khác' };
+    const rnd = seeded(message + Date.now().toString().slice(0, 8));
+    return [
+      ds.length ? `30 ngày qua bạn ghi nhận **${ds.length} lần phân tâm**, nhiều nhất do: ${top.map(([r, n]) => `${label[r] ?? r} (${n})`).join(', ')}.` : 'Bạn chưa ghi nhận lần phân tâm nào trong 30 ngày qua – tuyệt vời!',
+      '',
+      '**Thử ngay:**',
+      `- ${TIPS[1]}`,
+      `- ${TIPS[Math.floor(rnd() * TIPS.length)]}`,
+    ].join('\n');
+  }
+
+  if (has(q, /(meo|bi quyet|lam sao de|cach (hoc|tap trung)|tip|met|chan|luoi|buon ngu|dong luc|motivat)/)) {
+    const rnd = seeded(message + new Date().toDateString());
+    const picks = [...TIPS].sort(() => rnd() - 0.5).slice(0, 3);
+    return ['**Vài cách giúp bạn học hiệu quả hơn:**', ...picks.map((t) => `- ${t}`)].join('\n');
+  }
+
+  /* ---------- câu hỏi kiến thức: tìm trong tài liệu của người dùng ---------- */
+  const docs = await knowledge(userId, materialId);
+  if (!docs.length) {
+    return vi
+      ? 'Mình trả lời dựa trên tài liệu, flashcard và ghi chú của bạn, nhưng bạn chưa có tài liệu nào có nội dung chữ. Hãy thêm tài liệu (PDF, Word, ghi chú văn bản) ở mục Tài liệu rồi hỏi lại nhé.'
+      : 'I answer from your own materials, flashcards and notes, but you have no text materials yet. Add one in Materials and ask again.';
+  }
+  const concept = conceptOf(message);
+  if (concept && !materialId) {
+    const all = docs.filter((d) => d.source !== 'Flashcard' && d.source !== 'Ghi chú').map((d) => d.text).join('\n');
+    const ex = explainFromText(concept, all);
+    if (ex) return ex;
+  }
+  const hits = bm25(docs, message);
+  if (!hits.length || hits[0].score < 1.2) {
+    return vi
+      ? `Mình chưa tìm thấy nội dung về “${message.slice(0, 80)}” trong tài liệu, flashcard và ghi chú của bạn. Thử hỏi bằng từ khoá khác, hoặc thêm tài liệu về chủ đề này ở mục Tài liệu.`
+      : `I couldn't find “${message.slice(0, 80)}” in your materials, flashcards or notes. Try other keywords or add a material on this topic.`;
+  }
+  const top = hits.slice(0, 3).filter((h) => h.score >= hits[0].score * 0.45);
+  const bySource = new Map<string, string[]>();
+  top.forEach((h) => bySource.set(h.doc.source ?? '', [...(bySource.get(h.doc.source ?? '') ?? []), h.doc.text]));
+  const lines: string[] = [];
+  for (const [src, texts] of bySource) {
+    lines.push(src === 'Flashcard' || src === 'Ghi chú' ? `**Từ ${src.toLowerCase()} của bạn:**` : `**Theo “${src}”:**`);
+    texts.forEach((t) => lines.push(`- ${t}`));
+    lines.push('');
+  }
+  lines.push(vi ? '_FOCUSLY Brain trích từ tài liệu của bạn – hãy đọc lại đoạn gốc để hiểu đầy đủ ngữ cảnh._' : '_Quoted from your own materials by FOCUSLY Brain._');
+  return lines.join('\n');
+}
+
+/* ---------------- Dịch Anh ⇄ Việt miễn phí (MyMemory, không cần khoá) ---------------- */
+export async function translateFree(text: string, to: 'auto' | 'vi' | 'en') {
+  const from = isVietnamese(text) ? 'vi' : 'en';
+  const target = to === 'auto' ? (from === 'vi' ? 'en' : 'vi') : to;
+  const src = target === from ? (target === 'vi' ? 'en' : 'vi') : from;
+  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.slice(0, 500))}&langpair=${src}|${target}`;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 12_000);
+  try {
+    const r = await fetch(url, { signal: ctrl.signal });
+    const data = (await r.json()) as { responseData?: { translatedText?: string }; matches?: { translation?: string; quality?: string | number }[] };
+    const translation = (data.responseData?.translatedText ?? '').trim();
+    if (!translation) throw new Error('empty');
+    const short = text.trim().split(/\s+/).length <= 4;
+    const alternatives = short
+      ? [...new Set((data.matches ?? []).map((m) => (m.translation ?? '').trim()).filter((t) => t && t.toLowerCase() !== translation.toLowerCase()))].slice(0, 3)
+      : [];
+    return { from: src as 'vi' | 'en', to: target as 'vi' | 'en', translation, phonetic: null, partOfSpeech: null, alternatives, example: null };
+  } finally {
+    clearTimeout(timer);
+  }
+}

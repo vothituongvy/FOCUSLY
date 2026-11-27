@@ -368,3 +368,18 @@ div.field > .btn { align-self: flex-start; }
 .settings-grid > .card { height: 100%; }
 /* Viền focus của tab không bị cắt thành 2 vạch dọc */
 .tab:focus-visible { outline: 2px solid var(--ink); outline-offset: -3px; border-radius: 6px; }
+
+/* ---------- FOCUSLY Brain: dự báo tập trung ---------- */
+.forecast-hint { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--rule); background: var(--paper); font-size: 13.5px; font-weight: 500; color: var(--ink-2); }
+.forecast-hint svg { color: var(--ink); flex: none; }
+.forecast-hint.high { background: var(--go-soft); border-color: transparent; }
+.forecast-hint.medium { background: var(--marker-soft); border-color: transparent; }
+.forecast-hint.low { background: var(--stop-soft); border-color: transparent; }
+.forecast-hint .link-btn { margin-left: auto; }
+p.forecast-hint { border: 0; background: none; padding: 0; }
+.forecast-bars { display: grid; grid-template-columns: repeat(18, minmax(0, 1fr)); gap: 3px; height: 120px; align-items: end; }
+.forecast-col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; height: 100%; }
+.forecast-col span { font-size: 10.5px; color: var(--muted); height: 13px; font-variant-numeric: tabular-nums; }
+.forecast-bar { width: 100%; border-radius: 3px 3px 0 0; background: #d5dbe5; }
+.forecast-col.best .forecast-bar { background: var(--marker); border: 1px solid var(--ink); }
+.forecast-col.now .forecast-bar { box-shadow: inset 0 0 0 2px var(--ink); }

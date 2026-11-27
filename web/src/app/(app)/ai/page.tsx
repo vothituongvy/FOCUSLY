@@ -10,10 +10,12 @@ import type { Conversation, Insight, Material } from '@/lib/types';
 import { Markdown } from '@/components/Markdown';
 import { Empty, Spinner } from '@/components/ui';
 import { Icon } from '@/components/Icon';
+import { ForecastCard } from '@/components/FocusForecast';
 import { LOCALE, tr } from '@/lib/i18n';
 
 interface AIStatus {
   enabled: boolean;
+  provider?: 'brain' | 'claude';
   model: string;
   usedLastHour: number;
   limitPerHour: number;
@@ -35,7 +37,11 @@ function AIInner() {
         </div>
         {status.data && (
           <span className="small muted">
-            {status.data.enabled ? tr('Model {0} · {1}/{2} lượt trong 1 giờ', status.data.model, status.data.usedLastHour, status.data.limitPerHour) : ''}
+            {status.data.provider === 'brain'
+              ? tr('FOCUSLY Brain · AI tự xây, chạy trên máy chủ FOCUSLY, không giới hạn lượt')
+              : status.data.enabled
+                ? tr('Model {0} · {1}/{2} lượt trong 1 giờ', status.data.model, status.data.usedLastHour, status.data.limitPerHour)
+                : ''}
           </span>
         )}
       </div>
@@ -101,7 +107,7 @@ function Chat({ initialMaterial }: { initialMaterial: string | null }) {
   const textMaterials = (materials.data?.items ?? []).filter((m) => m.hasText);
   const suggestions = materialId
     ? [tr('Tóm tắt các ý chính của tài liệu'), tr('Giải thích phần khó hiểu nhất'), tr('Đặt cho tôi 3 câu hỏi kiểm tra')]
-    : [tr('Giải thích đạo hàm bằng ví dụ đời thường'), tr('Phân biệt thì hiện tại hoàn thành và quá khứ đơn'), tr('Cách học hiệu quả với Pomodoro?')];
+    : [tr('Hôm nay mình học được bao lâu?'), tr('Mình nên học lúc mấy giờ?'), tr('Việc cần làm tiếp theo?'), tr('Cho mình mẹo tập trung')];
 
   return (
     <div className="grid split-side">
@@ -252,7 +258,8 @@ function Coach() {
   return (
     <div className="grid grid-3-1" style={{ alignItems: 'start' }}>
       <div className="col" style={{ gap: 14 }}>
-        <div className="row">
+        <ForecastCard />
+        <div className="row wrap">
           <button className="btn" disabled={!!busy} onClick={() => run('reco', async () => setReco(await post<Reco>('/ai/recommendations')))}>
             {busy === 'reco' ? tr('AI đang phân tích dữ liệu...') : tr('Đề xuất & lập kế hoạch 7 ngày')}
           </button>

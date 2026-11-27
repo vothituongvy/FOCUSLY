@@ -38,6 +38,8 @@ export const env = {
   ai: {
     /** Anthropic Claude API – để trống thì các tính năng AI trả 503 */
     apiKey: process.env.ANTHROPIC_API_KEY ?? '',
+    /** 'brain' (mặc định) = FOCUSLY Brain tự xây, miễn phí · 'claude' = dùng Claude API (cần ANTHROPIC_API_KEY) */
+    provider: (process.env.AI_PROVIDER ?? 'brain').toLowerCase(),
     model: process.env.AI_MODEL ?? 'claude-haiku-5-5',
     maxRequestsPerHour: Number(process.env.AI_MAX_REQUESTS_PER_HOUR ?? 40),
   },

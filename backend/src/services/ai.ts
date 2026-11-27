@@ -14,7 +14,9 @@ export interface ChatMessage {
   content: string;
 }
 
-export const aiEnabled = () => Boolean(env.ai.apiKey);
+/** AI luôn bật: mặc định chạy FOCUSLY Brain; chỉ dùng Claude khi AI_PROVIDER=claude và có khoá */
+export const aiEnabled = () => true;
+const claudeReady = () => Boolean(env.ai.apiKey);
 
 /** Số lượt AI trong 1 giờ qua. Lượt dịch được tính riêng để tra từ không làm hết lượt hỏi AI. */
 export async function usedLastHour(userId: string, feature?: 'translate'): Promise<number> {
@@ -34,7 +36,7 @@ export async function complete(opts: {
   maxTokens?: number;
   temperature?: number;
 }): Promise<string> {
-  if (!aiEnabled()) throw new HttpError(503, 'Tính năng AI chưa được cấu hình (thiếu ANTHROPIC_API_KEY)', 'AI_DISABLED');
+  if (!claudeReady()) throw new HttpError(503, 'Tính năng AI chưa được cấu hình (thiếu ANTHROPIC_API_KEY)', 'AI_DISABLED');
   const isTranslate = opts.feature === 'translate';
   const limit = isTranslate ? TRANSLATE_LIMIT_PER_HOUR : env.ai.maxRequestsPerHour;
   if ((await usedLastHour(opts.userId, isTranslate ? 'translate' : undefined)) >= limit) {
