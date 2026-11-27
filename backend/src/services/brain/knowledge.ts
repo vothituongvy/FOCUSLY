@@ -259,3 +259,26 @@ export async function buildMissing(log = (m: string) => console.log(m)) {
     running = false;
   }
 }
+
+/* ---------------- Học từ câu hỏi ----------------
+ * Bài Wikipedia nào phải tra trực tiếp (chưa có trong thư viện) sẽ được lưu lại -> lần sau trả lời ngay.
+ * Thư viện vượt giới hạn thì bỏ bớt bài "học từ câu hỏi" cũ nhất (không đụng tới bài hạt giống).
+ */
+export const LEARNED_SUBJECT = 'Học từ câu hỏi';
+
+export async function learnArticle(a: { title: string; lang: string; url: string; text: string }) {
+  if ((process.env.BRAIN_KNOWLEDGE ?? 'on').toLowerCase() === 'off') return;
+  const exists = await KnowledgeModel.exists({ $or: [{ title: a.title }, { topic: a.title }] });
+  if (exists) return;
+  await KnowledgeModel.updateOne(
+    { topic: a.title },
+    { $set: { subject: LEARNED_SUBJECT, title: a.title, lang: a.lang, url: a.url, text: a.text.slice(0, MAX_CHARS), links: [], depth: MAX_DEPTH + 1, failed: false, fetchedAt: new Date() } },
+    { upsert: true },
+  );
+  const total = await KnowledgeModel.countDocuments({ failed: false });
+  if (total > MAX_ARTICLES) {
+    const old = await KnowledgeModel.find({ subject: LEARNED_SUBJECT }).sort({ fetchedAt: 1 }).limit(total - MAX_ARTICLES).select('_id').lean();
+    if (old.length) await KnowledgeModel.deleteMany({ _id: { $in: old.map((o) => o._id) } });
+  }
+  dirty = true;
+}

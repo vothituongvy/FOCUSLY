@@ -15,7 +15,7 @@ import { bm25, type Doc, fold, isVietnamese, keyphrases, sentences, seeded, summ
 import { definitions, explainFromText, makeQuiz, makeSummary } from './generate';
 import { forecastFor } from './forecast';
 import { answerFromWiki, fetchWiki, lookup } from './wiki';
-import { knowledgeArticle, searchKnowledge } from './knowledge';
+import { knowledgeArticle, learnArticle, searchKnowledge } from './knowledge';
 import { notifyChange } from '../realtime';
 
 const has = (q: string, re: RegExp) => re.test(q);
@@ -234,7 +234,10 @@ export async function answer(userId: string, message: string, materialId?: strin
     const lib = await libraryAnswer(message, concept);
     if (lib) return lib;
     const wiki = await answerFromWiki(message, concept);
-    if (wiki) return wiki.text;
+    if (wiki) {
+      void learnArticle(wiki.article).catch(() => undefined); // tự học: lưu bài vào thư viện cho lần sau
+      return wiki.text;
+    }
     return vi
       ? `Mình chưa tìm thấy nội dung về “${message.slice(0, 80)}” trong tài liệu của bạn lẫn trên Wikipedia. Thử hỏi ngắn gọn bằng tên khái niệm (VD: “Quang hợp là gì?”), hoặc thêm tài liệu về chủ đề này ở mục Tài liệu.`
       : `I couldn't find “${message.slice(0, 80)}” in your materials or on Wikipedia. Try asking with just the concept name, or add a material on this topic.`;

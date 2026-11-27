@@ -13,7 +13,7 @@ import { env } from '../../config/env';
 import { MaterialModel } from '../../models/Learn';
 import { bm25, sentences, type Doc } from './text';
 import { lookup } from './wiki';
-import { knowledgeArticle } from './knowledge';
+import { knowledgeArticle, learnArticle } from './knowledge';
 export { searchKnowledge, knowledgeArticle, knowledgeStats } from './knowledge';
 export { answerFromWiki, lookup as wikiLookup } from './wiki';
 
@@ -43,6 +43,7 @@ export async function topicText(userId: string, topic: string): Promise<{ text: 
     const lib = await knowledgeArticle(topic).catch(() => null);
     if (lib) return { text: lib.text, sources: [`Thư viện FOCUSLY – ${lib.title}`] };
     const a = await lookup(topic);
+    if (a) void learnArticle(a).catch(() => undefined);
     return a ? { text: a.text, sources: [`Wikipedia – ${a.title}`] } : { text: '', sources: [] };
   }
   const best = hits[0].score;
