@@ -24,6 +24,7 @@ const MENU: { title: string; items: MenuItem[] }[] = [
   {
     title: tr('Học'),
     items: [
+      { screen: 'Goals', label: tr('Mục tiêu học tập'), icon: 'flame' },
       { screen: 'Materials', label: tr('Tài liệu'), icon: 'materials' },
       { screen: 'AIChat', label: tr('Trợ lý AI'), icon: 'ai' },
       { screen: 'AICoach', label: tr('Đề xuất & kế hoạch'), icon: 'zap' },
@@ -35,6 +36,8 @@ const MENU: { title: string; items: MenuItem[] }[] = [
       { screen: 'Analytics', label: tr('Phân tích học tập'), icon: 'analytics' },
       { screen: 'History', label: tr('Lịch sử phiên học'), icon: 'history' },
       { screen: 'Journal', label: tr('Nhật ký phân tâm'), icon: 'journal' },
+      { screen: 'Mistakes', label: tr('Ôn câu sai'), icon: 'repeat' },
+      { screen: 'LearnProgress', label: tr('Tiến độ ghi nhớ'), icon: 'cards' },
     ],
   },
   {

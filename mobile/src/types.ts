@@ -109,6 +109,7 @@ export interface Task extends Base {
   status: TaskStatus;
   scheduledDate: string | null;
   deadline: string | null;
+  remindAt?: string | null;
   completedAt: string | null;
   recurrence: Recurrence;
 }
@@ -290,13 +291,14 @@ export interface Card extends Base {
   srs: { ease: number; interval: number; repetitions: number; lapses: number; due: string; lastReviewedAt: string | null };
 }
 
-export type QuestionType = 'mcq' | 'true_false' | 'short';
+export type QuestionType = 'mcq' | 'multi' | 'true_false' | 'short';
 export interface Question {
   qid?: string;
   type: QuestionType;
   prompt: string;
   options: string[];
   correctIndex?: number | null;
+  correctIndexes?: number[];
   correctBoolean?: boolean | null;
   acceptedAnswers: string[];
   explanation?: string;

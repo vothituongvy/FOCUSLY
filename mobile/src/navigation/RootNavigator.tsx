@@ -18,6 +18,7 @@ import { LearnScreen, QuizTakeScreen, ReviewScreen } from '../screens/LearnScree
 import { AnalyticsScreen, MaterialsScreen, NotificationsScreen } from '../screens/MoreScreens';
 import { AIChatScreen, AICoachScreen } from '../screens/AIScreens';
 import { GuideScreen, HistoryScreen, NotificationSettingsScreen, PreferencesScreen, SecurityScreen, ShieldSettingsScreen } from '../screens/ExtraScreens';
+import { GoalsScreen, LearnProgressScreen, MistakesScreen } from '../screens/ReviewScreens';
 import { DeckEditScreen, MaterialAddScreen, MaterialDetailScreen, QuizEditScreen } from '../screens/StudyScreens';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { OnboardingScreen, SplashScreen } from '../screens/OnboardingScreen';
@@ -138,6 +139,9 @@ export function RootNavigator() {
           <AppStack.Screen name="ShieldSettings" component={ShieldSettingsScreen} options={{ title: 'Focus Shield' }} />
           <AppStack.Screen name="NotificationSettings" component={NotificationSettingsScreen} options={{ title: tr('Cài đặt thông báo') }} />
           <AppStack.Screen name="Security" component={SecurityScreen} options={{ title: tr('Bảo mật') }} />
+          <AppStack.Screen name="Mistakes" component={MistakesScreen} options={{ title: tr('Ôn câu sai') }} />
+          <AppStack.Screen name="LearnProgress" component={LearnProgressScreen} options={{ title: tr('Tiến độ ghi nhớ') }} />
+          <AppStack.Screen name="Goals" component={GoalsScreen} options={{ title: tr('Mục tiêu học tập') }} />
         </AppStack.Navigator>
       ) : (
         <AuthStack.Navigator screenOptions={{ headerShown: false }}>

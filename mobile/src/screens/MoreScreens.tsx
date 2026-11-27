@@ -27,10 +27,11 @@ export function MaterialsScreen() {
     <Screen>
       <Card>
       <H1>{tr('Tài liệu')}</H1>
-      <Muted>{tr('Bấm vào tài liệu để xem, ghi chú và dùng AI. Tải file lên từ trang web.')}</Muted>
+      <Muted>{tr('Bấm vào tài liệu để xem, ghi chú và dùng AI.')}</Muted>
       <Row>
         <Button title={tr('+ Link')} small variant="secondary" icon="link" onPress={() => nav.navigate('MaterialAdd', { kind: 'link' })} />
         <Button title={tr('+ Ghi chú văn bản')} small variant="secondary" icon="journal" onPress={() => nav.navigate('MaterialAdd', { kind: 'text' })} />
+        <Button title={tr('+ File')} small variant="secondary" icon="upload" onPress={() => nav.navigate('MaterialAdd', { kind: 'file' })} />
       </Row>
       <TextInput style={s.input} value={q} onChangeText={setQ} placeholder={tr('Tìm tài liệu...')} placeholderTextColor="#a0a5c0" />
       <Chips>

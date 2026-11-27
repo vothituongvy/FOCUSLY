@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Alert, FlatList, Pressable, View } from 'react-native';
+import { Alert, FlatList, Pressable, ScrollView, Switch, View } from 'react-native';
 import { Text } from '../components/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -10,6 +10,8 @@ import { PRIORITY_LABEL, type Priority, type Recurrence, type Task } from '../ty
 import type { AppStackParams } from '../navigation/types';
 import { Button, Card, Chip, Chips, Empty, Field, IconButton, Muted, Row, Screen, SyncBar, s } from '../components/ui';
 import { AppHeader } from '../components/AppHeader';
+import { MonthCalendar, dayKey, keyToDate, type DayMark } from '../components/MonthCalendar';
+import { Icon } from '../components/Icon';
 import { LOCALE, tr } from '../i18n';
 
 const PRIORITY_COLOR: Record<Priority, string> = { low: '#3f7a45', medium: '#4a48c4', high: '#b45309', urgent: '#b91c1c' };
@@ -20,6 +22,35 @@ export function PlanScreen() {
   const { subjects, courses, tasks, update } = useData();
   const [subjectId, setSubjectId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'open' | 'done' | 'all'>('open');
+  const [view, setView] = useState<'list' | 'calendar'>('list');
+  const [month, setMonth] = useState(() => new Date());
+  const [day, setDay] = useState(() => dayKey(new Date()));
+
+  // Đánh dấu từng ngày trên lịch: có nhiệm vụ / đã xong / hạn chót / hẹn nhắc
+  const marks = useMemo(() => {
+    const m = new Map<string, DayMark>();
+    const get = (k: string) => m.get(k) ?? m.set(k, { tasks: 0, done: 0, deadline: false, reminder: false }).get(k)!;
+    for (const t of tasks) {
+      if (subjectId && t.subject !== subjectId) continue;
+      if (t.scheduledDate) {
+        const x = get(dayKey(new Date(t.scheduledDate)));
+        x.tasks++;
+        if (t.status === 'done') x.done++;
+      }
+      if (t.deadline && t.status !== 'done') get(dayKey(new Date(t.deadline))).deadline = true;
+      if (t.remindAt && t.status !== 'done') get(dayKey(new Date(t.remindAt))).reminder = true;
+    }
+    return m;
+  }, [tasks, subjectId]);
+
+  const dayTasks = useMemo(
+    () =>
+      tasks
+        .filter((t) => !subjectId || t.subject === subjectId)
+        .filter((t) => [t.scheduledDate, t.deadline, t.remindAt].some((v) => v && dayKey(new Date(v)) === day))
+        .sort((a, b) => (a.remindAt ?? a.scheduledDate ?? '').localeCompare(b.remindAt ?? b.scheduledDate ?? '')),
+    [tasks, subjectId, day],
+  );
 
   const list = useMemo(() => {
     return tasks
@@ -61,6 +92,14 @@ export function PlanScreen() {
               {t.estimatedMinutes}p
               {t.deadline ? ` · ${new Date(t.deadline).toLocaleDateString(LOCALE)}` : ''}
             </Muted>
+            {t.remindAt && t.status !== 'done' && (
+              <Row style={{ gap: 4 }}>
+                <Icon name="bell" size={12} color={colors.warning} />
+                <Text style={{ fontSize: 12, color: colors.warning, fontWeight: '600' }}>
+                  {new Date(t.remindAt).toLocaleString(LOCALE, { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+                </Text>
+              </Row>
+            )}
             {overdue && <Text style={{ color: colors.danger, fontSize: 12 }}>{tr('Quá hạn')}</Text>}
           </View>
           <Text style={{ fontSize: 11, fontWeight: '700', color: PRIORITY_COLOR[t.priority] }}>{PRIORITY_LABEL[t.priority]}</Text>
@@ -84,7 +123,11 @@ export function PlanScreen() {
           <Chip label={tr('＋ Môn học')} onPress={() => nav.navigate('SubjectEdit')} />
         </Chips>
         <Chips>
-          {(
+          <Chip label={tr('☰ Danh sách')} active={view === 'list'} onPress={() => setView('list')} />
+          <Chip label={tr('▦ Lịch')} active={view === 'calendar'} onPress={() => setView('calendar')} />
+          <Chip label={tr('◎ Mục tiêu')} onPress={() => nav.navigate('Goals')} />
+          <View style={{ width: 1, backgroundColor: colors.border, marginHorizontal: 4 }} />
+          {view === 'list' && (
             [
               ['open', tr('Chưa xong')],
               ['done', tr('Hoàn thành')],
@@ -96,6 +139,35 @@ export function PlanScreen() {
         </Chips>
         <Muted style={{ fontSize: 11 }}>{tr('Nhấn giữ một môn học để sửa.')}</Muted>
       </View>
+      {view === 'calendar' ? (
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40, gap: 10 }}>
+          <Card style={{ padding: 10 }}>
+            <MonthCalendar month={month} onMonthChange={setMonth} selected={day} onSelect={setDay} marks={marks} />
+            <Row style={{ justifyContent: 'center', gap: 14, paddingTop: 4 }}>
+              {[
+                [colors.text, tr('Ngày học')],
+                ['#e5a800', tr('Có nhắc')],
+                [colors.danger, tr('Hạn chót')],
+              ].map(([c, l]) => (
+                <Row key={l} style={{ gap: 5 }}>
+                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c }} />
+                  <Muted style={{ fontSize: 12 }}>{l}</Muted>
+                </Row>
+              ))}
+            </Row>
+          </Card>
+          <Row style={{ justifyContent: 'space-between' }}>
+            <Text style={{ fontWeight: '800', fontSize: 16, color: colors.text }}>
+              {keyToDate(day).toLocaleDateString(LOCALE, { weekday: 'long', day: '2-digit', month: '2-digit' })}
+            </Text>
+            <Button title={tr('+ Thêm vào ngày này')} small variant="secondary" onPress={() => nav.navigate('TaskEdit', { subjectId, scheduledDate: day })} />
+          </Row>
+          {dayTasks.length === 0 && <Empty text={tr('Chưa có nhiệm vụ trong ngày này.')} />}
+          {dayTasks.map((t) => (
+            <React.Fragment key={t.id}>{renderTask({ item: t })}</React.Fragment>
+          ))}
+        </ScrollView>
+      ) : (
       <FlatList
         data={list}
         keyExtractor={(t) => t.id}
@@ -103,6 +175,7 @@ export function PlanScreen() {
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40, gap: 8 }}
         ListEmptyComponent={<Empty text={tr('Không có nhiệm vụ nào.')} />}
       />
+      )}
     </SafeAreaView>
   );
 }
@@ -110,6 +183,7 @@ export function PlanScreen() {
 /* ====================== Tạo / sửa nhiệm vụ ====================== */
 const isoDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const toInput = (iso?: string | null) => (iso ? isoDay(new Date(iso)) : '');
+const hhmm = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 const fromInput = (v: string, endOfDay = false) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(v.trim())) return null;
   return new Date(`${v.trim()}T${endOfDay ? '23:59:00' : '00:00:00'}`).toISOString();
@@ -123,8 +197,13 @@ export function TaskEditScreen({ route, navigation }: NativeStackScreenProps<App
   const [course, setCourse] = useState<string | null>(task?.course ?? null);
   const [priority, setPriority] = useState<Priority>(task?.priority ?? 'medium');
   const [minutes, setMinutes] = useState(String(task?.estimatedMinutes ?? 45));
-  const [scheduled, setScheduled] = useState(toInput(task?.scheduledDate) || isoDay(new Date()));
+  const [scheduled, setScheduled] = useState(toInput(task?.scheduledDate) || route.params?.scheduledDate || isoDay(new Date()));
   const [deadline, setDeadline] = useState(toInput(task?.deadline));
+  // Hẹn giờ nhắc học: ngày học + giờ nhắc -> máy chủ gửi thông báo đẩy đúng giờ
+  const [remindOn, setRemindOn] = useState(Boolean(task?.remindAt));
+  const [remindTime, setRemindTime] = useState(task?.remindAt ? hhmm(new Date(task.remindAt)) : '19:00');
+  const [picker, setPicker] = useState<'scheduled' | 'deadline' | null>(null);
+  const [pickMonth, setPickMonth] = useState(() => new Date());
   const [freq, setFreq] = useState<Recurrence['freq']>(task?.recurrence?.freq ?? 'none');
   const [outcome, setOutcome] = useState(task?.expectedOutcome ?? '');
   const [desc, setDesc] = useState(task?.description ?? '');
@@ -132,6 +211,11 @@ export function TaskEditScreen({ route, navigation }: NativeStackScreenProps<App
 
   const save = async () => {
     if (!title.trim()) return setError(tr('Nhập tên nhiệm vụ'));
+    if (remindOn && !/^([01]\d|2[0-3]):[0-5]\d$/.test(remindTime)) return setError(tr('Giờ nhắc cần có dạng HH:MM, ví dụ 19:30.'));
+    const remindAt = remindOn ? new Date(`${scheduled || isoDay(new Date())}T${remindTime}:00`).toISOString() : null;
+    if (remindAt && new Date(remindAt).getTime() < Date.now() - 60_000 && !(task?.remindAt === remindAt)) {
+      return setError(tr('Giờ nhắc đã qua. Chọn ngày hoặc giờ khác.'));
+    }
     const data = {
       title: title.trim(),
       subject,
@@ -140,6 +224,7 @@ export function TaskEditScreen({ route, navigation }: NativeStackScreenProps<App
       estimatedMinutes: Number(minutes) || 0,
       scheduledDate: fromInput(scheduled),
       deadline: fromInput(deadline, true),
+      remindAt,
       expectedOutcome: outcome,
       description: desc,
       recurrence: { freq, interval: 1, daysOfWeek: [], until: null },
@@ -190,12 +275,62 @@ export function TaskEditScreen({ route, navigation }: NativeStackScreenProps<App
         ))}
       </Chips>
       <Field label={tr('Thời lượng dự kiến (phút)')} value={minutes} onChangeText={setMinutes} keyboardType="number-pad" />
-      <Field label={tr('Ngày học (YYYY-MM-DD)')} value={scheduled} onChangeText={setScheduled} />
+      <Text style={s.label}>{tr('Ngày học')}</Text>
       <Chips>
         <Chip label={tr('Hôm nay')} active={scheduled === isoDay(new Date())} onPress={() => setScheduled(isoDay(new Date()))} />
         <Chip label={tr('Ngày mai')} active={scheduled === isoDay(tomorrow)} onPress={() => setScheduled(isoDay(tomorrow))} />
+        <Chip
+          label={`▦ ${scheduled && scheduled !== isoDay(new Date()) && scheduled !== isoDay(tomorrow) ? keyToDate(scheduled).toLocaleDateString(LOCALE) : tr('Chọn ngày')}`}
+          active={picker === 'scheduled' || (!!scheduled && scheduled !== isoDay(new Date()) && scheduled !== isoDay(tomorrow))}
+          onPress={() => {
+            setPickMonth(scheduled ? keyToDate(scheduled) : new Date());
+            setPicker(picker === 'scheduled' ? null : 'scheduled');
+          }}
+        />
       </Chips>
-      <Field label="Deadline (YYYY-MM-DD)" value={deadline} onChangeText={setDeadline} placeholder={tr('Để trống nếu không có')} />
+      {picker === 'scheduled' && (
+        <MonthCalendar compact month={pickMonth} onMonthChange={setPickMonth} selected={scheduled} onSelect={(k) => { setScheduled(k); setPicker(null); }} />
+      )}
+
+      <View style={{ gap: 8, padding: 12, borderRadius: 12, backgroundColor: remindOn ? colors.markerSoft : colors.surface2, borderWidth: 1, borderColor: remindOn ? colors.borderStrong : colors.border }}>
+        <Row style={{ flexWrap: 'nowrap' }}>
+          <Icon name="bell" size={20} color={colors.text} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontWeight: '700', color: colors.text }}>{tr('Nhắc tôi học')}</Text>
+            <Muted style={{ fontSize: 12 }}>{tr('Gửi thông báo tới điện thoại đúng giờ vào ngày học.')}</Muted>
+          </View>
+          <Switch value={remindOn} onValueChange={setRemindOn} trackColor={{ true: colors.marker, false: colors.track }} thumbColor={remindOn ? colors.text : '#ffffff'} />
+        </Row>
+        {remindOn && (
+          <>
+            <Chips>
+              {['06:30', '12:00', '19:00', '20:30', '21:30'].map((t) => (
+                <Chip key={t} label={t} active={remindTime === t} onPress={() => setRemindTime(t)} />
+              ))}
+            </Chips>
+            <Field label={tr('Giờ khác (HH:MM)')} value={remindTime} onChangeText={setRemindTime} maxLength={5} keyboardType="numbers-and-punctuation" />
+            <Muted style={{ fontSize: 12 }}>
+              {tr('Sẽ nhắc lúc {0}, {1}.', remindTime, (scheduled ? keyToDate(scheduled) : new Date()).toLocaleDateString(LOCALE, { weekday: 'long', day: '2-digit', month: '2-digit' }))}
+            </Muted>
+          </>
+        )}
+      </View>
+
+      <Text style={s.label}>Deadline</Text>
+      <Chips>
+        <Chip label={tr('Không có')} active={!deadline} onPress={() => { setDeadline(''); setPicker(null); }} />
+        <Chip
+          label={`▦ ${deadline ? keyToDate(deadline).toLocaleDateString(LOCALE) : tr('Chọn ngày')}`}
+          active={!!deadline || picker === 'deadline'}
+          onPress={() => {
+            setPickMonth(deadline ? keyToDate(deadline) : scheduled ? keyToDate(scheduled) : new Date());
+            setPicker(picker === 'deadline' ? null : 'deadline');
+          }}
+        />
+      </Chips>
+      {picker === 'deadline' && (
+        <MonthCalendar compact month={pickMonth} onMonthChange={setPickMonth} selected={deadline} onSelect={(k) => { setDeadline(k); setPicker(null); }} />
+      )}
       <Text style={s.label}>{tr('Lặp lại')}</Text>
       <Chips>
         {(

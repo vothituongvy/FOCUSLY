@@ -8,12 +8,18 @@ import com.facebook.react.module.model.ReactModuleInfoProvider
 
 class FocusLockPackage : BaseReactPackage() {
   override fun getModule(name: String, reactContext: ReactApplicationContext): NativeModule? =
-      if (name == FocusLockModule.NAME) FocusLockModule(reactContext) else null
+      when (name) {
+        FocusLockModule.NAME -> FocusLockModule(reactContext)
+        FilePickerModule.NAME -> FilePickerModule(reactContext) // chọn file để tạo câu hỏi / flashcard
+        else -> null
+      }
 
   override fun getReactModuleInfoProvider(): ReactModuleInfoProvider = ReactModuleInfoProvider {
     mapOf(
         FocusLockModule.NAME to
             ReactModuleInfo(FocusLockModule.NAME, FocusLockModule::class.java.name, false, false, false, false),
+        FilePickerModule.NAME to
+            ReactModuleInfo(FilePickerModule.NAME, FilePickerModule::class.java.name, false, false, false, false),
     )
   }
 }

@@ -10,6 +10,7 @@ import type { Card as FlashCard, Deck, MaterialNote, Question, Quiz } from '../t
 import type { AppStackParams } from '../navigation/types';
 import { Button, Card, Chip, Chips, Empty, Field, H3, Muted, Row, Screen, s } from '../components/ui';
 import { Icon } from '../components/Icon';
+import { ImportFileSheet, pickFile, type Picked } from '../components/ImportFileSheet';
 import { LOCALE, tr } from '../i18n';
 
 const plain = (t: string) => t.replace(/\*\*/g, '').replace(/^#+\s/gm, '').replace(/`/g, '');
@@ -270,7 +271,8 @@ export function MaterialDetailScreen({ route, navigation }: NativeStackScreenPro
 /* ======================= Tài liệu: thêm link / ghi chú văn bản ======================= */
 export function MaterialAddScreen({ route, navigation }: NativeStackScreenProps<AppStackParams, 'MaterialAdd'>) {
   const { subjects, sync } = useData();
-  const [kind, setKind] = useState<'link' | 'text'>(route.params?.kind ?? 'link');
+  const [kind, setKind] = useState<'link' | 'text' | 'file'>(route.params?.kind ?? 'link');
+  const [file, setFile] = useState<Picked | null>(null);
   const [title, setTitle] = useState('');
   const [url, setUrl] = useState('');
   const [body, setBody] = useState('');
@@ -283,10 +285,20 @@ export function MaterialAddScreen({ route, navigation }: NativeStackScreenProps<
     setBusy(true);
     setError('');
     try {
-      await api('/materials', {
-        method: 'POST',
-        body: { title, subject, category: category || undefined, type: kind, ...(kind === 'link' ? { url: /^https?:\/\//.test(url) ? url : `https://${url}` } : { textContent: body }) },
-      });
+      if (kind === 'file') {
+        if (!file) throw new Error(tr('Chọn file'));
+        const fd = new FormData();
+        fd.append('file', { uri: file.uri, name: file.name, type: file.type } as unknown as Blob);
+        if (title.trim()) fd.append('title', title.trim());
+        if (subject) fd.append('subject', subject);
+        if (category) fd.append('category', category);
+        await api('/materials/upload', { method: 'POST', body: fd, timeoutMs: 120000 });
+      } else {
+        await api('/materials', {
+          method: 'POST',
+          body: { title, subject, category: category || undefined, type: kind, ...(kind === 'link' ? { url: /^https?:\/\//.test(url) ? url : `https://${url}` } : { textContent: body }) },
+        });
+      }
       await sync();
       navigation.goBack();
     } catch (e) {
@@ -302,9 +314,26 @@ export function MaterialAddScreen({ route, navigation }: NativeStackScreenProps<
         <Chips>
           <Chip label={tr('Link')} active={kind === 'link'} onPress={() => setKind('link')} />
           <Chip label={tr('Ghi chú văn bản')} active={kind === 'text'} onPress={() => setKind('text')} />
+          <Chip label={tr('Tải file lên')} active={kind === 'file'} onPress={() => setKind('file')} />
         </Chips>
-        <Field label={tr('Tiêu đề')} value={title} onChangeText={setTitle} />
-        {kind === 'link' ? (
+        <Field label={kind === 'file' ? tr('Tiêu đề (để trống thì dùng tên file)') : tr('Tiêu đề')} value={title} onChangeText={setTitle} />
+        {kind === 'file' ? (
+          <Pressable
+            onPress={async () => {
+              setError('');
+              try {
+                const f = await pickFile(['application/pdf', 'image/*', 'text/*', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
+                if (f) setFile(f);
+              } catch (e) {
+                setError(errorMessage(e));
+              }
+            }}
+            style={{ alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 90, padding: 14, borderRadius: 12, borderWidth: 1.5, borderStyle: 'dashed', borderColor: file ? colors.text : colors.borderStrong, backgroundColor: file ? colors.markerSoft : colors.surface }}
+          >
+            <Icon name="upload" size={22} color={colors.text} />
+            <Text style={{ fontWeight: '700', color: colors.text, textAlign: 'center' }}>{file ? file.name : tr('Chọn PDF, Word, Excel, ảnh hoặc TXT')}</Text>
+          </Pressable>
+        ) : kind === 'link' ? (
           <Field label="URL" value={url} onChangeText={setUrl} autoCapitalize="none" keyboardType="url" placeholder="https://..." />
         ) : (
           <Field label={tr('Nội dung')} value={body} onChangeText={setBody} multiline placeholder={tr('Dán hoặc gõ nội dung. AI có thể tóm tắt và tạo câu hỏi từ phần này.')} />
@@ -321,9 +350,9 @@ export function MaterialAddScreen({ route, navigation }: NativeStackScreenProps<
             </Chips>
           </>
         )}
-        <Muted style={{ fontSize: 12 }}>{tr('Tải file PDF, ảnh, Word lên từ trang web FOCUSLY.')}</Muted>
+        {kind === 'file' && <Muted style={{ fontSize: 12 }}>{tr('Tối đa 20 MB. Chữ trong PDF, Word, Excel được đọc để AI tóm tắt và tạo câu hỏi.')}</Muted>}
         {!!error && <Text style={s.error}>{error}</Text>}
-        <Button title={tr('Lưu')} loading={busy} disabled={!title.trim() || (kind === 'link' ? !url.trim() : !body.trim())} onPress={save} />
+        <Button title={kind === 'file' ? tr('Tải lên') : tr('Lưu')} loading={busy} disabled={kind === 'file' ? !file : !title.trim() || (kind === 'link' ? !url.trim() : !body.trim())} onPress={save} />
       </Card>
     </Screen>
   );
@@ -344,6 +373,8 @@ export function DeckEditScreen({ route, navigation }: NativeStackScreenProps<App
   const [drafts, setDrafts] = useState<(CardDraft & { keep: boolean })[]>([]);
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
+  const [importOpen, setImportOpen] = useState(Boolean(route.params?.fromFile));
+  const [importNote, setImportNote] = useState('');
 
   useEffect(() => {
     navigation.setOptions({ title: deck ? deck.title : tr('Bộ thẻ mới') });
@@ -420,6 +451,13 @@ export function DeckEditScreen({ route, navigation }: NativeStackScreenProps<App
       </Card>
 
       <Card>
+        <H3>{tr('Tạo từ file')}</H3>
+        <Muted>{tr('Word, Excel, PDF hoặc TXT: file có sẵn danh sách thẻ thì nhập thẳng, file bài giảng thì AI soạn thẻ.')}</Muted>
+        <Button title={tr('Chọn file')} icon="upload" variant="secondary" onPress={() => setImportOpen(true)} />
+        {!!importNote && <Text style={{ color: colors.success }}>{importNote}</Text>}
+      </Card>
+
+      <Card>
         <H3>{tr('Tạo thẻ bằng AI')}</H3>
         <Field label={tr('Chủ đề')} value={topic} onChangeText={setTopic} placeholder={tr('Chủ đề để AI tạo thẻ, vd: Từ vựng chủ đề Môi trường')} />
         <Button title={busy === 'ai' ? tr('Đang tạo...') : tr('Tạo bằng AI')} variant="secondary" icon="ai" disabled={!topic.trim() || !!busy} onPress={generate} />
@@ -492,18 +530,29 @@ export function DeckEditScreen({ route, navigation }: NativeStackScreenProps<App
           }
         />
       )}
+      <ImportFileSheet
+        visible={importOpen}
+        target="flashcards"
+        onClose={() => setImportOpen(false)}
+        onDraft={(d, mode) => {
+          if (!title.trim()) setTitle(d.title);
+          setDrafts((cur) => [...cur, ...d.cards.map((c) => ({ ...c, keep: true }))]);
+          setImportNote(mode === 'parsed' ? tr('Đã đọc {0} thẻ từ file – kiểm tra bên dưới rồi bấm Lưu.', d.cards.length) : tr('AI đã soạn {0} thẻ từ file – kiểm tra rồi bấm Lưu.', d.cards.length));
+        }}
+      />
     </Screen>
   );
 }
 
 /* ======================= Bộ câu hỏi: tự soạn + tạo bằng AI ======================= */
-type QType = 'mcq' | 'true_false' | 'short';
+type QType = 'mcq' | 'multi' | 'true_false' | 'short';
 const QTYPES: { id: QType; label: string }[] = [
   { id: 'mcq', label: tr('Trắc nghiệm') },
+  { id: 'multi', label: tr('Nhiều đáp án đúng') },
   { id: 'true_false', label: tr('Đúng / Sai') },
   { id: 'short', label: tr('Trả lời ngắn') },
 ];
-const emptyQ = (type: QType = 'mcq'): Question => ({ type, prompt: '', options: ['', '', '', ''], correctIndex: 0, correctBoolean: true, acceptedAnswers: [], explanation: '' });
+const emptyQ = (type: QType = 'mcq'): Question => ({ type, prompt: '', options: ['', '', '', ''], correctIndex: 0, correctIndexes: [], correctBoolean: true, acceptedAnswers: [], explanation: '' });
 
 /** Kiểm tra một câu hỏi đã đủ thông tin chưa; trả về lời nhắc nếu thiếu */
 function checkQuestion(q: Question): string {
@@ -513,15 +562,22 @@ function checkQuestion(q: Question): string {
     if (filled.length < 2) return tr('Cần ít nhất 2 lựa chọn.');
     if (q.correctIndex == null || !q.options[q.correctIndex]?.trim()) return tr('Chạm vào một lựa chọn để đánh dấu đáp án đúng.');
   }
+  if (q.type === 'multi') {
+    if (q.options.filter((o) => o.trim()).length < 2) return tr('Cần ít nhất 2 lựa chọn.');
+    if (!(q.correctIndexes ?? []).some((i) => q.options[i]?.trim())) return tr('Đánh dấu ít nhất 1 đáp án đúng.');
+  }
   if (q.type === 'short' && !q.acceptedAnswers.some((a) => a.trim())) return tr('Nhập ít nhất một đáp án được chấp nhận.');
   return '';
 }
 
 /** Chuẩn hoá trước khi gửi lên máy chủ: bỏ lựa chọn trống và giữ đúng chỉ số đáp án */
 function cleanQuestion(q: Question): Question {
-  if (q.type === 'mcq') {
+  if (q.type === 'mcq' || q.type === 'multi') {
     const kept = q.options.map((o, i) => ({ o: o.trim(), i })).filter((x) => x.o);
-    return { ...q, options: kept.map((x) => x.o), correctIndex: Math.max(0, kept.findIndex((x) => x.i === q.correctIndex)), acceptedAnswers: [], correctBoolean: null };
+    const at = (i: number) => kept.findIndex((x) => x.i === i);
+    return q.type === 'mcq'
+      ? { ...q, options: kept.map((x) => x.o), correctIndex: Math.max(0, at(q.correctIndex ?? 0)), correctIndexes: [], acceptedAnswers: [], correctBoolean: null }
+      : { ...q, options: kept.map((x) => x.o), correctIndexes: (q.correctIndexes ?? []).map(at).filter((i) => i >= 0).sort((a, b) => a - b), correctIndex: null, acceptedAnswers: [], correctBoolean: null };
   }
   if (q.type === 'true_false') return { ...q, options: [], acceptedAnswers: [], correctIndex: null };
   return { ...q, options: [], correctIndex: null, correctBoolean: null, acceptedAnswers: q.acceptedAnswers.map((a) => a.trim()).filter(Boolean) };
@@ -551,20 +607,25 @@ function QuestionForm({ initial, onSubmit, onCancel }: { initial: Question; onSu
       </Chips>
       <Field label={tr('Câu hỏi')} value={q.prompt} onChangeText={(v) => setQ({ ...q, prompt: v })} multiline placeholder={tr('VD: 2 + 3 bằng bao nhiêu?')} />
 
-      {q.type === 'mcq' && (
+      {(q.type === 'mcq' || q.type === 'multi') && (
         <View style={{ gap: 8 }}>
-          <Muted style={{ fontSize: 12 }}>{tr('Chạm vào vòng tròn để chọn đáp án đúng.')}</Muted>
+          <Muted style={{ fontSize: 12 }}>{q.type === 'mcq' ? tr('Chạm vào vòng tròn để chọn đáp án đúng.') : tr('Chạm vào ô vuông để đánh dấu TẤT CẢ đáp án đúng.')}</Muted>
           {q.options.map((o, i) => {
-            const right = q.correctIndex === i;
+            const multi = q.type === 'multi';
+            const right = multi ? (q.correctIndexes ?? []).includes(i) : q.correctIndex === i;
             return (
               <Row key={i} style={{ flexWrap: 'nowrap' }}>
                 <Pressable
                   hitSlop={8}
-                  accessibilityRole="radio"
+                  accessibilityRole={multi ? 'checkbox' : 'radio'}
                   accessibilityState={{ checked: right }}
                   accessibilityLabel={tr('Đáp án đúng')}
-                  onPress={() => setQ({ ...q, correctIndex: i })}
-                  style={{ width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: right ? colors.success : colors.borderStrong, backgroundColor: right ? colors.success : colors.surface, alignItems: 'center', justifyContent: 'center' }}
+                  onPress={() =>
+                    multi
+                      ? setQ({ ...q, correctIndexes: right ? (q.correctIndexes ?? []).filter((x) => x !== i) : [...(q.correctIndexes ?? []), i] })
+                      : setQ({ ...q, correctIndex: i })
+                  }
+                  style={{ width: 28, height: 28, borderRadius: multi ? 7 : 14, borderWidth: 2, borderColor: right ? colors.success : colors.borderStrong, backgroundColor: right ? colors.success : colors.surface, alignItems: 'center', justifyContent: 'center' }}
                 >
                   {right && <Icon name="check" size={15} color="#ffffff" />}
                 </Pressable>
@@ -584,7 +645,8 @@ function QuestionForm({ initial, onSubmit, onCancel }: { initial: Question; onSu
                     onPress={() => {
                       const options = q.options.filter((_, j) => j !== i);
                       const ci = q.correctIndex ?? 0;
-                      setQ({ ...q, options, correctIndex: ci === i ? 0 : ci > i ? ci - 1 : ci });
+                      const shift = (x: number) => (x > i ? x - 1 : x);
+                      setQ({ ...q, options, correctIndex: ci === i ? 0 : shift(ci), correctIndexes: (q.correctIndexes ?? []).filter((x) => x !== i).map(shift) });
                     }}
                   >
                     <Icon name="x" size={18} color={colors.muted} />
@@ -631,6 +693,8 @@ export function QuizEditScreen({ route, navigation }: NativeStackScreenProps<App
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
   const [source, setSource] = useState<'manual' | 'ai'>(quiz?.source ?? 'manual');
+  const [importOpen, setImportOpen] = useState(Boolean(route.params?.fromFile));
+  const [importNote, setImportNote] = useState('');
 
   useEffect(() => {
     navigation.setOptions({ title: quiz ? quiz.title : tr('Bộ câu hỏi mới') });
@@ -695,6 +759,13 @@ export function QuizEditScreen({ route, navigation }: NativeStackScreenProps<App
       </Card>
 
       <Card>
+        <H3>{tr('Tạo từ file')}</H3>
+        <Muted>{tr('Word, Excel, PDF hoặc TXT: đề có sẵn (Câu 1, A. B. C., Đáp án) thì nhập thẳng, tài liệu học thì AI soạn câu hỏi.')}</Muted>
+        <Button title={tr('Chọn file')} icon="upload" variant="secondary" onPress={() => setImportOpen(true)} />
+        {!!importNote && <Text style={{ color: colors.success }}>{importNote}</Text>}
+      </Card>
+
+      <Card>
         <H3>{tr('Tạo câu hỏi bằng AI')}</H3>
         <Field label={tr('Chủ đề')} value={topic} onChangeText={setTopic} placeholder={tr('VD: Phương trình bậc hai')} />
         <Button
@@ -716,7 +787,7 @@ export function QuizEditScreen({ route, navigation }: NativeStackScreenProps<App
         editIndex === i ? (
           <Card key={q.qid ?? `n${i}`}>
             <QuestionForm
-              initial={{ ...emptyQ(q.type), ...q, options: q.type === 'mcq' ? q.options : ['', '', '', ''] }}
+              initial={{ ...emptyQ(q.type), ...q, options: q.type === 'mcq' || q.type === 'multi' ? q.options : ['', '', '', ''] }}
               onSubmit={(nq) => {
                 change(questions.map((x, j) => (j === i ? { ...nq, qid: x.qid } : x)));
                 setEditIndex(null);
@@ -738,6 +809,7 @@ export function QuizEditScreen({ route, navigation }: NativeStackScreenProps<App
               </Pressable>
             </Row>
             {q.type === 'mcq' && q.options.map((o, j) => <Muted key={j}>{j === q.correctIndex ? '✓ ' : '• '}{o}</Muted>)}
+            {q.type === 'multi' && q.options.map((o, j) => <Muted key={j}>{(q.correctIndexes ?? []).includes(j) ? '✓ ' : '• '}{o}</Muted>)}
             {q.type === 'true_false' && <Muted>{q.correctBoolean ? tr('Đáp án: Đúng') : tr('Đáp án: Sai')}</Muted>}
             {q.type === 'short' && <Muted>{tr('Đáp án: {0}', q.acceptedAnswers.join(' / '))}</Muted>}
           </Card>
@@ -771,6 +843,17 @@ export function QuizEditScreen({ route, navigation }: NativeStackScreenProps<App
           }
         />
       )}
+      <ImportFileSheet
+        visible={importOpen}
+        target="quiz"
+        onClose={() => setImportOpen(false)}
+        onDraft={(d, mode) => {
+          if (!title.trim()) setTitle(d.title);
+          if (mode === 'ai') setSource('ai');
+          change([...questions, ...d.questions]);
+          setImportNote(mode === 'parsed' ? tr('Đã đọc {0} câu từ file – kiểm tra rồi bấm Lưu bộ câu hỏi.', d.questions.length) : tr('AI đã soạn {0} câu từ file – kiểm tra rồi bấm Lưu bộ câu hỏi.', d.questions.length));
+        }}
+      />
     </Screen>
   );
 }

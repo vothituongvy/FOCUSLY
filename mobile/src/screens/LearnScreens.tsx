@@ -42,9 +42,17 @@ export function LearnScreen() {
         ))}
       </Row>
 
+      <Row style={{ flexWrap: 'nowrap' }}>
+        <Button title={tr('Ôn câu sai')} small variant="secondary" icon="repeat" style={{ flex: 1 }} onPress={() => nav.navigate('Mistakes')} />
+        <Button title={tr('Tiến độ ghi nhớ')} small variant="secondary" icon="analytics" style={{ flex: 1 }} onPress={() => nav.navigate('LearnProgress')} />
+      </Row>
+
       <Row style={{ justifyContent: 'space-between' }}>
         <H3>{tr('Bộ flashcard')}</H3>
-        <Button title={tr('+ Bộ thẻ')} small variant="secondary" onPress={() => nav.navigate('DeckEdit', {})} />
+        <Row style={{ gap: 6 }}>
+          <Button title={tr('Từ file')} small variant="ghost" icon="upload" onPress={() => nav.navigate('DeckEdit', { fromFile: true })} />
+          <Button title={tr('+ Bộ thẻ')} small variant="secondary" onPress={() => nav.navigate('DeckEdit', {})} />
+        </Row>
       </Row>
       {decks.length === 0 && <Empty text={tr('Chưa có bộ thẻ. Bấm “+ Bộ thẻ” để tự tạo hoặc nhờ AI tạo.')} />}
       {decks.map((d) => {
@@ -70,7 +78,10 @@ export function LearnScreen() {
 
       <Row style={{ justifyContent: 'space-between' }}>
         <H3>{tr('Bộ câu hỏi')}</H3>
-        <Button title={tr('+ Bộ câu hỏi')} small variant="secondary" onPress={() => nav.navigate('QuizEdit', {})} />
+        <Row style={{ gap: 6 }}>
+          <Button title={tr('Từ file')} small variant="ghost" icon="upload" onPress={() => nav.navigate('QuizEdit', { fromFile: true })} />
+          <Button title={tr('+ Bộ câu hỏi')} small variant="secondary" onPress={() => nav.navigate('QuizEdit', {})} />
+        </Row>
       </Row>
       {quizzes.length === 0 && <Empty text={tr('Chưa có bộ câu hỏi.')} />}
       {quizzes.map((q) => {
@@ -186,6 +197,15 @@ const norm = (x: string) =>
     .trim();
 
 function localGrade(q: Question, a: unknown) {
+  if (q.type === 'multi') {
+    // đúng khi chọn ĐỦ và CHỈ các đáp án đúng
+    const picked = new Set(Array.isArray(a) ? (a as number[]) : []);
+    const right = q.correctIndexes ?? [];
+    return {
+      correct: picked.size === right.length && right.every((i) => picked.has(i)),
+      correctAnswer: right.map((i) => q.options[i]).filter(Boolean).join('; '),
+    };
+  }
   if (q.type === 'mcq') return { correct: a === q.correctIndex, correctAnswer: q.options[q.correctIndex ?? 0] ?? '' };
   if (q.type === 'true_false') return { correct: a === q.correctBoolean, correctAnswer: q.correctBoolean ? tr('Đúng') : 'Sai' };
   const n = norm(String(a ?? ''));
@@ -279,6 +299,31 @@ export function QuizTakeScreen({ route, navigation }: NativeStackScreenProps<App
                   </Text>
                 </Pressable>
               ))}
+            </View>
+          )}
+          {q.type === 'multi' && (
+            <View style={{ gap: 8 }}>
+              <Muted style={{ fontSize: 12 }}>{tr('Chọn tất cả đáp án đúng')}</Muted>
+              {q.options.map((o, k) => {
+                const cur = (answers[q.qid!] as number[] | undefined) ?? [];
+                const on = cur.includes(k);
+                return (
+                  <Pressable
+                    key={k}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: on }}
+                    onPress={() => setAnswers({ ...answers, [q.qid!]: on ? cur.filter((x) => x !== k) : [...cur, k].sort((x, y) => x - y) })}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderRadius: 10, padding: 10, borderColor: on ? colors.primary : colors.border, backgroundColor: on ? colors.primary50 : colors.surface }}
+                  >
+                    <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: on ? colors.text : colors.borderStrong, backgroundColor: on ? colors.marker : colors.surface, alignItems: 'center', justifyContent: 'center' }}>
+                      {on && <Text style={{ fontWeight: '800', color: colors.text, fontSize: 12 }}>✓</Text>}
+                    </View>
+                    <Text style={{ flex: 1, color: colors.text }}>
+                      {String.fromCharCode(65 + k)}. {o}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </View>
           )}
           {q.type === 'true_false' && (
