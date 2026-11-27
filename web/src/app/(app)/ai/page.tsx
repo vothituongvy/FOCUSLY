@@ -104,7 +104,7 @@ function Chat({ initialMaterial }: { initialMaterial: string | null }) {
     : [tr('Giải thích đạo hàm bằng ví dụ đời thường'), tr('Phân biệt thì hiện tại hoàn thành và quá khứ đơn'), tr('Cách học hiệu quả với Pomodoro?')];
 
   return (
-    <div className="grid" style={{ gridTemplateColumns: '240px minmax(0,1fr)', alignItems: 'start' }}>
+    <div className="grid split-side">
       <div className="card col" style={{ gap: 4, maxHeight: '75vh', overflow: 'auto' }}>
         <button
           className="btn sm block"

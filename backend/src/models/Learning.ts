@@ -66,6 +66,7 @@ const taskSchema = new Schema(
     status: { type: String, enum: TASK_STATUSES, default: 'todo', index: true },
     scheduledDate: { type: Date, default: null }, // ngày dự định học (Study Plan / Calendar)
     deadline: { type: Date, default: null },
+    remindAt: { type: Date, default: null }, // hẹn giờ nhắc học (thông báo đẩy + trong app)
     completedAt: { type: Date, default: null },
     recurrence: {
       freq: { type: String, enum: RECURRENCE_FREQS, default: 'none' },
@@ -80,5 +81,6 @@ const taskSchema = new Schema(
 syncable(taskSchema);
 taskSchema.index({ user: 1, scheduledDate: 1 });
 taskSchema.index({ user: 1, deadline: 1 });
+taskSchema.index({ remindAt: 1 }, { partialFilterExpression: { remindAt: { $type: 'date' } } });
 export const TaskModel = model('Task', taskSchema);
 export type Task = InferSchemaType<typeof taskSchema>;

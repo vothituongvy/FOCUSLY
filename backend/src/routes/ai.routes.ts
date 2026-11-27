@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import multer from 'multer';
 import { z } from 'zod';
 import { env } from '../config/env';
 import { requireAuth, uid } from '../middleware/auth';
@@ -10,6 +11,8 @@ import { SubjectModel, TaskModel } from '../models/Learning';
 import { findOwned } from '../services/entities';
 import { aiEnabled, complete, completeJson, relevantChunks, TRANSLATE_LIMIT_PER_HOUR, TUTOR_SYSTEM, usedLastHour } from '../services/ai';
 import { computeInsights } from '../services/analytics';
+import { extractText } from '../services/textExtract';
+import { parseCards, parseQuiz } from '../services/importParse';
 
 /**
  * PHASE 3 – AI Learning Assistant
@@ -191,15 +194,74 @@ router.post(
 );
 
 /* ---------------- Quiz Generation (bản nháp) ---------------- */
+const QTYPES = ['mcq', 'multi', 'true_false', 'short'] as const;
+type QType = (typeof QTYPES)[number];
 const genQuestion = z.object({
-  type: z.enum(['mcq', 'true_false', 'short']),
+  type: z.enum(QTYPES),
   prompt: z.string().min(1),
   options: z.array(z.string()).default([]),
   correctIndex: z.number().int().nullable().optional(),
+  correctIndexes: z.array(z.number().int()).default([]),
   correctBoolean: z.boolean().nullable().optional(),
   acceptedAnswers: z.array(z.string()).default([]),
   explanation: z.string().default(''),
 });
+
+/** AI soạn câu hỏi từ một nguồn (chủ đề, tài liệu, file) rồi loại câu lỗi */
+async function aiQuiz(userId: string, src: { label: string; content: string }, count: number, types: readonly QType[], difficulty: string) {
+  const out = await completeJson({
+    userId,
+    feature: 'quiz_generation',
+    system: TUTOR_SYSTEM,
+    schema: z.object({ title: z.string(), questions: z.array(genQuestion).min(1) }),
+    maxTokens: 4000,
+    messages: [
+      {
+        role: 'user',
+        content: `Tạo ${count} câu hỏi kiểm tra (độ khó: ${difficulty}) về ${src.label}, chỉ dùng các loại: ${types.join(', ')}.
+Định dạng JSON: {"title": string, "questions": [{"type":"mcq"|"multi"|"true_false"|"short","prompt":string,"options":[4 lựa chọn nếu mcq/multi],"correctIndex":số (mcq – đúng 1 đáp án),"correctIndexes":[các số] (multi – từ 2 đáp án đúng trở lên, ghi rõ "chọn tất cả đáp án đúng" trong prompt),"correctBoolean":bool (true_false),"acceptedAnswers":[các đáp án chấp nhận ngắn gọn] (short),"explanation":string}]}
+Câu hỏi phải kiểm tra HIỂU BÀI (không chỉ học thuộc), đáp án nhiễu hợp lý.
+
+${src.content}`,
+      },
+    ],
+  });
+  const questions = out.questions
+    .filter((q) => types.includes(q.type))
+    .map((q) => (q.type === 'multi' ? { ...q, correctIndexes: [...new Set(q.correctIndexes)].filter((i) => i >= 0 && i < q.options.length).sort((x, y) => x - y) } : q))
+    .filter((q) =>
+      q.type === 'mcq'
+        ? q.options.length >= 2 && q.correctIndex != null && q.correctIndex < q.options.length
+        : q.type === 'multi'
+          ? q.options.length >= 2 && q.correctIndexes.length > 0
+          : q.type === 'true_false'
+            ? q.correctBoolean != null
+            : q.acceptedAnswers.length > 0,
+    );
+  return { title: out.title, questions };
+}
+
+const cardsSchema = z.object({ title: z.string(), cards: z.array(z.object({ front: z.string().min(1), back: z.string().min(1), hint: z.string().optional() })).min(1) });
+
+async function aiCards(userId: string, src: { label: string; content: string }, count: number) {
+  const out = await completeJson({
+    userId,
+    feature: 'flashcard_generation',
+    system: TUTOR_SYSTEM,
+    schema: cardsSchema,
+    maxTokens: 3500,
+    messages: [
+      {
+        role: 'user',
+        content: `Tạo ${count} flashcard về ${src.label}. Mỗi thẻ: mặt trước là câu hỏi/khái niệm ngắn, mặt sau là câu trả lời súc tích (≤ 40 từ), tuân theo nguyên tắc "một ý mỗi thẻ".
+JSON: {"title": string, "cards": [{"front": string, "back": string, "hint": string}]}
+
+${src.content}`,
+      },
+    ],
+  });
+  return { title: out.title, cards: out.cards.slice(0, count) };
+}
 
 router.post(
   '/generate/quiz',
@@ -210,7 +272,7 @@ router.post(
         topic: z.string().max(300).optional(),
         sessionId: z.string().optional(),
         count: z.number().int().min(3).max(25).default(10),
-        types: z.array(z.enum(['mcq', 'true_false', 'short'])).min(1).default(['mcq', 'true_false', 'short']),
+        types: z.array(z.enum(QTYPES)).min(1).default(['mcq', 'multi', 'true_false', 'short']),
         difficulty: z.enum(['easy', 'medium', 'hard']).default('medium'),
       }),
       req.body,
@@ -223,41 +285,9 @@ router.post(
       topic = [s?.goal, task?.title, task?.expectedOutcome, task?.description].filter(Boolean).join(' – ');
     }
     const src = await sourceText(uid(req), data.materialId, topic);
-    const out = await completeJson({
-      userId: uid(req),
-      feature: 'quiz_generation',
-      system: TUTOR_SYSTEM,
-      schema: z.object({ title: z.string(), questions: z.array(genQuestion).min(1) }),
-      maxTokens: 4000,
-      messages: [
-        {
-          role: 'user',
-          content: `Tạo ${data.count} câu hỏi kiểm tra (độ khó: ${data.difficulty}) về ${src.label}, chỉ dùng các loại: ${data.types.join(', ')}.
-Định dạng JSON: {"title": string, "questions": [{"type":"mcq"|"true_false"|"short","prompt":string,"options":[4 lựa chọn nếu mcq],"correctIndex":số (mcq),"correctBoolean":bool (true_false),"acceptedAnswers":[các đáp án chấp nhận ngắn gọn] (short),"explanation":string}]}
-Câu hỏi phải kiểm tra HIỂU BÀI (không chỉ học thuộc), đáp án nhiễu hợp lý.
-
-${src.content}`,
-        },
-      ],
-    });
-    // chuẩn hoá & loại câu lỗi
-    const questions = out.questions
-      .filter((q) => data.types.includes(q.type))
-      .filter((q) =>
-        q.type === 'mcq'
-          ? q.options.length >= 2 && q.correctIndex != null && q.correctIndex < q.options.length
-          : q.type === 'true_false'
-            ? q.correctBoolean != null
-            : q.acceptedAnswers.length > 0,
-      );
+    const out = await aiQuiz(uid(req), src, data.count, data.types, data.difficulty);
     res.json({
-      draft: {
-        title: out.title,
-        source: 'ai',
-        material: src.material?.id ?? null,
-        subject: src.material?.subject ?? null,
-        questions,
-      },
+      draft: { title: out.title, source: 'ai', material: src.material?.id ?? null, subject: src.material?.subject ?? null, questions: out.questions },
       note: 'Đây là bản nháp do AI tạo – hãy kiểm tra, sửa hoặc xoá câu chưa phù hợp trước khi lưu.',
     });
   }),
@@ -269,26 +299,66 @@ router.post(
   ah(async (req, res) => {
     const data = parse(z.object({ materialId: z.string().optional(), topic: z.string().max(300).optional(), count: z.number().int().min(3).max(40).default(15) }), req.body);
     const src = await sourceText(uid(req), data.materialId, data.topic);
-    const out = await completeJson({
-      userId: uid(req),
-      feature: 'flashcard_generation',
-      system: TUTOR_SYSTEM,
-      schema: z.object({ title: z.string(), cards: z.array(z.object({ front: z.string().min(1), back: z.string().min(1), hint: z.string().optional() })).min(1) }),
-      maxTokens: 3500,
-      messages: [
-        {
-          role: 'user',
-          content: `Tạo ${data.count} flashcard về ${src.label}. Mỗi thẻ: mặt trước là câu hỏi/khái niệm ngắn, mặt sau là câu trả lời súc tích (≤ 40 từ), tuân theo nguyên tắc "một ý mỗi thẻ".
-JSON: {"title": string, "cards": [{"front": string, "back": string, "hint": string}]}
-
-${src.content}`,
-        },
-      ],
-    });
+    const out = await aiCards(uid(req), src, data.count);
     res.json({
-      draft: { title: out.title, material: src.material?.id ?? null, subject: src.material?.subject ?? null, cards: out.cards.slice(0, data.count) },
+      draft: { title: out.title, material: src.material?.id ?? null, subject: src.material?.subject ?? null, cards: out.cards },
       note: 'Bản nháp do AI tạo – chọn các thẻ muốn giữ rồi lưu.',
     });
+  }),
+);
+
+/* ---------------- Tạo câu hỏi / flashcard TỪ FILE ----------------
+ * POST /ai/import (multipart: file, target=quiz|flashcards, count?, mode=auto|parse|ai)
+ * - File đã soạn sẵn (Câu 1 / A. B. C. / Đáp án: ..., bảng thuật ngữ – định nghĩa, Excel...) -> nhập thẳng, không tốn lượt AI
+ * - File là tài liệu học (bài giảng, giáo trình) -> AI đọc nội dung và soạn
+ * Trả về BẢN NHÁP giống /generate/* để người học xem lại trước khi lưu.
+ */
+const importUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 15 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (/\.(pdf|docx|xlsx|txt|md|csv|tsv)$/i.test(file.originalname) || /pdf|wordprocessingml|spreadsheetml|^text\//.test(file.mimetype)) cb(null, true);
+    else cb(badRequest('Chỉ hỗ trợ PDF, Word (.docx), Excel (.xlsx), TXT, CSV'));
+  },
+});
+
+router.post(
+  '/import',
+  importUpload.single('file'),
+  ah(async (req, res) => {
+    const file = req.file;
+    if (!file) throw badRequest('Chọn một file');
+    const data = parse(
+      z.object({
+        target: z.enum(['quiz', 'flashcards']),
+        mode: z.enum(['auto', 'parse', 'ai']).default('auto'),
+        count: z.coerce.number().int().min(3).max(40).optional(),
+      }),
+      req.body,
+    );
+    const name = Buffer.from(file.originalname, 'latin1').toString('utf8');
+    const title = name.replace(/\.[^.]+$/, '');
+    const { text } = await extractText(file.buffer, file.mimetype, name);
+    if (!text.trim()) throw badRequest('Không đọc được chữ trong file (PDF dạng ảnh scan chưa hỗ trợ). Hãy thử file Word, Excel hoặc TXT.');
+
+    if (data.mode !== 'ai') {
+      if (data.target === 'quiz') {
+        const questions = parseQuiz(text);
+        if (questions.length) return res.json({ mode: 'parsed', draft: { title, source: 'manual', material: null, subject: null, questions } });
+      } else {
+        const cards = parseCards(text);
+        if (cards.length) return res.json({ mode: 'parsed', draft: { title, material: null, subject: null, cards } });
+      }
+      if (data.mode === 'parse') throw badRequest('Không nhận ra câu hỏi/thẻ soạn sẵn trong file. Xem mẫu định dạng hoặc chọn "AI tạo từ nội dung".');
+    }
+
+    const src = { label: `tài liệu "${title}"`, content: relevantChunks(text, title, 14_000) };
+    if (data.target === 'quiz') {
+      const out = await aiQuiz(uid(req), src, data.count ?? 10, QTYPES, 'medium');
+      return res.json({ mode: 'ai', draft: { title: out.title || title, source: 'ai', material: null, subject: null, questions: out.questions } });
+    }
+    const out = await aiCards(uid(req), src, data.count ?? 15);
+    res.json({ mode: 'ai', draft: { title: out.title || title, material: null, subject: null, cards: out.cards } });
   }),
 );
 

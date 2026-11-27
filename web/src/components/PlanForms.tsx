@@ -261,6 +261,7 @@ export function TaskForm({
     status: (task?.status ?? 'todo') as TaskStatus,
     scheduledDate: toDateInput(task?.scheduledDate ?? defaults?.scheduledDate),
     deadline: toDateTimeInput(task?.deadline),
+    remindAt: toDateTimeInput(task?.remindAt),
     freq: task?.recurrence?.freq ?? 'none',
     interval: task?.recurrence?.interval ?? 1,
     daysOfWeek: task?.recurrence?.daysOfWeek ?? [],
@@ -289,6 +290,7 @@ export function TaskForm({
       status: form.status,
       scheduledDate: fromDateInput(form.scheduledDate),
       deadline: fromDateInput(form.deadline),
+      remindAt: fromDateInput(form.remindAt),
       recurrence: {
         freq: form.freq,
         interval: Number(form.interval) || 1,
@@ -381,6 +383,29 @@ export function TaskForm({
             Deadline
             <input type="datetime-local" value={form.deadline} onChange={(e) => set('deadline', e.target.value)} />
           </label>
+        </div>
+        <div className="field">
+          {tr('Nhắc tôi học lúc')}
+          <div className="row wrap">
+            <input
+              type="datetime-local"
+              value={form.remindAt}
+              onChange={(e) => set('remindAt', e.target.value)}
+              style={{ flex: '1 1 220px', width: 'auto' }}
+              aria-label={tr('Nhắc tôi học lúc')}
+            />
+            {form.scheduledDate && !form.remindAt && (
+              <button type="button" className="btn secondary sm" onClick={() => set('remindAt', `${form.scheduledDate}T19:00`)}>
+                {tr('19:00 ngày học')}
+              </button>
+            )}
+            {form.remindAt && (
+              <button type="button" className="btn ghost sm" onClick={() => set('remindAt', '')}>
+                {tr('Bỏ nhắc')}
+              </button>
+            )}
+          </div>
+          <span className="small muted" style={{ fontWeight: 400 }}>{tr('Đến giờ, FOCUSLY gửi thông báo tới trình duyệt và điện thoại của bạn.')}</span>
         </div>
         <label className="field">
           {tr('Kết quả mong muốn')}

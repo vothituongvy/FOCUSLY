@@ -11,6 +11,7 @@ import type { Card, Deck } from '@/lib/types';
 import { Empty, Spinner } from '@/components/ui';
 import { Icon } from '@/components/Icon';
 import { tr } from '@/lib/i18n';
+import { ImportFromFile } from '@/components/ImportFromFile';
 
 interface DraftCard {
   front: string;
@@ -121,7 +122,10 @@ function DeckInner() {
         <Link href="/learn" className="small">
           {tr('‹ Ôn tập')}
         </Link>
-        <h1>{tr('Tạo bộ flashcard')}</h1>
+        <div className="row between wrap">
+          <h1>{tr('Tạo bộ flashcard')}</h1>
+          <ImportFromFile target="flashcards" />
+        </div>
         <div className="card form">
           <div className="grid grid-2">
             <label className="field">

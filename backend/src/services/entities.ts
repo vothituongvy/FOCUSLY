@@ -107,6 +107,7 @@ const taskCreate = z.object({
   status: z.enum(TASK_STATUSES).optional(),
   scheduledDate: date.optional(),
   deadline: date.optional(),
+  remindAt: date.optional(),
   recurrence: recurrence.optional(),
 });
 
@@ -183,6 +184,7 @@ const question = z
     prompt: z.string().trim().min(1).max(2000),
     options: z.array(z.string().max(500)).max(8).default([]),
     correctIndex: z.number().int().min(0).max(7).nullable().optional(),
+    correctIndexes: z.array(z.number().int().min(0).max(7)).max(8).default([]),
     correctBoolean: z.boolean().nullable().optional(),
     acceptedAnswers: z.array(z.string().max(300)).max(10).default([]),
     explanation: z.string().max(2000).optional(),
@@ -190,6 +192,9 @@ const question = z
   .superRefine((q, ctx) => {
     if (q.type === 'mcq' && (q.options.length < 2 || q.correctIndex == null || q.correctIndex >= q.options.length)) {
       ctx.addIssue({ code: 'custom', message: 'Câu trắc nghiệm cần ≥2 lựa chọn và đáp án đúng' });
+    }
+    if (q.type === 'multi' && (q.options.length < 2 || q.correctIndexes.length === 0 || q.correctIndexes.some((i) => i >= q.options.length))) {
+      ctx.addIssue({ code: 'custom', message: 'Câu nhiều đáp án cần ≥2 lựa chọn và ít nhất 1 đáp án đúng' });
     }
     if (q.type === 'true_false' && q.correctBoolean == null) ctx.addIssue({ code: 'custom', message: 'Câu đúng/sai cần đáp án' });
     if (q.type === 'short' && q.acceptedAnswers.length === 0) ctx.addIssue({ code: 'custom', message: 'Câu trả lời ngắn cần ít nhất 1 đáp án chấp nhận' });
@@ -282,6 +287,7 @@ async function spawnNextOccurrence(userId: string, task: any) {
     status: 'todo',
     scheduledDate: task.scheduledDate ? new Date(task.scheduledDate.getTime() + shift) : null,
     deadline: task.deadline ? new Date(task.deadline.getTime() + shift) : null,
+    remindAt: task.remindAt ? new Date(task.remindAt.getTime() + shift) : null,
     recurrence: r,
     recurrenceParent: parentId,
   });

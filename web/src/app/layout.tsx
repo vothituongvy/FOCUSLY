@@ -3,6 +3,7 @@ import { Be_Vietnam_Pro } from 'next/font/google';
 import './globals.css';
 import './shell.css';
 import './guide.css';
+import './responsive.css';
 import { PwaRegister } from '@/components/PwaRegister';
 import { cookies } from 'next/headers';
 import { tr } from '@/lib/i18n';

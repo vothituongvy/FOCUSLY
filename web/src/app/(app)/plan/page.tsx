@@ -86,7 +86,7 @@ export default function PlanPage() {
         </div>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: 'minmax(220px, 260px) 1fr', alignItems: 'start' }}>
+      <div className="grid split-plan">
         {/* ----- Môn học ----- */}
         <div className="card col" style={{ gap: 4 }}>
           <div className="row between" style={{ marginBottom: 6 }}>
@@ -350,7 +350,7 @@ function CalendarView({
                   }}
                   title={task.title}
                 >
-                  {task.title}
+                  {task.remindAt && kind === 'scheduled' && <Icon name="bell" size={11} />} {task.title}
                 </div>
               ))}
               {items.length > 3 && <div className="small muted">{tr('+{0} nữa', items.length - 3)}</div>}

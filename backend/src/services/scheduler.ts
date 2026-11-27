@@ -103,6 +103,28 @@ async function taskReminders(now: Date) {
   }
 }
 
+/** Nhắc hẹn học: người dùng đặt giờ nhắc cho từng nhiệm vụ trên Lịch (Web / App) */
+async function scheduledReminders(now: Date) {
+  const tasks = await TaskModel.find({
+    deletedAt: null,
+    status: { $in: ['todo', 'in_progress'] },
+    // trong cửa sổ vài phút vừa qua (bộ nhắc chạy mỗi phút; máy chủ có thể trễ một chút)
+    remindAt: { $gt: new Date(now.getTime() - 10 * 60_000), $lte: now },
+  })
+    .select('user title remindAt estimatedMinutes')
+    .lean();
+  for (const t of tasks) {
+    await notify(String(t.user), {
+      type: 'task_reminder',
+      title: '📚 Đến giờ học rồi',
+      body: `"${t.title}"${t.estimatedMinutes ? ` · ${t.estimatedMinutes} phút` : ''}. Bắt đầu phiên tập trung nhé!`,
+      data: { link: `/focus?task=${t._id}`, taskId: String(t._id) },
+      dedupeKey: `remind:${t._id}:${t.remindAt!.toISOString()}`,
+      urgent: true,
+    });
+  }
+}
+
 async function breakReminders(now: Date) {
   const sessions = await FocusSessionModel.find({ status: 'active', mode: 'pomodoro', deletedAt: null });
   for (const s of sessions) {
@@ -130,7 +152,7 @@ export async function tick(now = new Date()) {
   if (running) return;
   running = true;
   try {
-    await Promise.all([userReminders(now), taskReminders(now), breakReminders(now)]);
+    await Promise.all([userReminders(now), taskReminders(now), scheduledReminders(now), breakReminders(now)]);
   } catch (e) {
     console.error('[scheduler]', e);
   } finally {

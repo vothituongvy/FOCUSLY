@@ -10,6 +10,7 @@ import { fmtDate, fmtDuration } from '@/lib/format';
 import type { LearnOverview, Mistake, Quiz } from '@/lib/types';
 import { Empty, Spinner } from '@/components/ui';
 import { Icon } from '@/components/Icon';
+import { ImportFromFile } from '@/components/ImportFromFile';
 import { tr } from '@/lib/i18n';
 
 type Tab = 'cards' | 'quiz' | 'mistakes' | 'progress';
@@ -35,6 +36,8 @@ function LearnInner() {
           <Link href="/learn/quiz/new" className="btn secondary">
             {tr('+ Bộ câu hỏi')}
           </Link>
+          <ImportFromFile target="quiz" label={tr('Câu hỏi từ file')} />
+          <ImportFromFile target="flashcards" label={tr('Flashcard từ file')} />
           <Link href="/learn/review" className="btn" aria-disabled={!o?.dueTotal}>
             <Icon name="cards" size={16} />{' '}{tr('Ôn ngay')}{' '}{o?.dueTotal ? `(${o.dueTotal})` : ''}
           </Link>

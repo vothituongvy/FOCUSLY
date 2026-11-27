@@ -326,3 +326,13 @@ table.table tr:hover td { background: #fafbfc; }
 .pw-eye { position: absolute; top: 50%; right: 4px; transform: translateY(-50%); width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border: 0; background: transparent; color: var(--muted); border-radius: 8px; cursor: pointer; }
 .pw-eye:hover { color: var(--ink); background: var(--paper-2, rgba(0,0,0,.04)); }
 .pw-eye:focus-visible { outline: 2px solid var(--marker); outline-offset: 1px; }
+.option-box { width: 20px; height: 20px; flex: none; border: 1.5px solid var(--rule-strong); border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; background: var(--paper); }
+.option-box.on { background: var(--marker); border-color: var(--ink); }
+
+/* Hộp thoại "Tạo từ file" */
+.dropzone { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 110px; padding: 18px; border: 1.5px dashed var(--rule-strong); border-radius: 12px; background: var(--paper); color: var(--ink-2); font: inherit; cursor: pointer; text-align: center; word-break: break-word; }
+.dropzone:hover { border-color: var(--ink); background: var(--marker-soft); }
+.choice { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 10px; cursor: pointer; }
+.choice.on { border-color: var(--ink); background: var(--marker-soft); }
+.choice input { margin-top: 3px; }
+.sample { margin: 8px 0 6px; padding: 12px; border-radius: 10px; background: var(--paper-2, #faf7ee); border: 1px solid var(--rule); font-size: 12.5px; line-height: 1.5; white-space: pre-wrap; overflow-x: auto; }

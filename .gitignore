@@ -15,3 +15,6 @@ mobile/android/app/google-services.json
 # Khoá riêng của extension (giữ ID cố định) – tuyệt đối không đưa lên GitHub
 extension/*.pem
 extension/*.zip
+
+# Thư mục tạm chứa file chờ xoá
+_to_delete/

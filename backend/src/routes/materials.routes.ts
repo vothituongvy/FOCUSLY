@@ -26,14 +26,15 @@ const ALLOWED = [
   'text/markdown',
   'text/csv',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 ];
 
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 20 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    if (ALLOWED.includes(file.mimetype) || /\.(md|txt)$/i.test(file.originalname)) cb(null, true);
-    else cb(badRequest('Định dạng chưa hỗ trợ (PDF, ảnh, TXT/MD, DOCX)'));
+    if (ALLOWED.includes(file.mimetype) || /\.(md|txt|csv|tsv|docx|xlsx)$/i.test(file.originalname)) cb(null, true);
+    else cb(badRequest('Định dạng chưa hỗ trợ (PDF, ảnh, TXT/MD/CSV, Word, Excel)'));
   },
 });
 

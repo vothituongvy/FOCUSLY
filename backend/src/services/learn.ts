@@ -86,10 +86,11 @@ export function gradeShort(answer: string, accepted: string[]): boolean {
 
 type Q = {
   qid: string;
-  type: 'mcq' | 'true_false' | 'short';
+  type: 'mcq' | 'multi' | 'true_false' | 'short';
   prompt: string;
   options: string[];
   correctIndex?: number | null;
+  correctIndexes?: number[];
   correctBoolean?: boolean | null;
   acceptedAnswers: string[];
   explanation?: string;
@@ -100,6 +101,13 @@ export function gradeQuestion(q: Q, answer: unknown): { correct: boolean; correc
     const idx = typeof answer === 'number' ? answer : Number(answer);
     return { correct: idx === q.correctIndex, correctAnswer: q.options[q.correctIndex ?? 0] ?? '' };
   }
+  if (q.type === 'multi') {
+    // Đúng khi chọn ĐỦ và CHỈ các đáp án đúng
+    const picked = new Set((Array.isArray(answer) ? answer : []).map(Number));
+    const right = new Set(q.correctIndexes ?? []);
+    const correct = picked.size === right.size && [...right].every((i) => picked.has(i));
+    return { correct, correctAnswer: [...right].sort((a, b) => a - b).map((i) => q.options[i]).filter(Boolean).join('; ') };
+  }
   if (q.type === 'true_false') {
     const v = typeof answer === 'boolean' ? answer : answer === 'true';
     return { correct: v === q.correctBoolean, correctAnswer: q.correctBoolean ? 'Đúng' : 'Sai' };
@@ -109,7 +117,7 @@ export function gradeQuestion(q: Q, answer: unknown): { correct: boolean; correc
 
 export const attemptSchema = z.object({
   quiz: z.string().optional(),
-  answers: z.array(z.object({ qid: z.string(), answer: z.union([z.string(), z.number(), z.boolean(), z.null()]) })).max(100),
+  answers: z.array(z.object({ qid: z.string(), answer: z.union([z.string(), z.number(), z.boolean(), z.null(), z.array(z.number())]) })).max(100),
   durationSeconds: z.number().min(0).max(86400).optional(),
   session: z.string().nullable().optional(),
   startedAt: z.coerce.date().optional(),

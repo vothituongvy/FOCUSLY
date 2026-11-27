@@ -293,7 +293,7 @@ export function FocusRunning({
       )}
 
       <div className="timer-ring">
-        <svg width="300" height="300">
+        <svg viewBox="0 0 300 300" width="100%" height="100%">
           <circle cx="150" cy="150" r={R} stroke={focusMode ? 'rgba(255,255,255,.08)' : 'var(--rule)'} strokeWidth="10" fill="none" />
           <circle
             cx="150"

@@ -159,7 +159,7 @@ export default function JournalPage() {
       <div className="card">
         <div className="row between" style={{ marginBottom: 8 }}>
           <h3>{tr('Lịch sử')}</h3>
-          <select value={reason} onChange={(e) => setReason(e.target.value)} style={{ width: 200 }}>
+          <select value={reason} onChange={(e) => setReason(e.target.value)} style={{ width: 'auto', maxWidth: 220 }}>
             <option value="">{tr('Tất cả nguyên nhân')}</option>
             {Object.entries(REASON_LABEL).map(([k, v]) => (
               <option key={k} value={k}>

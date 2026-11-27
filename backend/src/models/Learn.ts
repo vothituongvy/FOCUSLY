@@ -122,7 +122,8 @@ reviewLogSchema.index({ user: 1, clientId: 1 }, { unique: true, partialFilterExp
 export const ReviewLogModel = model('ReviewLog', reviewLogSchema);
 
 /* ---------- Quiz ---------- */
-export const QUESTION_TYPES = ['mcq', 'true_false', 'short'] as const;
+// mcq: 1 đáp án đúng · multi: chọn TẤT CẢ đáp án đúng · true_false · short: tự gõ câu trả lời
+export const QUESTION_TYPES = ['mcq', 'multi', 'true_false', 'short'] as const;
 
 const questionSchema = new Schema(
   {
@@ -131,6 +132,7 @@ const questionSchema = new Schema(
     prompt: { type: String, required: true, maxlength: 2000 },
     options: { type: [String], default: [] }, // mcq
     correctIndex: { type: Number, default: null }, // mcq
+    correctIndexes: { type: [Number], default: [] }, // multi
     correctBoolean: { type: Boolean, default: null }, // true_false
     acceptedAnswers: { type: [String], default: [] }, // short
     explanation: { type: String, default: '', maxlength: 2000 },

@@ -105,7 +105,7 @@ export default function MaterialDetailPage() {
         </div>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1fr) 360px', alignItems: 'start' }}>
+      <div className="grid split-aside">
         {/* ---------- Viewer ---------- */}
         <div className="col">
           {material.type === 'pdf' && (

@@ -11,13 +11,15 @@ import type { Question, QuestionType, Quiz, QuizAttempt } from '@/lib/types';
 import { Spinner } from '@/components/ui';
 import { Icon } from '@/components/Icon';
 import { tr } from '@/lib/i18n';
+import { ImportFromFile } from '@/components/ImportFromFile';
 
-const TYPE_LABEL: Record<QuestionType, string> = { mcq: tr('Trắc nghiệm'), true_false: tr('Đúng / Sai'), short: tr('Trả lời ngắn') };
+const TYPE_LABEL: Record<QuestionType, string> = { mcq: tr('Trắc nghiệm'), multi: tr('Nhiều đáp án đúng'), true_false: tr('Đúng / Sai'), short: tr('Trả lời ngắn') };
 const blank = (type: QuestionType = 'mcq'): Question => ({
   type,
   prompt: '',
-  options: type === 'mcq' ? ['', '', '', ''] : [],
+  options: type === 'mcq' || type === 'multi' ? ['', '', '', ''] : [],
   correctIndex: type === 'mcq' ? 0 : null,
+  correctIndexes: [],
   correctBoolean: type === 'true_false' ? true : null,
   acceptedAnswers: [],
   explanation: '',
@@ -63,11 +65,18 @@ function QuizEditor({ initial, onSaved, onCancel }: { initial: Draft; onSaved: (
       material: d.material || null,
       task: d.task || null,
       source: d.source ?? 'manual',
-      questions: d.questions.map((q) => ({
-        ...q,
-        options: q.type === 'mcq' ? q.options.filter((o) => o.trim()) : [],
-        acceptedAnswers: q.type === 'short' ? q.acceptedAnswers.filter((a) => a.trim()) : [],
-      })),
+      questions: d.questions.map((q) => {
+        // bỏ lựa chọn trống nhưng giữ đúng vị trí đáp án đúng
+        const kept = q.options.map((o, k) => ({ o: o.trim(), k })).filter((x) => x.o);
+        const remap = (k: number) => kept.findIndex((x) => x.k === k);
+        return {
+          ...q,
+          options: q.type === 'mcq' || q.type === 'multi' ? kept.map((x) => x.o) : [],
+          correctIndex: q.type === 'mcq' ? remap(q.correctIndex ?? 0) : null,
+          correctIndexes: q.type === 'multi' ? (q.correctIndexes ?? []).map(remap).filter((k) => k >= 0) : [],
+          acceptedAnswers: q.type === 'short' ? q.acceptedAnswers.filter((a) => a.trim()) : [],
+        };
+      }),
     };
     try {
       const r = (initial as Quiz).id ? await patch<{ item: Quiz }>(`/quizzes/${(initial as Quiz).id}`, body) : await post<{ item: Quiz }>('/quizzes', body);
@@ -137,6 +146,30 @@ function QuizEditor({ initial, onSaved, onCancel }: { initial: Draft; onSaved: (
                 <input value={o} onChange={(e) => setQ(i, { options: q.options.map((x, j) => (j === k ? e.target.value : x)) })} placeholder={tr('Lựa chọn {0}', String.fromCharCode(65 + k))} />
               </label>
             ))}
+          {q.type === 'multi' && (
+            <>
+              <span className="small muted">{tr('Tick TẤT CẢ đáp án đúng. Người làm phải chọn đủ và đúng mới được điểm.')}</span>
+              {q.options.map((o, k) => {
+                const on = (q.correctIndexes ?? []).includes(k);
+                return (
+                  <label key={k} className="row">
+                    <input
+                      type="checkbox"
+                      checked={on}
+                      onChange={() => setQ(i, { correctIndexes: on ? (q.correctIndexes ?? []).filter((x) => x !== k) : [...(q.correctIndexes ?? []), k].sort((a, b) => a - b) })}
+                      title={tr('Đáp án đúng')}
+                    />
+                    <input value={o} onChange={(e) => setQ(i, { options: q.options.map((x, j) => (j === k ? e.target.value : x)) })} placeholder={tr('Lựa chọn {0}', String.fromCharCode(65 + k))} />
+                  </label>
+                );
+              })}
+            </>
+          )}
+          {(q.type === 'mcq' || q.type === 'multi') && q.options.length < 8 && (
+            <button className="btn ghost sm" style={{ alignSelf: 'flex-start' }} onClick={() => setQ(i, { options: [...q.options, ''] })}>
+              {tr('+ Thêm lựa chọn')}
+            </button>
+          )}
           {q.type === 'true_false' && (
             <div className="chips">
               <button className={`chip ${q.correctBoolean === true ? 'active' : ''}`} onClick={() => setQ(i, { correctBoolean: true })}>
@@ -159,7 +192,7 @@ function QuizEditor({ initial, onSaved, onCancel }: { initial: Draft; onSaved: (
       ))}
 
       <div className="row wrap">
-        {(['mcq', 'true_false', 'short'] as QuestionType[]).map((t) => (
+        {(['mcq', 'multi', 'true_false', 'short'] as QuestionType[]).map((t) => (
           <button key={t} className="btn secondary sm" onClick={() => setD({ ...d, questions: [...d.questions, blank(t)] })}>
             + {TYPE_LABEL[t]}
           </button>
@@ -182,7 +215,7 @@ function QuizEditor({ initial, onSaved, onCancel }: { initial: Draft; onSaved: (
 
 /* ======================= TAKE QUIZ ======================= */
 function QuizTaker({ quiz, onFinished }: { quiz: Quiz; onFinished: (a: QuizAttempt) => void }) {
-  const [answers, setAnswers] = useState<Record<string, string | number | boolean | null>>({});
+  const [answers, setAnswers] = useState<Record<string, string | number | boolean | number[] | null>>({});
   const [elapsed, setElapsed] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -193,7 +226,7 @@ function QuizTaker({ quiz, onFinished }: { quiz: Quiz; onFinished: (a: QuizAttem
     return () => clearInterval(t);
   }, []);
 
-  const answered = quiz.questions.filter((q) => answers[q.qid!] !== undefined && answers[q.qid!] !== '').length;
+  const answered = quiz.questions.filter((q) => { const a = answers[q.qid!]; return a !== undefined && a !== '' && !(Array.isArray(a) && a.length === 0); }).length;
 
   const submit = async () => {
     if (answered < quiz.questions.length && !confirm(tr('Bạn mới trả lời {0}/{1} câu. Nộp bài?', answered, quiz.questions.length))) return;
@@ -231,6 +264,27 @@ function QuizTaker({ quiz, onFinished }: { quiz: Quiz; onFinished: (a: QuizAttem
                 <b>{String.fromCharCode(65 + k)}.</b> {o}
               </button>
             ))}
+          {q.type === 'multi' && (
+            <>
+              <span className="small muted">{tr('Chọn tất cả đáp án đúng')}</span>
+              {q.options.map((o, k) => {
+                const cur = (answers[q.qid!] as number[] | undefined) ?? [];
+                const on = cur.includes(k);
+                return (
+                  <button
+                    key={k}
+                    role="checkbox"
+                    aria-checked={on}
+                    className={`option ${on ? 'selected' : ''}`}
+                    onClick={() => setAnswers({ ...answers, [q.qid!]: on ? cur.filter((x) => x !== k) : [...cur, k].sort((a, b) => a - b) })}
+                  >
+                    <span className={`option-box ${on ? 'on' : ''}`} aria-hidden>{on ? '✓' : ''}</span>
+                    <b>{String.fromCharCode(65 + k)}.</b> {o}
+                  </button>
+                );
+              })}
+            </>
+          )}
           {q.type === 'true_false' && (
             <div className="grid grid-2">
               {[true, false].map((v) => (
@@ -289,7 +343,11 @@ function AttemptResult({ attempt, quiz, onRetry }: { attempt: QuizAttempt; quiz:
       {attempt.answers.map((a, i) => {
         const q = quiz.questions.find((x) => x.qid === a.qid);
         const your =
-          q?.type === 'mcq' && typeof a.answer === 'number' ? q.options[a.answer] : q?.type === 'true_false' && a.answer != null ? (a.answer ? tr('Đúng') : 'Sai') : String(a.answer ?? tr('(bỏ trống)'));
+          q?.type === 'mcq' && typeof a.answer === 'number'
+            ? q.options[a.answer]
+            : q?.type === 'multi' && Array.isArray(a.answer)
+              ? (a.answer as number[]).map((k) => q.options[k]).join('; ') || tr('(bỏ trống)')
+              : q?.type === 'true_false' && a.answer != null ? (a.answer ? tr('Đúng') : 'Sai') : String(a.answer ?? tr('(bỏ trống)'));
         return (
           <div key={a.qid} className={`card col option ${a.correct ? 'correct' : 'wrong'}`} style={{ cursor: 'default', alignItems: 'stretch' }}>
             <b>
@@ -330,7 +388,10 @@ function QuizInner() {
         <Link href="/learn?tab=quiz" className="small">
           {tr('‹ Bộ câu hỏi')}
         </Link>
-        <h1>{tr('Tạo bộ câu hỏi')}</h1>
+        <div className="row between wrap">
+          <h1>{tr('Tạo bộ câu hỏi')}</h1>
+          <ImportFromFile target="quiz" />
+        </div>
         {draft && <QuizEditor initial={draft} onSaved={(q) => router.replace(`/learn/quiz/${q.id}`)} />}
       </div>
     );

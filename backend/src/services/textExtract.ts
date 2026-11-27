@@ -2,6 +2,8 @@
  * Trích văn bản từ tài liệu để tìm kiếm và cho AI đọc.
  * PDF dùng pdf-parse (import thẳng lib để tránh lỗi debug-mode của bản 1.x).
  */
+import { docxText, xlsxText } from './officeText';
+
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const pdfParse: (buf: Buffer) => Promise<{ text: string; numpages: number }> = require('pdf-parse/lib/pdf-parse.js');
 
@@ -18,7 +20,13 @@ export async function extractText(buffer: Buffer, mime: string, originalName = '
       const r = await pdfParse(buffer);
       return { text: clean(r.text), pages: r.numpages || 0 };
     }
-    if (mime.startsWith('text/') || /\.(md|txt|csv|json)$/i.test(originalName)) {
+    if (mime.includes('wordprocessingml') || /\.docx$/i.test(originalName)) {
+      return { text: clean(docxText(buffer)), pages: 0 };
+    }
+    if (mime.includes('spreadsheetml') || /\.xlsx$/i.test(originalName)) {
+      return { text: clean(xlsxText(buffer)), pages: 0 };
+    }
+    if (mime.startsWith('text/') || /\.(md|txt|csv|tsv|json)$/i.test(originalName)) {
       return { text: clean(buffer.toString('utf8')), pages: 0 };
     }
   } catch (e) {
@@ -28,7 +36,8 @@ export async function extractText(buffer: Buffer, mime: string, originalName = '
 }
 
 function clean(s: string): string {
-  return s.replace(/\u0000/g, '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim().slice(0, MAX_TEXT_CHARS);
+  // giữ TAB giữa các ô bảng (Word/Excel) để nhận dạng cột; chỉ bỏ khoảng trắng thừa cuối dòng
+  return s.replace(/\u0000/g, '').replace(/ +\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim().slice(0, MAX_TEXT_CHARS);
 }
 
 export function materialTypeFromMime(mime: string, name: string): 'pdf' | 'image' | 'text' | 'document' {
