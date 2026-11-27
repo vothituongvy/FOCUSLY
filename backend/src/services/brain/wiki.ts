@@ -3,7 +3,7 @@
  * Brain không lưu sẵn Wikipedia: khi cần mới tra, chỉ gửi TỪ KHOÁ câu hỏi (không gửi dữ liệu người dùng).
  * Nội dung Wikipedia theo giấy phép CC BY-SA – luôn ghi nguồn kèm liên kết.
  */
-import { bm25, isVietnamese, sentences, type Doc } from './text';
+import { bm25, fold, isVietnamese, sentences, type Doc } from './text';
 
 const UA = 'FOCUSLY-Brain/1.0 (study app; https://focusly-nu-sage.vercel.app)';
 const cache = new Map<string, { at: number; value: unknown }>();
@@ -103,4 +103,27 @@ export async function answerFromWiki(question: string, concept?: string | null):
     vi ? `Gõ **“lưu bài ${a.title}”** để lưu thành tài liệu và tạo flashcard, câu hỏi từ bài này.` : `Type **“save ${a.title}”** to keep it as a material and make flashcards or quizzes from it.`,
   ];
   return { text: lines.join('\n'), article: a };
+}
+
+/**
+ * Các bài Wikipedia mà bài này liên kết tới, xếp theo mức liên quan:
+ * liên kết được nhắc SỚM và NHIỀU LẦN trong nội dung bài đứng trước (đoạn mở đầu thường là khái niệm cốt lõi).
+ */
+export async function fetchLinks(title: string, lang: 'vi' | 'en', text = ''): Promise<string[]> {
+  const url = `https://${lang}.wikipedia.org/w/api.php?action=query&prop=links&plnamespace=0&pllimit=max&redirects=1&titles=${encodeURIComponent(title)}&format=json&utf8=1&origin=*`;
+  const data = await getJson<{ query?: { pages?: Record<string, { links?: { title: string }[] }> } }>(url);
+  const links = Object.values(data?.query?.pages ?? {})[0]?.links?.map((l) => l.title) ?? [];
+  if (!text) return links;
+  const body = fold(text);
+  return links
+    .map((l) => {
+      const k = fold(l.replace(/\s*\(.*?\)\s*$/, ''));
+      const first = k.length > 2 ? body.indexOf(k) : -1;
+      if (first < 0) return null;
+      const count = body.split(k).length - 1;
+      return { l, score: count * 2 + (1 - first / Math.max(1, body.length)) * 5 };
+    })
+    .filter((x): x is { l: string; score: number } => Boolean(x))
+    .sort((a, b) => b.score - a.score)
+    .map((x) => x.l);
 }

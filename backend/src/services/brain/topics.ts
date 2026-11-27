@@ -1,5 +1,6 @@
 /**
- * Danh sách chủ đề cho THƯ VIỆN KIẾN THỨC CHUNG của FOCUSLY Brain.
+ * Danh sách chủ đề HẠT GIỐNG cho THƯ VIỆN KIẾN THỨC CHUNG của FOCUSLY Brain.
+ * Từ mỗi chủ đề, Brain còn tự đọc lan sang các bài liên quan (xem knowledge.ts).
  * Mỗi chủ đề được tra trên Wikipedia tiếng Việt (không có thì tiếng Anh) và lưu vào database một lần.
  * Muốn Brain biết thêm: thêm chủ đề vào đây (hoặc đặt biến BRAIN_EXTRA_TOPICS="Chủ đề A; Chủ đề B") rồi deploy.
  */
@@ -56,6 +57,25 @@ export const KNOWLEDGE_TOPICS: Record<string, string[]> = {
     'Kinh tế học', 'Kinh tế vi mô', 'Kinh tế vĩ mô', 'Cung và cầu', 'Lạm phát', 'Tổng sản phẩm nội địa', 'Thị trường', 'Tiền tệ',
     'Ngân hàng', 'Marketing', 'Quản trị kinh doanh', 'Khởi nghiệp', 'Thương mại điện tử', 'Kế toán', 'Tài chính doanh nghiệp',
     'Doanh nghiệp vừa và nhỏ', 'Quản lý quan hệ khách hàng', 'Hệ thống thông tin quản lý', 'Phân tích SWOT', 'Chuỗi cung ứng',
+  ],
+  'Triết học & Xã hội': [
+    'Triết học', 'Chủ nghĩa duy vật biện chứng', 'Phép biện chứng', 'Đạo đức học', 'Logic học', 'Xã hội học', 'Tâm lý học', 'Tâm lý học phát triển',
+    'Văn hóa', 'Tôn giáo', 'Dân chủ', 'Nhà nước', 'Quyền con người', 'Toàn cầu hóa', 'Phát triển bền vững',
+  ],
+  'Pháp luật & Công dân': [
+    'Pháp luật', 'Hiến pháp Việt Nam', 'Luật Dân sự', 'Luật Hình sự', 'Hợp đồng', 'Quyền sở hữu trí tuệ', 'Bản quyền', 'Thuế',
+    'Bảo hiểm xã hội', 'Luật Lao động', 'An toàn giao thông',
+  ],
+  'Y học & Sức khỏe': [
+    'Dinh dưỡng', 'Vitamin', 'Protein', 'Tim', 'Não', 'Phổi', 'Huyết áp', 'Đái tháo đường', 'Vắc-xin', 'Kháng sinh', 'Sơ cứu',
+    'Sức khỏe tâm thần', 'Trầm cảm', 'Rối loạn lo âu', 'Hoạt động thể chất',
+  ],
+  'Nghệ thuật & Âm nhạc': [
+    'Âm nhạc', 'Nhạc lý', 'Hội họa', 'Kiến trúc', 'Điện ảnh', 'Nhiếp ảnh', 'Thiết kế đồ họa', 'Màu sắc', 'Nghệ thuật Phục Hưng',
+  ],
+  'Công nghệ & Kỹ thuật': [
+    'Điện tử học', 'Vi xử lý', 'Robot', 'Năng lượng tái tạo', 'Pin mặt trời', 'Ô tô điện', 'Mạng 5G', 'Chuỗi khối', 'Thực tế ảo',
+    'In 3D', 'Công nghệ sinh học', 'Công nghệ nano',
   ],
   'Kỹ năng học tập': [
     'Kỹ thuật Pomodoro', 'Lặp lại ngắt quãng', 'Trí nhớ', 'Đường cong quên lãng', 'Sơ đồ tư duy', 'Quản lý thời gian', 'Sự tập trung',

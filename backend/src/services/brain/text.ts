@@ -128,7 +128,7 @@ export interface Doc {
 }
 
 export function bm25(docs: Doc[], query: string, k1 = 1.4, b = 0.75): { doc: Doc; score: number }[] {
-  const q = [...new Set(terms(query))];
+  const q = [...new Set(terms(expandQuery(query)))];
   const qFold = q.map(fold);
   if (!q.length || !docs.length) return [];
   const toks = docs.map((d) => terms(d.text).map(fold));
@@ -230,4 +230,16 @@ export function shuffle<T>(arr: T[], rnd: () => number): T[] {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
+}
+
+/** "định luật 2" ↔ "định luật thứ hai": thêm cách viết bằng chữ của số 1–10 vào câu hỏi */
+const NUM_VI = ['không', 'một', 'hai', 'ba', 'bốn', 'năm', 'sáu', 'bảy', 'tám', 'chín', 'mười'];
+const NUM_EN = ['zero', 'first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'];
+export function expandQuery(q: string): string {
+  const extra: string[] = [];
+  for (const m of q.matchAll(/\b(10|[1-9])\b/g)) {
+    const n = Number(m[1]);
+    extra.push(NUM_VI[n], NUM_EN[n]);
+  }
+  return extra.length ? `${q} ${extra.join(' ')}` : q;
 }

@@ -286,15 +286,19 @@ async function libraryAnswer(message: string, concept: string | null): Promise<s
       return `**Theo thư viện FOCUSLY – ${art.title}:**\n${body}\n\n[Đọc bài đầy đủ](${art.url}) · _Wikipedia, CC BY-SA_\n\nGõ **“lưu bài ${art.title}”** để lưu thành tài liệu của bạn.`;
     }
   }
-  const hits = (await searchKnowledge(message, 6).catch(() => [])).filter((h) => h.score >= 3);
+  const hits = (await searchKnowledge(message, 5).catch(() => [])).filter((h) => h.score >= 3);
   if (!hits.length) return null;
-  const best = hits[0].entry;
-  const same = hits.filter((h) => h.entry.title === best.title && h.score >= hits[0].score * 0.5).slice(0, 3);
+  const best = hits[0];
+  // lấy thêm đoạn khác của CÙNG bài nếu cũng sát câu hỏi
+  const same = hits.filter((h) => h.title === best.title && h.score >= best.score * 0.6).slice(0, 2);
+  const lines = [...new Set(same.flatMap((h) => h.sentences))].slice(0, 4);
+  const others = [...new Set(hits.filter((h) => h.title !== best.title).map((h) => h.title))].slice(0, 3);
   return [
     `**Theo thư viện FOCUSLY – ${best.title}:**`,
-    ...same.map((h) => `- ${h.entry.text}`),
+    ...lines.map((x) => `- ${x}`),
     '',
     `[Đọc bài đầy đủ](${best.url}) · _Wikipedia, CC BY-SA_`,
+    others.length ? `\nBài liên quan: ${others.join(' · ')}` : '',
     '',
     `Gõ **“lưu bài ${best.title}”** để lưu thành tài liệu và tạo flashcard, câu hỏi từ bài này.`,
   ].join('\n');

@@ -147,7 +147,7 @@ export default function MaterialDetailPage() {
           {office && (
             <div className="tabs" style={{ marginBottom: 0 }}>
               <button className={`tab ${view === 'original' ? 'active' : ''}`} onClick={() => setView('original')}>
-                {tr('Bản gốc (có hình ảnh)')}
+                {tr('Bản gốc')}
               </button>
               <button className={`tab ${view === 'reader' ? 'active' : ''}`} onClick={() => setView('reader')}>
                 {tr('Chế độ đọc & ghi chú')}
