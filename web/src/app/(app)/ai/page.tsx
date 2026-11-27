@@ -73,10 +73,25 @@ function Chat({ initialMaterial }: { initialMaterial: string | null }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
+  // Khung chat vừa khít phần còn lại của màn hình: chỉ danh sách & tin nhắn cuộn, ô nhập luôn ở dưới
+  useEffect(() => {
+    const fit = () => {
+      const el = shellRef.current;
+      if (!el) return;
+      const top = el.getBoundingClientRect().top + window.scrollY;
+      el.style.height = `${Math.max(440, window.innerHeight - top - 20)}px`;
+    };
+    fit();
+    window.addEventListener('resize', fit);
+    return () => window.removeEventListener('resize', fit);
+  }, []);
 
   // Chrome mới: scrollIntoView trả về Promise. Effect phải trả về hàm dọn dẹp hoặc không gì cả, nên dùng thân hàm có ngoặc { }
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Chỉ cuộn khung tin nhắn, không kéo cả trang
+    const box = endRef.current?.parentElement;
+    if (box) box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
   }, [conv?.messages?.length, busy]);
 
   const open = async (id: string) => {
@@ -112,8 +127,8 @@ function Chat({ initialMaterial }: { initialMaterial: string | null }) {
     : [tr('Hôm nay mình học được bao lâu?'), tr('Mình nên học lúc mấy giờ?'), tr('Việc cần làm tiếp theo?'), tr('Cho mình mẹo tập trung')];
 
   return (
-    <div className="grid split-side">
-      <div className="card col" style={{ gap: 4, maxHeight: '75vh', overflow: 'auto' }}>
+    <div className="grid split-side chat-shell" ref={shellRef}>
+      <div className="card col chat-list">
         <button
           className="btn sm block"
           onClick={() => {
@@ -142,8 +157,8 @@ function Chat({ initialMaterial }: { initialMaterial: string | null }) {
         ))}
       </div>
 
-      <div className="card col" style={{ minHeight: '70vh' }}>
-        <div className="row">
+      <div className="card col chat-panel">
+        <div className="row" style={{ flex: 'none' }}>
           <span className="small muted">{tr('Ngữ cảnh:')}</span>
           <select value={materialId} onChange={(e) => setMaterialId(e.target.value)} disabled={Boolean(conv?.id)} style={{ maxWidth: 360 }}>
             <option value="">{tr('Kiến thức chung')}</option>
@@ -159,7 +174,7 @@ function Chat({ initialMaterial }: { initialMaterial: string | null }) {
             </Link>
           )}
         </div>
-        <div className="chat grow" style={{ overflow: 'auto', maxHeight: '58vh', padding: '6px 2px' }}>
+        <div className="chat chat-scroll">
           {!conv?.messages?.length && (
             <div className="col" style={{ alignItems: 'center', padding: 30, gap: 10 }}>
               <p className="muted">{tr('Hỏi bất cứ điều gì bạn đang học.')}</p>
@@ -184,7 +199,7 @@ function Chat({ initialMaterial }: { initialMaterial: string | null }) {
           <div ref={endRef} />
         </div>
         {error && <p className="error-text">{error}</p>}
-        <div className="row">
+        <div className="row chat-input">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -195,7 +210,7 @@ function Chat({ initialMaterial }: { initialMaterial: string | null }) {
               }
             }}
             placeholder={tr('Nhập câu hỏi… (Enter để gửi, Shift+Enter xuống dòng)')}
-            style={{ minHeight: 48 }}
+            rows={1} style={{ minHeight: 48, maxHeight: 160 }}
           />
           <button className="btn" disabled={busy || !input.trim()} onClick={() => send()}>
             {tr('Gửi')}
