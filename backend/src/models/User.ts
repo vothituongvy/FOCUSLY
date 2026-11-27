@@ -66,6 +66,8 @@ const userSchema = new Schema(
       reviewReminder: { type: Boolean, default: true }, // flashcard đến hạn ôn
       weeklyReport: { type: Boolean, default: true }, // báo cáo tuần tối Chủ nhật (thông báo)
       weeklyEmail: { type: Boolean, default: true }, // gửi kèm email
+      chatMessages: { type: Boolean, default: true }, // thông báo khi có tin nhắn mới
+      chatDuringFocus: { type: Boolean, default: false }, // vẫn báo tin nhắn khi đang trong phiên tập trung
       push: { type: Boolean, default: true },
       quietStart: { type: String, default: '23:00' },
       quietEnd: { type: String, default: '06:30' },

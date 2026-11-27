@@ -13,7 +13,30 @@ type Messaging = {
   requestPermission: () => Promise<number>;
   getToken: () => Promise<string>;
   onTokenRefresh: (cb: (t: string) => void) => () => void;
-  onMessage: (cb: (m: { notification?: { title?: string; body?: string } }) => void) => () => void;
+  onMessage: (cb: (m: PushMsg) => void) => () => void;
+  onNotificationOpenedApp?: (cb: (m: PushMsg) => void) => () => void;
+  getInitialNotification?: () => Promise<PushMsg | null>;
+};
+type PushMsg = { notification?: { title?: string; body?: string }; data?: Record<string, string> };
+
+/** Người dùng chạm vào thông báo đẩy -> mở đúng màn hình (đường dẫn kiểu web, VD /messages?chat=…) */
+let openHandler: ((link: string) => void) | null = null;
+let pendingLink: string | null = null;
+export function onPushOpen(fn: (link: string) => void) {
+  openHandler = fn;
+  if (pendingLink) {
+    fn(pendingLink);
+    pendingLink = null;
+  }
+  return () => {
+    if (openHandler === fn) openHandler = null;
+  };
+}
+const opened = (m: PushMsg | null) => {
+  const link = m?.data?.link;
+  if (!link) return;
+  if (openHandler) openHandler(link);
+  else pendingLink = link;
 };
 
 function loadMessaging(): (() => Messaging) | null {
@@ -44,10 +67,18 @@ export async function registerPush(onForeground?: (title: string, body: string) 
     };
     await send(await m.getToken());
     const unsubRefresh = m.onTokenRefresh(send);
-    const unsubMsg = m.onMessage((msg) => onForeground?.(msg.notification?.title ?? 'FOCUSLY', msg.notification?.body ?? ''));
+    const unsubMsg = m.onMessage((msg) => {
+      // tin nhắn: đã hiện ngay trong app (cuộc trò chuyện đang mở hoặc số chưa đọc)
+      // (tin nhắn khác: số chưa đọc trong app đã cập nhật, không bật hộp thoại làm gián đoạn)
+      if (msg.data?.type === 'chat') return;
+      onForeground?.(msg.notification?.title ?? 'FOCUSLY', msg.notification?.body ?? '');
+    });
+    const unsubOpen = m.onNotificationOpenedApp?.(opened) ?? (() => undefined);
+    void m.getInitialNotification?.().then(opened).catch(() => undefined);
     return () => {
       unsubRefresh();
       unsubMsg();
+      unsubOpen();
     };
   } catch (e) {
     console.warn('[push] không đăng ký được', e);

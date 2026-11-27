@@ -50,4 +50,6 @@ export type AppStackParams = {
   Library: undefined;
   Classes: undefined;
   ClassDetail: { classId: string };
+  Chats: undefined;
+  ChatThread: { chatId: string };
 };

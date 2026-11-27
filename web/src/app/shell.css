@@ -123,3 +123,4 @@ a.menu-item:hover, button.menu-item:hover, .menu-item:focus-visible { background
 .brand-mark { width: 30px; height: 30px; object-fit: contain; flex-shrink: 0; }
 .brand-word { font-weight: 800; letter-spacing: 0.02em; }
 .topbar-brand .brand-mark { width: 26px; height: 26px; }
+.nav-badge { order: 3; margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--stop); color: #fff; font-size: 11.5px; font-weight: 800; display: inline-grid; place-items: center; font-variant-numeric: tabular-nums; }

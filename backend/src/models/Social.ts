@@ -119,3 +119,53 @@ const usageDaySchema = new Schema(
 );
 usageDaySchema.index({ day: 1, user: 1 }, { unique: true });
 export const UsageDayModel = model('UsageDay', usageDaySchema);
+
+/* ================= Tin nhắn: 1-1 và nhóm ================= */
+const chatMemberSchema = new Schema(
+  {
+    user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    joinedAt: { type: Date, default: Date.now },
+    /** đã đọc tới lúc nào (dùng tính chưa đọc + "Đã xem") */
+    lastReadAt: { type: Date, default: Date.now },
+    /** tắt thông báo cuộc trò chuyện này */
+    muted: { type: Boolean, default: false },
+    /** chủ nhóm / quản trị */
+    admin: { type: Boolean, default: false },
+  },
+  { _id: false },
+);
+const chatSchema = new Schema(
+  {
+    type: { type: String, enum: ['direct', 'group'], required: true },
+    name: { type: String, default: '', maxlength: 80 },
+    /** "idA:idB" (sắp xếp) – mỗi cặp bạn chỉ có 1 cuộc trò chuyện riêng */
+    directKey: { type: String, default: undefined },
+    members: { type: [chatMemberSchema], default: [] },
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    lastMessage: {
+      text: { type: String, default: '' },
+      sender: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+      at: { type: Date, default: null },
+    },
+    deletedAt: { type: Date, default: null },
+  },
+  jsonOptions,
+);
+chatSchema.index({ 'members.user': 1, 'lastMessage.at': -1 });
+chatSchema.index({ directKey: 1 }, { unique: true, partialFilterExpression: { directKey: { $type: 'string' } } });
+export const ChatModel = model('Chat', chatSchema);
+
+const chatMessageSchema = new Schema(
+  {
+    chat: { type: Schema.Types.ObjectId, ref: 'Chat', required: true },
+    sender: { type: Schema.Types.ObjectId, ref: 'User', default: null }, // null = tin hệ thống
+    text: { type: String, required: true, maxlength: 2000 },
+    /** id do máy gửi sinh ra – gửi lại khi mạng chập chờn không bị trùng */
+    clientId: { type: String, default: undefined },
+    deletedAt: { type: Date, default: null },
+  },
+  jsonOptions,
+);
+chatMessageSchema.index({ chat: 1, createdAt: -1 });
+chatMessageSchema.index({ chat: 1, clientId: 1 }, { unique: true, partialFilterExpression: { clientId: { $type: 'string' } } });
+export const ChatMessageModel = model('ChatMessage', chatMessageSchema);

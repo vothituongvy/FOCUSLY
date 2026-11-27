@@ -17,6 +17,7 @@ import { LOCALE, tr } from '../i18n';
 import { LangSwitch } from '../components/LangSwitch';
 import { checkForUpdate } from '../updateCheck';
 import { APP_VERSION } from '../config';
+import { useUnreadChats } from './ChatScreens';
 
 type MenuItem = { screen: keyof AppStackParams; label: string; icon: IconName };
 /** Các mục giống thanh bên của bản Web, chia nhóm */
@@ -35,6 +36,7 @@ const MENU: { title: string; items: MenuItem[] }[] = [
   {
     title: tr('Cùng nhau'),
     items: [
+      { screen: 'Chats', label: tr('Tin nhắn'), icon: 'chat' },
       { screen: 'Friends', label: tr('Bạn bè & xếp hạng'), icon: 'users' },
       { screen: 'Rooms', label: tr('Phòng học chung'), icon: 'room' },
       { screen: 'Classes', label: tr('Lớp học'), icon: 'school' },
@@ -68,6 +70,7 @@ export function ProfileScreen() {
   const nav = useNavigation<NativeStackNavigationProp<AppStackParams>>();
   const { user, setUser, logout } = useAuth();
   const { online, pending, lastSyncAt, sync, syncing } = useData();
+  const unreadChats = useUnreadChats();
   if (!user) return null;
 
   return (
@@ -100,6 +103,11 @@ export function ProfileScreen() {
                   <Icon name={m.icon} size={18} color={colors.text} />
                 </View>
                 <Text style={{ color: colors.text, fontWeight: '600', flex: 1 }}>{m.label}</Text>
+                {m.screen === 'Chats' && unreadChats > 0 && (
+                  <View style={{ minWidth: 22, height: 22, borderRadius: 11, backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 }}>
+                    <Text style={{ color: '#fff', fontSize: 11.5, fontWeight: '800' }}>{unreadChats > 99 ? '99+' : unreadChats}</Text>
+                  </View>
+                )}
                 <Icon name="chevronRight" size={18} color={colors.muted} />
               </Pressable>
             ))}

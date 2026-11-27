@@ -30,6 +30,7 @@ export const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
   {
     label: tr('Cùng nhau'),
     items: [
+      { href: '/messages', label: tr('Tin nhắn'), icon: 'chat' },
       { href: '/friends', label: tr('Bạn bè & xếp hạng'), icon: 'users' },
       { href: '/rooms', label: tr('Phòng học chung'), icon: 'room' },
       { href: '/classes', label: tr('Lớp học'), icon: 'school' },

@@ -161,6 +161,7 @@ export function FriendsScreen() {
             <Row>
               <Text style={{ color: colors.text2, flex: 1 }}>{tr('Bạn đồng hành')}</Text>
               <Switch value={f.buddy} onValueChange={(v) => run(() => api(`/social/friends/${f.id}`, { method: 'PATCH', body: { buddy: v } }))} trackColor={{ true: colors.marker, false: colors.track }} thumbColor={colors.text} />
+              <Button small icon="chat" title={tr('Nhắn tin')} onPress={() => run(() => api<{ item: { id: string } }>('/chats/direct', { method: 'POST', body: { friendId: f.id } }).then((r) => nav.navigate('ChatThread', { chatId: r.item.id })))} />
               <Button small variant="secondary" title={tr('Động viên')} onPress={() => setCheerFor(cheerFor === f.id ? null : f.id)} />
             </Row>
             {cheerFor === f.id && (

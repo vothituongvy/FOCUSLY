@@ -82,6 +82,8 @@ const settingsSchema = z
     reviewReminder: z.boolean(),
     weeklyReport: z.boolean(),
     weeklyEmail: z.boolean(),
+    chatMessages: z.boolean(),
+    chatDuringFocus: z.boolean(),
     push: z.boolean(),
     quietStart: hm,
     quietEnd: hm,

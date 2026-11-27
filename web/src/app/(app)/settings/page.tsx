@@ -484,6 +484,8 @@ function NotificationsTab() {
     ['reviewReminder', tr('Nhắc ôn flashcard đến hạn'), tr('Lúc 8:00 nếu có ≥ 5 thẻ')],
     ['weeklyReport', tr('Báo cáo tuần'), tr('19:00 tối Chủ nhật: tổng kết 7 ngày, so với tuần trước')],
     ['weeklyEmail', tr('Gửi báo cáo tuần qua email'), tr('Kèm biểu đồ phút học từng ngày')],
+    ['chatMessages', tr('Tin nhắn mới'), tr('Thông báo khi bạn bè hoặc nhóm nhắn tin')],
+    ['chatDuringFocus', tr('Báo tin nhắn cả khi đang tập trung'), tr('Mặc định tắt: tin nhắn chờ tới khi bạn kết thúc phiên')],
     ['push', tr('Gửi thông báo đẩy đến điện thoại'), pushAvailable ? '' : tr('Máy chủ chưa cấu hình Firebase (FCM)')],
   ];
   const save = async (next: NotificationSettings) => {

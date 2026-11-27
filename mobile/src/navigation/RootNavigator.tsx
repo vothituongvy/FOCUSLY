@@ -28,6 +28,9 @@ import { SessionBar } from '../components/SessionBar';
 import { AppState } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { consumeWidgetAction } from '../native';
+import { onPushOpen } from '../push';
+import { openLink } from './links';
+import { ChatsScreen, ChatThreadScreen } from '../screens/ChatScreens';
 import { FriendsScreen, RoomScreen, RoomsScreen, WeeklyReportScreen } from '../screens/SocialScreens';
 import { ExamDetailScreen, ExamEditScreen, ExamsScreen } from '../screens/ExamScreens';
 import { ClassDetailScreen, ClassesScreen, LibraryScreen } from '../screens/CommunityScreens';
@@ -74,7 +77,12 @@ function WidgetBridge() {
     };
     void check();
     const sub = AppState.addEventListener('change', (st) => st === 'active' && void check());
-    return () => sub.remove();
+    // chạm vào thông báo đẩy -> mở đúng màn hình (tin nhắn, lớp học, phòng học…)
+    const off = onPushOpen((link) => openLink(nav, link));
+    return () => {
+      sub.remove();
+      off();
+    };
   }, [nav]);
   return null;
 }
@@ -180,6 +188,8 @@ export function RootNavigator() {
           <AppStack.Screen name="Mistakes" component={MistakesScreen} options={{ title: tr('Ôn câu sai') }} />
           <AppStack.Screen name="LearnProgress" component={LearnProgressScreen} options={{ title: tr('Tiến độ ghi nhớ') }} />
           <AppStack.Screen name="Goals" component={GoalsScreen} options={{ title: tr('Mục tiêu học tập') }} />
+          <AppStack.Screen name="Chats" component={ChatsScreen} options={{ title: tr('Tin nhắn') }} />
+          <AppStack.Screen name="ChatThread" component={ChatThreadScreen} options={{ title: tr('Trò chuyện') }} />
           <AppStack.Screen name="Friends" component={FriendsScreen} options={{ title: tr('Bạn bè & xếp hạng') }} />
           <AppStack.Screen name="Rooms" component={RoomsScreen} options={{ title: tr('Phòng học chung') }} />
           <AppStack.Screen name="Room" component={RoomScreen} options={{ title: tr('Phòng học') }} />

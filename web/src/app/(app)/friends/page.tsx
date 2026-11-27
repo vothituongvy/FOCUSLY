@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { del, errorMessage, patch, post } from '@/lib/api';
 import { useResource } from '@/lib/hooks';
 import { useSocketEvent } from '@/lib/socket';
@@ -25,6 +26,7 @@ interface Board {
 const CHEERS = ['Cố lên nhé! 💪', 'Vào phòng học chung không?', 'Học 25 phút cùng mình nhé!', 'Giỏi lắm, giữ chuỗi nha 🔥'];
 
 export default function FriendsPage() {
+  const router = useRouter();
   const friends = useResource<{ code: string; items: Friend[] }>('/social/friends');
   const board = useResource<Board>('/social/leaderboard', ['sessions']);
   const [code, setCode] = useState('');
@@ -171,6 +173,9 @@ export default function FriendsPage() {
                   {tr('Bạn đồng hành')}
                   <Toggle on={f.buddy} onChange={(v) => run(() => patch(`/social/friends/${f.id}`, { buddy: v }))} label={tr('Bạn đồng hành')} />
                 </label>
+                <button className="btn sm" onClick={() => run(() => post<{ item: { id: string } }>('/chats/direct', { friendId: f.id }).then((r) => router.push(`/messages?chat=${r.item.id}`)))}>
+                  <Icon name="chat" size={14} /> {tr('Nhắn tin')}
+                </button>
                 <button className="btn secondary sm" onClick={() => setCheerFor(cheerFor === f.id ? null : f.id)}>
                   {tr('Động viên')}
                 </button>

@@ -14,7 +14,7 @@ const FEATURE: Record<string, string> = {
   quizzes: 'quiz', 'quiz-attempts': 'quiz',
   materials: 'materials', 'material-notes': 'materials',
   ai: 'ai', analytics: 'analytics', dashboard: 'dashboard', insights: 'analytics',
-  social: 'social', library: 'library', classes: 'classes',
+  social: 'social', library: 'library', classes: 'classes', chats: 'chat',
   journal: 'journal', notifications: 'notifications',
 };
 const seen = new Set<string>();

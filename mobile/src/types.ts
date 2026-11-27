@@ -370,6 +370,8 @@ export interface NotificationSettings {
   reviewReminder: boolean;
   weeklyReport?: boolean;
   weeklyEmail?: boolean;
+  chatMessages?: boolean;
+  chatDuringFocus?: boolean;
   push: boolean;
   quietStart: string;
   quietEnd: string;

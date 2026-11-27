@@ -27,6 +27,7 @@ import examRoutes from './routes/exams.routes';
 import libraryRoutes from './routes/library.routes';
 import classRoutes from './routes/classes.routes';
 import adminRoutes from './routes/admin.routes';
+import chatRoutes from './routes/chats.routes';
 import { trackUsage } from './middleware/usage';
 import { aiEnabled } from './services/ai';
 import { pushEnabled } from './services/notifications';
@@ -120,6 +121,7 @@ export function createApp() {
   api.use('/library', libraryRoutes);
   api.use('/classes', classRoutes);
   api.use('/admin', adminRoutes);
+  api.use('/chats', chatRoutes);
   app.use('/api', api);
 
   app.use(notFoundHandler);

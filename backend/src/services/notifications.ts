@@ -103,3 +103,33 @@ export async function notify(userId: string, input: NotifyInput) {
   }
   return doc;
 }
+
+/**
+ * Chỉ đẩy thông báo tới điện thoại (không lưu vào hộp thông báo trong app) – dùng cho tin nhắn.
+ * Tôn trọng: tắt push, giờ yên lặng.
+ */
+export async function pushOnly(userId: string, title: string, body: string, data: Record<string, string> = {}, tag?: string) {
+  const fcm = getMessaging();
+  if (!fcm) return;
+  const user = await UserModel.findById(userId).select('profile.timezone notificationSettings').lean();
+  const settings = user?.notificationSettings;
+  if (settings?.push === false) return;
+  if (inQuietHours(new Date(), safeTimeZone(user?.profile?.timezone), settings?.quietStart, settings?.quietEnd)) return;
+  const tokens = await PushTokenModel.find({ user: userId }).select('token').lean();
+  if (!tokens.length) return;
+  try {
+    const res = await fcm.sendEachForMulticast({
+      tokens: tokens.map((t) => t.token),
+      notification: { title, body },
+      data,
+      // tag: tin mới cùng cuộc trò chuyện thay thế thông báo cũ thay vì xếp chồng
+      android: { priority: 'high', notification: { channelId: 'focusly-default', ...(tag ? { tag } : {}) } },
+    });
+    const dead = res.responses
+      .map((r, i) => (!r.success && /registration-token-not-registered|invalid-argument/.test(r.error?.code ?? '') ? tokens[i].token : null))
+      .filter(Boolean);
+    if (dead.length) await PushTokenModel.deleteMany({ token: { $in: dead } });
+  } catch (e) {
+    console.warn('[push] Gửi tin nhắn thất bại:', (e as Error).message);
+  }
+}

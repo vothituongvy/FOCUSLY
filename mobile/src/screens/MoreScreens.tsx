@@ -13,6 +13,7 @@ import type { AppStackParams } from '../navigation/types';
 import { Button, Card, Chip, Chips, Empty, H1, H3, Muted, ProgressBar, Row, Screen, s } from '../components/ui';
 import { Icon, type IconName } from '../components/Icon';
 import { LOCALE, tr } from '../i18n';
+import { openLink as goLink } from '../navigation/links';
 
 /* ======================= Tài liệu (bản Mobile cơ bản) ======================= */
 const TYPE_ICON: Record<string, IconName> = { pdf: 'materials', image: 'materials', text: 'journal', link: 'link', document: 'materials' };
@@ -103,22 +104,7 @@ export function NotificationsScreen() {
       void load();
     }, [load]),
   );
-  const openLink = (link?: string) => {
-    if (!link) return;
-    const code = /[?&]code=([A-Z0-9]+)/.exec(link)?.[1];
-    const id = link.split('?')[0].split('/')[2];
-    if (link.startsWith('/focus')) nav.navigate('Tabs');
-    else if (link.startsWith('/learn/review')) nav.navigate('Review');
-    else if (link.startsWith('/learn')) nav.navigate('Tabs');
-    else if (link.startsWith('/friends')) nav.navigate('Friends');
-    else if (link.startsWith('/rooms')) nav.navigate('Rooms', code ? { code } : undefined);
-    else if (link.startsWith('/report')) nav.navigate('WeeklyReport');
-    else if (link.startsWith('/classes/') && id) nav.navigate('ClassDetail', { classId: id });
-    else if (link.startsWith('/classes')) nav.navigate('Classes');
-    else if (link.startsWith('/exams/') && id) nav.navigate('ExamDetail', { examId: id });
-    else if (link.startsWith('/exams')) nav.navigate('Exams');
-    else if (link.startsWith('/plan')) nav.navigate('Tabs');
-  };
+  const openLink = (link?: string) => goLink(nav as never, link);
   return (
     <ScrollView
       style={{ backgroundColor: colors.bg }}
