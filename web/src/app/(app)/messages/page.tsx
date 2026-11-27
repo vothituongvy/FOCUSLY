@@ -11,14 +11,14 @@ import { tr } from '@/lib/i18n';
 import { Avatar, Empty, Modal, Spinner, Toggle } from '@/components/ui';
 import { Icon } from '@/components/Icon';
 
-export interface ChatMember {
+interface ChatMember {
   id: string;
   name: string;
   avatarUrl: string | null;
   admin: boolean;
   lastReadAt: string;
 }
-export interface ChatItem {
+interface ChatItem {
   id: string;
   type: 'direct' | 'group';
   name: string;
@@ -29,7 +29,7 @@ export interface ChatItem {
   unread: number;
   lastMessage: { text: string; at: string; mine: boolean; senderName: string } | null;
 }
-export interface Msg {
+interface Msg {
   id: string;
   sender: string | null;
   text: string;
@@ -148,7 +148,7 @@ function Messages() {
   );
 }
 
-export function ChatAvatar({ chat }: { chat: ChatItem }) {
+function ChatAvatar({ chat }: { chat: ChatItem }) {
   if (chat.type === 'direct') return <Avatar name={chat.name} url={chat.avatarUrl} />;
   return (
     <span className="group-avatar" aria-hidden>
