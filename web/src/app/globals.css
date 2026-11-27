@@ -336,3 +336,35 @@ table.table tr:hover td { background: #fafbfc; }
 .choice.on { border-color: var(--ink); background: var(--marker-soft); }
 .choice input { margin-top: 3px; }
 .sample { margin: 8px 0 6px; padding: 12px; border-radius: 10px; background: var(--paper-2, #faf7ee); border: 1px solid var(--rule); font-size: 12.5px; line-height: 1.5; white-space: pre-wrap; overflow-x: auto; }
+
+/* Nhóm trường không phải <label> (VD: Khung giờ học, Mức bảo vệ) – cách đều như label.field */
+div.field { display: flex; flex-direction: column; gap: 8px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+div.field > .btn { align-self: flex-start; }
+
+/* Khoảng giờ: [từ] đến [tới] [x] – chữ "đến/to" không bị bẻ dọc */
+.time-range { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto; align-items: center; gap: 10px; }
+.time-range-sep { white-space: nowrap; font-weight: 500; }
+@media (max-width: 420px) { .time-range { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); } .time-range > :last-child { grid-column: 1 / -1; justify-self: end; } }
+
+/* Nút dạng link (trong ô trống, gợi ý hành động) */
+.empty { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.link-btn { border: 0; background: none; padding: 2px 0; font: inherit; font-weight: 700; color: var(--ink); cursor: pointer; text-decoration: underline; text-decoration-color: var(--marker); text-decoration-thickness: 3px; text-underline-offset: 4px; }
+.link-btn:hover { text-decoration-color: var(--ink); }
+.link-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 4px; }
+
+/* ---------- Cài đặt: dùng hết bề ngang trên màn hình rộng (2 cột), 1 cột trên màn hình hẹp ---------- */
+.settings-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px 28px; align-items: start; }
+@media (min-width: 1100px) {
+  .settings-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* hàng nút Lưu, ảnh đại diện, bảng nhiều cột, tiêu đề, Pomodoro: chiếm cả 2 cột */
+  .settings-grid > .row, .settings-grid > .grid, .settings-grid > h3, .settings-grid > p,
+  .settings-grid > div.field:has(.grid-4), .settings-grid > .span-2 { grid-column: 1 / -1; }
+  .settings-lang > div:first-child { grid-column: 1 / -1; }
+}
+/* Các công tắc thông báo xếp 2 cột, mỗi công tắc là một ô viền nhẹ */
+.setting-item { padding: 12px 14px; border: 1px solid var(--rule); border-radius: 10px; background: var(--paper); gap: 14px; height: 100%; }
+@media (min-width: 1100px) { .settings-grid > .row.setting-item { grid-column: auto; } }
+/* Thẻ trong Cài đặt cao bằng nhau khi đứng cạnh nhau */
+.settings-grid > .card { height: 100%; }
+/* Viền focus của tab không bị cắt thành 2 vạch dọc */
+.tab:focus-visible { outline: 2px solid var(--ink); outline-offset: -3px; border-radius: 6px; }

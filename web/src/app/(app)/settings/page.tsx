@@ -55,7 +55,7 @@ function ProfileTab({ user }: { user: User }) {
   };
 
   return (
-    <form className="form" onSubmit={save} style={{ maxWidth: 520 }}>
+    <form className="form settings-grid" onSubmit={save}>
       <div className="row" style={{ gap: 18 }}>
         <Avatar name={user.name} url={user.avatarUrl} size="lg" />
         <div className="col" style={{ gap: 6 }}>
@@ -136,7 +136,7 @@ function PreferencesTab({ user }: { user: User }) {
   };
 
   return (
-    <form className="form" onSubmit={save} style={{ maxWidth: 640 }}>
+    <form className="form settings-grid" onSubmit={save}>
       <label className="field">
         {tr('Mục tiêu học tập')}
         <textarea value={p.learningGoal} onChange={(e) => setP({ ...p, learningGoal: e.target.value })} placeholder={tr('VD: Đạt IELTS 6.5 trước tháng 6')} />
@@ -148,13 +148,13 @@ function PreferencesTab({ user }: { user: User }) {
       <div className="field">
         {tr('Khung giờ học mong muốn')}
         {p.preferredStudyTimes.map((t, i) => (
-          <div className="row" key={i}>
+          <div className="time-range" key={i}>
             <input
               type="time"
               value={t.start}
               onChange={(e) => setP({ ...p, preferredStudyTimes: p.preferredStudyTimes.map((x, j) => (j === i ? { ...x, start: e.target.value } : x)) })}
             />
-            <span className="muted small">{tr('đến')}</span>
+            <span className="muted small time-range-sep">{tr('đến')}</span>
             <input
               type="time"
               value={t.end}
@@ -273,7 +273,7 @@ function ShieldTab({ user }: { user: User }) {
   };
 
   return (
-    <div className="col" style={{ maxWidth: 680, gap: 18 }}>
+    <div className="settings-grid">
       <div className="card col" style={{ boxShadow: 'none' }}>
         <div className="row between">
           <div>
@@ -490,7 +490,7 @@ function NotificationsTab() {
     setMsg(tr('Đã lưu ✓'));
   };
   return (
-    <div className="col" style={{ maxWidth: 640, gap: 14 }}>
+    <div className="settings-grid">
       <div className="card row between" style={{ boxShadow: 'none' }}>
         <div>
           <b>{tr('Thông báo trình duyệt')}</b>
@@ -503,7 +503,7 @@ function NotificationsTab() {
         )}
       </div>
       {toggles.map(([k, label, hint]) => (
-        <div key={k} className="row between">
+        <div key={k} className="row between setting-item">
           <div>
             <b>{label}</b>
             {hint && <p className="small muted">{hint}</p>}
@@ -573,7 +573,7 @@ function SecurityTab({ user }: { user: User }) {
   };
 
   return (
-    <div className="col" style={{ maxWidth: 680, gap: 22 }}>
+    <div className="settings-grid">
       <form className="form card" style={{ boxShadow: 'none' }} onSubmit={change}>
         <h3>{user.hasPassword ? tr('Đổi mật khẩu') : tr('Đặt mật khẩu (tài khoản Google)')}</h3>
         {user.hasPassword && (
@@ -641,7 +641,7 @@ function LanguageTab() {
     { id: 'en', name: 'English', native: 'Tiếng Anh', sample: 'Start a study session' },
   ];
   return (
-    <div className="col" style={{ maxWidth: 620, gap: 14 }}>
+    <div className="settings-grid settings-lang">
       <div>
         <h3>{tr('Ngôn ngữ giao diện')}</h3>
         <p className="small muted" style={{ marginTop: 4 }}>

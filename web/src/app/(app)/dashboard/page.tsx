@@ -272,7 +272,7 @@ export default function DashboardPage() {
         {data.recentActivities.length === 0 ? (
           <p className="muted small">{tr('Các phiên học, nhiệm vụ đã xong và lần phân tâm sẽ hiện ở đây.')}</p>
         ) : (
-          <div className="list" style={{ maxWidth: 720 }}>
+          <div className="list">
             {data.recentActivities.map((a, i) => (
               <div className="list-item" key={`${a.refId}-${i}`}>
                 <span style={{ color: a.type === 'distraction' ? 'var(--stop)' : 'var(--muted)' }}>

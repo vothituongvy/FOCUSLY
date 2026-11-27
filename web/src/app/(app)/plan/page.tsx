@@ -189,9 +189,9 @@ export default function PlanPage() {
                 <Spinner />
               ) : sorted.length === 0 ? (
                 <Empty>
-                  {tr('Không có nhiệm vụ.')} 
-                  <button className="btn sm" onClick={() => setModal({ kind: 'task' })}>
-                    {tr('Tạo nhiệm vụ')}
+                  <p>{tr('Không có nhiệm vụ.')}</p>
+                  <button type="button" className="link-btn" onClick={() => setModal({ kind: 'task' })}>
+                    {tr('+ Tạo nhiệm vụ')}
                   </button>
                 </Empty>
               ) : (
@@ -368,9 +368,9 @@ function GoalsView({ goals, onEdit, onAdd }: { goals: Goal[]; onEdit: (g: Goal) 
   if (goals.length === 0)
     return (
       <Empty>
-        {tr('Chưa có mục tiêu.')} 
-        <button className="btn sm" onClick={onAdd}>
-          {tr('Thêm mục tiêu')}
+        <p>{tr('Chưa có mục tiêu.')}</p>
+        <button type="button" className="link-btn" onClick={onAdd}>
+          {tr('+ Thêm mục tiêu')}
         </button>
       </Empty>
     );
