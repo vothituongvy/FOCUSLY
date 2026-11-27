@@ -52,3 +52,15 @@
 @media (min-width: 901px) {
   .guide-toc { max-height: calc(100vh - 104px); overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; scrollbar-width: thin; }
 }
+
+/* Toàn màn hình: nội dung trải hết bề ngang; màn rộng thì các ý xếp 2 cột cho dễ đọc */
+.guide-body { max-width: none; }
+.guide-section { align-items: stretch; }
+.guide-section > a.btn, .guide-section > .btn { align-self: flex-start; }
+@media (min-width: 1200px) {
+  .guide { grid-template-columns: 240px minmax(0, 1fr); gap: 28px; }
+  .guide-points { display: block; columns: 2 320px; column-gap: 40px; padding-left: 22px; }
+  .guide-points li { break-inside: avoid; margin-bottom: 7px; }
+  .guide-steps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 32px; row-gap: 12px; }
+  .guide-intro { max-width: 90ch; }
+}

@@ -496,3 +496,19 @@ p.forecast-hint { border: 0; background: none; padding: 0; }
 .pron-result.good { background: var(--go-soft); color: var(--go); }
 .pron-result.ok { background: var(--marker-soft); color: #8a5a00; }
 .pron-result.bad { background: var(--stop-soft); color: var(--stop); }
+
+/* ---------- Thống kê hệ thống (admin) ---------- */
+.trend { position: relative; }
+.trend-grid { stroke: var(--rule); stroke-width: 1; }
+.trend-axis { font-size: 11px; fill: var(--muted); font-variant-numeric: tabular-nums; }
+.trend-line { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.trend-area { fill: var(--marker); opacity: .28; }
+.trend-cross { stroke: var(--ink-2); stroke-width: 1; stroke-dasharray: 3 3; }
+.trend-dot { fill: var(--marker); stroke: var(--ink); stroke-width: 2; }
+.trend-tip { position: absolute; top: 4px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; padding: 4px 10px; border-radius: 8px; background: var(--paper); border: 1px solid var(--rule-strong); box-shadow: 0 4px 14px rgba(18, 26, 46, .1); pointer-events: none; white-space: nowrap; }
+.admin-week { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; border-top: 1px solid var(--rule); padding-top: 12px; }
+.admin-week > div, .admin-content > div { display: flex; flex-direction: column; gap: 2px; }
+.admin-week b { font-size: 18px; }
+.admin-content { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
+.admin-content b { font-size: 22px; }
+@media (max-width: 760px) { .admin-week, .admin-content { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

@@ -4,7 +4,10 @@ import { ah, forbidden } from '../utils/http';
 import { UsageDayModel } from '../models/Social';
 import { UserModel } from '../models/User';
 import { FocusSessionModel } from '../models/FocusSession';
-import { DeckModel, QuizModel } from '../models/Learn';
+import { CardModel, DeckModel, MaterialModel, QuizAttemptModel, QuizModel, ReviewLogModel } from '../models/Learn';
+import { AIUsageModel } from '../models/AI';
+import { ChatMessageModel, ChatModel, ClassModel, ExamModel, RoomModel } from '../models/Social';
+import type { Model } from 'mongoose';
 import { dayKey, lastDayKeys } from '../utils/time';
 import { sentryEnabled } from '../services/sentry';
 
@@ -89,8 +92,64 @@ router.get(
     }
     const signups = days30.map((d) => ({ day: d, users: newUsers.filter((u) => dayKey((u as { createdAt?: Date }).createdAt ?? now, TZ) === d).length }));
 
+    // Hoạt động theo ngày (giờ VN): phút tập trung, phiên, lượt ôn thẻ, bài quiz, tin nhắn, lượt hỏi AI
+    const byDay = async (model: Model<any>, dateField: string, match: Record<string, unknown> = {}, sumField?: string) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+      const rows = await model.aggregate<{ _id: string; n: number }>([
+        { $match: { ...match, [dateField]: { $gte: new Date(now.getTime() - 31 * 86_400_000) } } },
+        { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: `$${dateField}`, timezone: TZ } }, n: sumField ? { $sum: `$${sumField}` } : { $sum: 1 } } },
+      ]);
+      const m = new Map(rows.map((r) => [r._id, r.n]));
+      return days30.map((d) => m.get(d) ?? 0);
+    };
+    const [focusSec, sessionsN, reviewsN, quizN, msgN, aiN] = await Promise.all([
+      byDay(FocusSessionModel, 'startedAt', { deletedAt: null }, 'actualFocusSeconds'),
+      byDay(FocusSessionModel, 'startedAt', { deletedAt: null }),
+      byDay(ReviewLogModel, 'reviewedAt'),
+      byDay(QuizAttemptModel, 'completedAt', { deletedAt: null }),
+      byDay(ChatMessageModel, 'createdAt', { deletedAt: null, sender: { $ne: null } }),
+      byDay(AIUsageModel, 'createdAt'),
+    ]);
+    const activity = days30.map((day, i) => ({
+      day,
+      focusMinutes: Math.round(focusSec[i] / 60),
+      sessions: sessionsN[i],
+      reviews: reviewsN[i],
+      quizzes: quizN[i],
+      messages: msgN[i],
+      ai: aiN[i],
+      dau: dau[i]?.users ?? 0,
+      signups: signups[i]?.users ?? 0,
+    }));
+
+    // Tổng nội dung trên hệ thống
+    const [decksN, cardsN, quizzesN, materialsN, examsN, roomsN, classesN, groupsN, messagesN, publicN] = await Promise.all([
+      DeckModel.countDocuments({ deletedAt: null }),
+      CardModel.countDocuments({ deletedAt: null }),
+      QuizModel.countDocuments({ deletedAt: null }),
+      MaterialModel.countDocuments({ deletedAt: null }),
+      ExamModel.countDocuments({ deletedAt: null }),
+      RoomModel.countDocuments({ deletedAt: null }),
+      ClassModel.countDocuments({ deletedAt: null }),
+      ChatModel.countDocuments({ deletedAt: null, type: 'group' }),
+      ChatMessageModel.countDocuments({ deletedAt: null, sender: { $ne: null } }),
+      Promise.all([DeckModel, QuizModel, MaterialModel].map((mm) => (mm as unknown as Model<unknown>).countDocuments({ deletedAt: null, isPublic: true }))).then((x) => x.reduce((a, b) => a + b, 0)),
+    ]);
+    const sum = (k: 'focusMinutes' | 'sessions' | 'reviews' | 'quizzes' | 'messages' | 'ai', from: number) => activity.slice(from).reduce((a, r) => a + r[k], 0);
+
     res.json({
       totals: { users: totalUsers, dau: dau[dau.length - 1]?.users ?? 0, wau: uniq(last7), mau: uniq(days30) },
+      activity,
+      week: {
+        focusMinutes: sum('focusMinutes', 23),
+        prevFocusMinutes: activity.slice(16, 23).reduce((a, r) => a + r.focusMinutes, 0),
+        sessions: sum('sessions', 23),
+        reviews: sum('reviews', 23),
+        quizzes: sum('quizzes', 23),
+        messages: sum('messages', 23),
+        ai: sum('ai', 23),
+        signups: activity.slice(23).reduce((a, r) => a + r.signups, 0),
+      },
+      content: { decks: decksN, cards: cardsN, quizzes: quizzesN, materials: materialsN, exams: examsN, rooms: roomsN, classes: classesN, groups: groupsN, messages: messagesN, shared: publicN },
       dau,
       signups,
       features: toList(featureUsers),

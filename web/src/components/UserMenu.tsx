@@ -66,7 +66,7 @@ export function UserMenu() {
           </Link>
           {admin && (
             <Link href="/admin" role="menuitem" className="menu-item" onClick={close}>
-              <Icon name="analytics" size={17} /> {tr('Số liệu sử dụng')}
+              <Icon name="analytics" size={17} /> {tr('Thống kê hệ thống')}
             </Link>
           )}
           <Link href="/notifications" role="menuitem" className="menu-item" onClick={close}>

@@ -47,15 +47,6 @@ export default function NotificationsPage() {
           >
             {tr('Đánh dấu tất cả đã đọc')}
           </button>
-          <button
-            className="btn sm"
-            onClick={async () => {
-              if ('Notification' in window && Notification.permission === 'default') await Notification.requestPermission();
-              await post('/notifications/test');
-            }}
-          >
-            {tr('Gửi thử')}
-          </button>
         </div>
       </div>
       <div className="card">

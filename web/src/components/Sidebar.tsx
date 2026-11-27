@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { get } from '@/lib/api';
 import { Icon } from './Icon';
 import { NAV_GROUPS } from '@/lib/nav';
 import { tr } from '@/lib/i18n';
@@ -23,6 +24,14 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
+
+  // mục Thống kê hệ thống chỉ hiện với tài khoản quản trị (ADMIN_EMAILS)
+  const [admin, setAdmin] = useState(false);
+  useEffect(() => {
+    get<{ admin: boolean }>('/admin/me')
+      .then((r) => setAdmin(r.admin))
+      .catch(() => setAdmin(false));
+  }, []);
 
   const active = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
@@ -45,6 +54,15 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
               ))}
             </div>
           ))}
+          {admin && (
+            <div className="nav-section">
+              <div className="nav-group">{tr('Quản trị')}</div>
+              <Link href="/admin" className={`nav-link ${active('/admin') ? 'active' : ''}`} aria-current={active('/admin') ? 'page' : undefined}>
+                <Icon name="analytics" />
+                <span className="nav-label">{tr('Thống kê hệ thống')}</span>
+              </Link>
+            </div>
+          )}
         </nav>
       </aside>
     </>
