@@ -89,7 +89,7 @@ export function AIChatScreen({ route }: { route: { params?: { materialId?: strin
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['bottom']}>
       {/* Đẩy cả khung chat lên trên bàn phím để ô nhập luôn nhìn thấy */}
       <KeyboardView>
-        <ScrollView ref={scroll as never} keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 16, gap: 10, flexGrow: 1 }} onContentSizeChange={() => scroll.current?.scrollToEnd({ animated: false })}>
+        <ScrollView ref={scroll as never} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={{ padding: 16, gap: 10, flexGrow: 1 }} onContentSizeChange={() => scroll.current?.scrollToEnd({ animated: false })}>
           {material && (
             <Row>
               <Chip label={`${tr('Đang hỏi về: {0}', material.title)}  ✕`} active onPress={() => setMaterialId(null)} />

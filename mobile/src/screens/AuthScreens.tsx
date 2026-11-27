@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Pressable, ScrollView, View } from 'react-native';
 import { Text } from '../components/AppText';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { api, errorMessage } from '../api/client';
@@ -12,8 +12,10 @@ import { LangSwitch } from '../components/LangSwitch';
 
 function AuthShell({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 22, gap: 22 }} keyboardShouldPersistTaps="handled">
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior="padding">
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+        {/* chạm chỗ trống để ẩn bàn phím */}
+        <Pressable onPress={Keyboard.dismiss} accessible={false} style={{ flexGrow: 1, justifyContent: 'center', padding: 22, gap: 22 }}>
         <View style={{ gap: 18 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <Logo size={30} />
@@ -23,6 +25,7 @@ function AuthShell({ title, children }: { title: string; children: React.ReactNo
           <Text style={{ fontSize: 30, fontWeight: '800', color: colors.text, letterSpacing: -0.8, lineHeight: 36 }}>{title}</Text>
         </View>
         <Card style={{ gap: 14, padding: 18 }}>{children}</Card>
+        </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
   );

@@ -404,7 +404,7 @@ function Sheet({ visible, onClose, title, children }: { visible: boolean; onClos
       <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' }} onPress={onClose} />
       <View style={{ backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, gap: 14, maxHeight: '85%' }}>
         <Text style={[s.h3, { fontSize: 18 }]}>{title}</Text>
-        <ScrollView contentContainerStyle={{ gap: 14 }} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={{ gap: 14 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
           {children}
         </ScrollView>
       </View>

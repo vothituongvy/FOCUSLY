@@ -1,7 +1,7 @@
 import React, { ReactNode, useContext } from 'react';
 import { HeaderHeightContext } from '@react-navigation/elements';
 import { useRoute } from '@react-navigation/native';
-import { ActivityIndicator, Image, Animated, KeyboardAvoidingView, Pressable, ScrollView, StyleProp, StyleSheet, TextInputProps, View, ViewStyle } from 'react-native';
+import { ActivityIndicator, Image, Animated, Keyboard, KeyboardAvoidingView, Pressable, ScrollView, StyleProp, StyleSheet, TextInputProps, View, ViewStyle } from 'react-native';
 import { Text, TextInput } from './AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, fonts, radius, tints } from '../theme';
@@ -28,20 +28,28 @@ export function KeyboardView({ children }: { children: ReactNode }) {
  */
 export function Screen({ children, scroll = true, padded = true, header }: { children: ReactNode; scroll?: boolean; padded?: boolean; header?: ReactNode }) {
   // Nội dung nằm trên một "trang giấy" trắng đặt trên nền bàn, hiện ra nhẹ nhàng khi mở màn hình
-  const content = padded ? (
+  // Màn nằm trong ngăn xếp có thanh tiêu đề sẵn thì không chừa thêm khoảng tai thỏ phía trên nữa
+  const headerHeight = useContext(HeaderHeightContext) ?? 0;
+  const inner = padded ? (
     <FadeIn style={{ padding: 16 }}>
       <View style={{ gap: 14 }}>{children}</View>
     </FadeIn>
   ) : (
     <View>{children}</View>
   );
+  // Chạm vào chỗ trống bất kỳ -> ẩn bàn phím (các nút, ô nhập bên trong vẫn bấm bình thường)
+  const content = (
+    <Pressable onPress={Keyboard.dismiss} accessible={false} style={{ flexGrow: 1 }}>
+      {inner}
+    </Pressable>
+  );
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={header ? [] : ['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={header || headerHeight > 0 ? [] : ['top']}>
       {header}
       <SyncBar />
       {scroll ? (
         <KeyboardView>
-          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 32 }}>
+          <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={{ paddingBottom: 32, flexGrow: 1 }}>
             {content}
           </ScrollView>
         </KeyboardView>

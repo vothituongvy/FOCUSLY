@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Pressable, View } from 'react-native';
-import { Text } from '../components/AppText';
+import { Text, TextInput } from '../components/AppText';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { api, errorMessage } from '../api/client';
 import { API_URL } from '../config';
@@ -496,27 +496,159 @@ export function DeckEditScreen({ route, navigation }: NativeStackScreenProps<App
   );
 }
 
-/* ======================= Bộ câu hỏi: tạo bằng AI / quản lý ======================= */
+/* ======================= Bộ câu hỏi: tự soạn + tạo bằng AI ======================= */
+type QType = 'mcq' | 'true_false' | 'short';
+const QTYPES: { id: QType; label: string }[] = [
+  { id: 'mcq', label: tr('Trắc nghiệm') },
+  { id: 'true_false', label: tr('Đúng / Sai') },
+  { id: 'short', label: tr('Trả lời ngắn') },
+];
+const emptyQ = (type: QType = 'mcq'): Question => ({ type, prompt: '', options: ['', '', '', ''], correctIndex: 0, correctBoolean: true, acceptedAnswers: [], explanation: '' });
+
+/** Kiểm tra một câu hỏi đã đủ thông tin chưa; trả về lời nhắc nếu thiếu */
+function checkQuestion(q: Question): string {
+  if (!q.prompt.trim()) return tr('Nhập nội dung câu hỏi.');
+  if (q.type === 'mcq') {
+    const filled = q.options.filter((o) => o.trim());
+    if (filled.length < 2) return tr('Cần ít nhất 2 lựa chọn.');
+    if (q.correctIndex == null || !q.options[q.correctIndex]?.trim()) return tr('Chạm vào một lựa chọn để đánh dấu đáp án đúng.');
+  }
+  if (q.type === 'short' && !q.acceptedAnswers.some((a) => a.trim())) return tr('Nhập ít nhất một đáp án được chấp nhận.');
+  return '';
+}
+
+/** Chuẩn hoá trước khi gửi lên máy chủ: bỏ lựa chọn trống và giữ đúng chỉ số đáp án */
+function cleanQuestion(q: Question): Question {
+  if (q.type === 'mcq') {
+    const kept = q.options.map((o, i) => ({ o: o.trim(), i })).filter((x) => x.o);
+    return { ...q, options: kept.map((x) => x.o), correctIndex: Math.max(0, kept.findIndex((x) => x.i === q.correctIndex)), acceptedAnswers: [], correctBoolean: null };
+  }
+  if (q.type === 'true_false') return { ...q, options: [], acceptedAnswers: [], correctIndex: null };
+  return { ...q, options: [], correctIndex: null, correctBoolean: null, acceptedAnswers: q.acceptedAnswers.map((a) => a.trim()).filter(Boolean) };
+}
+
+function QuestionForm({ initial, onSubmit, onCancel }: { initial: Question; onSubmit: (q: Question) => void; onCancel?: () => void }) {
+  const [q, setQ] = useState<Question>(initial);
+  const [answersText, setAnswersText] = useState(initial.acceptedAnswers.join(', '));
+  const [hint, setHint] = useState('');
+  useEffect(() => {
+    setQ(initial);
+    setAnswersText(initial.acceptedAnswers.join(', '));
+    setHint('');
+  }, [initial]);
+  const submit = () => {
+    const full = { ...q, acceptedAnswers: q.type === 'short' ? answersText.split(',') : q.acceptedAnswers };
+    const problem = checkQuestion(full);
+    if (problem) return setHint(problem);
+    onSubmit(cleanQuestion(full));
+  };
+  return (
+    <View style={{ gap: 10 }}>
+      <Chips>
+        {QTYPES.map((t) => (
+          <Chip key={t.id} label={t.label} active={q.type === t.id} onPress={() => setQ({ ...emptyQ(t.id), prompt: q.prompt, explanation: q.explanation })} />
+        ))}
+      </Chips>
+      <Field label={tr('Câu hỏi')} value={q.prompt} onChangeText={(v) => setQ({ ...q, prompt: v })} multiline placeholder={tr('VD: 2 + 3 bằng bao nhiêu?')} />
+
+      {q.type === 'mcq' && (
+        <View style={{ gap: 8 }}>
+          <Muted style={{ fontSize: 12 }}>{tr('Chạm vào vòng tròn để chọn đáp án đúng.')}</Muted>
+          {q.options.map((o, i) => {
+            const right = q.correctIndex === i;
+            return (
+              <Row key={i} style={{ flexWrap: 'nowrap' }}>
+                <Pressable
+                  hitSlop={8}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: right }}
+                  accessibilityLabel={tr('Đáp án đúng')}
+                  onPress={() => setQ({ ...q, correctIndex: i })}
+                  style={{ width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: right ? colors.success : colors.borderStrong, backgroundColor: right ? colors.success : colors.surface, alignItems: 'center', justifyContent: 'center' }}
+                >
+                  {right && <Icon name="check" size={15} color="#ffffff" />}
+                </Pressable>
+                <View style={{ flex: 1 }}>
+                  <TextInput
+                    style={[s.input, right && { borderColor: colors.success }]}
+                    value={o}
+                    onChangeText={(v) => setQ({ ...q, options: q.options.map((x, j) => (j === i ? v : x)) })}
+                    placeholder={tr('Lựa chọn {0}', String.fromCharCode(65 + i))}
+                    placeholderTextColor="#9aa2b6"
+                  />
+                </View>
+                {q.options.length > 2 && (
+                  <Pressable
+                    hitSlop={8}
+                    accessibilityLabel={tr('Xoá')}
+                    onPress={() => {
+                      const options = q.options.filter((_, j) => j !== i);
+                      const ci = q.correctIndex ?? 0;
+                      setQ({ ...q, options, correctIndex: ci === i ? 0 : ci > i ? ci - 1 : ci });
+                    }}
+                  >
+                    <Icon name="x" size={18} color={colors.muted} />
+                  </Pressable>
+                )}
+              </Row>
+            );
+          })}
+          {q.options.length < 6 && <Button title={tr('+ Thêm lựa chọn')} small variant="ghost" onPress={() => setQ({ ...q, options: [...q.options, ''] })} />}
+        </View>
+      )}
+
+      {q.type === 'true_false' && (
+        <Row>
+          <Muted>{tr('Đáp án đúng:')}</Muted>
+          <Chip label={tr('Đúng')} active={q.correctBoolean === true} onPress={() => setQ({ ...q, correctBoolean: true })} />
+          <Chip label={tr('Sai')} active={q.correctBoolean === false} onPress={() => setQ({ ...q, correctBoolean: false })} />
+        </Row>
+      )}
+
+      {q.type === 'short' && (
+        <Field label={tr('Đáp án được chấp nhận (cách nhau bằng dấu phẩy)')} value={answersText} onChangeText={setAnswersText} placeholder={tr('VD: 5, năm')} />
+      )}
+
+      <Field label={tr('Giải thích (không bắt buộc)')} value={q.explanation ?? ''} onChangeText={(v) => setQ({ ...q, explanation: v })} multiline />
+      {!!hint && <Text style={s.error}>{hint}</Text>}
+      <Row>
+        <Button title={onCancel ? tr('Lưu câu hỏi') : tr('Thêm câu hỏi')} small icon={onCancel ? 'check' : 'plus'} onPress={submit} />
+        {onCancel && <Button title={tr('Huỷ')} small variant="ghost" onPress={onCancel} />}
+      </Row>
+    </View>
+  );
+}
+
 export function QuizEditScreen({ route, navigation }: NativeStackScreenProps<AppStackParams, 'QuizEdit'>) {
-  const { quizzes, update, remove, sync } = useData();
+  const { quizzes, remove, sync } = useData();
   const quiz = quizzes.find((q) => q.id === route.params?.quizId);
   const [title, setTitle] = useState(quiz?.title ?? '');
+  const [questions, setQuestions] = useState<Question[]>(quiz?.questions ?? []);
+  const [dirty, setDirty] = useState(false);
+  const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [blank, setBlank] = useState<Question>(emptyQ());
   const [topic, setTopic] = useState('');
-  const [draft, setDraft] = useState<QuizDraft | null>(null);
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
+  const [source, setSource] = useState<'manual' | 'ai'>(quiz?.source ?? 'manual');
 
   useEffect(() => {
     navigation.setOptions({ title: quiz ? quiz.title : tr('Bộ câu hỏi mới') });
   }, [quiz, navigation]);
 
+  const change = (next: Question[]) => {
+    setQuestions(next);
+    setDirty(true);
+  };
+
   const generate = async () => {
     setBusy('ai');
     setError('');
     try {
-      const r = await api<{ draft: QuizDraft }>('/ai/generate/quiz', { method: 'POST', body: { topic, count: 8 }, timeoutMs: 90000 });
-      setDraft((d) => ({ title: d?.title || r.draft.title, questions: [...(d?.questions ?? []), ...r.draft.questions] }));
-      if (!title) setTitle(r.draft.title);
+      const r = await api<{ draft: QuizDraft }>('/ai/generate/quiz', { method: 'POST', body: { topic: topic.trim() || title.trim(), count: 8 }, timeoutMs: 90000 });
+      if (!title.trim()) setTitle(r.draft.title);
+      setSource('ai');
+      change([...questions, ...r.draft.questions]);
     } catch (e) {
       setError(errorMessage(e));
     } finally {
@@ -524,56 +656,102 @@ export function QuizEditScreen({ route, navigation }: NativeStackScreenProps<App
     }
   };
 
-  const save = async () => {
-    if (!draft) return;
+  const save = async (thenTake = false) => {
+    if (!questions.length) return setError(tr('Thêm ít nhất 1 câu hỏi trước khi lưu.'));
     setBusy('save');
     setError('');
     try {
-      if (quiz) {
-        await api(`/quizzes/${quiz.id}`, { method: 'PATCH', body: { title: title || quiz.title, questions: [...quiz.questions, ...draft.questions].map(({ qid, ...q }) => (qid ? { qid, ...q } : q)) } });
-        await sync();
-        setDraft(null);
-      } else {
-        const id = await saveQuizDraft({ title: title || draft.title, questions: draft.questions });
-        await sync();
-        navigation.replace('QuizTake', { quizId: id });
-      }
+      const body = { title: title.trim() || tr('Bộ câu hỏi'), source, questions };
+      let id = quiz?.id;
+      if (id) await api(`/quizzes/${id}`, { method: 'PATCH', body });
+      else id = (await api<{ item: Quiz }>('/quizzes', { method: 'POST', body: { ...body, subject: null, material: null, task: null } })).item.id;
+      await sync();
+      setDirty(false);
+      if (thenTake) navigation.replace('QuizTake', { quizId: id });
+      else if (!quiz) navigation.replace('QuizEdit', { quizId: id });
     } catch (e) {
       setError(errorMessage(e));
     } finally {
       setBusy('');
     }
   };
-
-  const questions = [...(quiz?.questions ?? []), ...(draft?.questions ?? [])];
 
   return (
     <Screen>
       <Card>
-        <Field label={tr('Tên bộ câu hỏi')} value={title} onChangeText={setTitle} onEndEditing={() => quiz && title.trim() && update('quizzes', quiz.id, { title: title.trim() })} />
-        {quiz && <Button title={tr('Làm bài')} icon="play" variant="marker" onPress={() => navigation.navigate('QuizTake', { quizId: quiz.id })} />}
+        <Field label={tr('Tên bộ câu hỏi')} value={title} onChangeText={(v) => { setTitle(v); setDirty(true); }} placeholder={tr('VD: Ôn tập chương 3')} />
+        {quiz && !dirty && questions.length > 0 && <Button title={tr('Làm bài')} icon="play" variant="marker" onPress={() => navigation.navigate('QuizTake', { quizId: quiz.id })} />}
       </Card>
+
+      <Card>
+        <H3>{tr('Tự soạn câu hỏi')}</H3>
+        <QuestionForm
+          initial={blank}
+          onSubmit={(q) => {
+            change([...questions, q]);
+            setBlank(emptyQ(q.type));
+          }}
+        />
+      </Card>
+
       <Card>
         <H3>{tr('Tạo câu hỏi bằng AI')}</H3>
         <Field label={tr('Chủ đề')} value={topic} onChangeText={setTopic} placeholder={tr('VD: Phương trình bậc hai')} />
-        <Button title={busy === 'ai' ? tr('Đang tạo...') : tr('Tạo 8 câu bằng AI')} variant="secondary" icon="ai" disabled={!topic.trim() || !!busy} onPress={generate} />
-        {draft && <Button title={tr('Lưu {0} câu mới', draft.questions.length)} loading={busy === 'save'} onPress={save} />}
-        {!!error && <Text style={s.error}>{error}</Text>}
-        <Muted style={{ fontSize: 12 }}>{tr('Soạn câu hỏi thủ công chi tiết trên trang web.')}</Muted>
+        <Button
+          title={busy === 'ai' ? tr('Đang tạo...') : tr('Tạo 8 câu bằng AI')}
+          variant="secondary"
+          icon="ai"
+          disabled={!(topic.trim() || title.trim()) || !!busy}
+          onPress={generate}
+        />
+        {!topic.trim() && !!title.trim() && <Muted style={{ fontSize: 12 }}>{tr('Để trống chủ đề thì AI dùng tên bộ câu hỏi.')}</Muted>}
       </Card>
-      <H3>{tr('{0} câu', questions.length)}</H3>
-      {questions.length === 0 && <Empty text={tr('Chưa có câu hỏi.')} />}
-      {questions.map((q, i) => (
-        <Card key={q.qid ?? `d${i}`} style={{ gap: 4 }}>
-          <Text style={{ fontWeight: '700', color: colors.text }}>
-            {i + 1}. {q.prompt}
-          </Text>
-          {q.type === 'mcq' && q.options.map((o, j) => <Muted key={j}>{j === q.correctIndex ? '✓ ' : '• '}{o}</Muted>)}
-          {q.type === 'true_false' && <Muted>{q.correctBoolean ? tr('Đáp án: Đúng') : tr('Đáp án: Sai')}</Muted>}
-          {q.type === 'short' && <Muted>{tr('Đáp án: {0}', q.acceptedAnswers.join(' / '))}</Muted>}
-          {!q.qid && <Muted style={{ fontSize: 11, color: colors.warning }}>{tr('Chưa lưu')}</Muted>}
-        </Card>
-      ))}
+
+      <Row style={{ justifyContent: 'space-between' }}>
+        <H3>{tr('{0} câu', questions.length)}</H3>
+        {dirty && <Muted style={{ color: colors.warning }}>{tr('Chưa lưu')}</Muted>}
+      </Row>
+      {questions.length === 0 && <Empty text={tr('Chưa có câu hỏi. Tự soạn ở trên hoặc nhờ AI tạo.')} />}
+      {questions.map((q, i) =>
+        editIndex === i ? (
+          <Card key={q.qid ?? `n${i}`}>
+            <QuestionForm
+              initial={{ ...emptyQ(q.type), ...q, options: q.type === 'mcq' ? q.options : ['', '', '', ''] }}
+              onSubmit={(nq) => {
+                change(questions.map((x, j) => (j === i ? { ...nq, qid: x.qid } : x)));
+                setEditIndex(null);
+              }}
+              onCancel={() => setEditIndex(null)}
+            />
+          </Card>
+        ) : (
+          <Card key={q.qid ?? `n${i}`} style={{ gap: 4 }}>
+            <Row style={{ flexWrap: 'nowrap', alignItems: 'flex-start' }}>
+              <Text style={{ flex: 1, fontWeight: '700', color: colors.text }}>
+                {i + 1}. {q.prompt}
+              </Text>
+              <Pressable hitSlop={8} accessibilityLabel={tr('Sửa')} onPress={() => setEditIndex(i)} style={{ padding: 4 }}>
+                <Icon name="edit" size={18} color={colors.text2} />
+              </Pressable>
+              <Pressable hitSlop={8} accessibilityLabel={tr('Xoá')} onPress={() => change(questions.filter((_, j) => j !== i))} style={{ padding: 4 }}>
+                <Icon name="trash" size={18} color={colors.muted} />
+              </Pressable>
+            </Row>
+            {q.type === 'mcq' && q.options.map((o, j) => <Muted key={j}>{j === q.correctIndex ? '✓ ' : '• '}{o}</Muted>)}
+            {q.type === 'true_false' && <Muted>{q.correctBoolean ? tr('Đáp án: Đúng') : tr('Đáp án: Sai')}</Muted>}
+            {q.type === 'short' && <Muted>{tr('Đáp án: {0}', q.acceptedAnswers.join(' / '))}</Muted>}
+          </Card>
+        ),
+      )}
+
+      {!!error && <Text style={s.error}>{error}</Text>}
+      {(dirty || !quiz) && (
+        <>
+          <Button title={tr('Lưu bộ câu hỏi')} loading={busy === 'save'} disabled={!questions.length || !!busy} onPress={() => void save(false)} />
+          <Button title={tr('Lưu và làm bài')} variant="secondary" disabled={!questions.length || !!busy} onPress={() => void save(true)} />
+        </>
+      )}
+
       {quiz && (
         <Button
           title={tr('Xoá bộ câu hỏi')}
