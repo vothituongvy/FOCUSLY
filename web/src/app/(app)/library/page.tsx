@@ -7,6 +7,8 @@ import { useResource } from '@/lib/hooks';
 import { tr } from '@/lib/i18n';
 import { Empty, Modal, Spinner } from '@/components/ui';
 import { Icon } from '@/components/Icon';
+import { ShareToLibrary } from '@/components/ShareToLibrary';
+import type { LearnOverview, Quiz } from '@/lib/types';
 
 type Kind = 'deck' | 'quiz';
 interface Item {
@@ -35,6 +37,7 @@ export default function LibraryPage() {
   const [open, setOpen] = useState<Detail | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [shareOpen, setShareOpen] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setQuery(q.trim()), 350);
@@ -67,6 +70,9 @@ export default function LibraryPage() {
           <h1>{tr('Thư viện cộng đồng')}</h1>
           <p className="muted">{tr('Bộ flashcard và bộ câu hỏi do người học khác chia sẻ. Sao chép về để học – bản của bạn là bản riêng, sửa thoải mái.')}</p>
         </div>
+        <button className="btn marker" onClick={() => setShareOpen(true)}>
+          <Icon name="upload" size={16} /> {tr('Chia sẻ bộ của tôi')}
+        </button>
       </div>
 
       <div className="card col">
@@ -119,6 +125,15 @@ export default function LibraryPage() {
         </section>
       )}
 
+      <ShareMine
+        open={shareOpen}
+        onClose={() => {
+          setShareOpen(false);
+          void mine.reload();
+          void list.reload();
+        }}
+      />
+
       <Modal open={!!open} onClose={() => setOpen(null)} title={open?.title} width={640}>
         {open && (
           <div className="col" style={{ gap: 12 }}>
@@ -141,5 +156,43 @@ export default function LibraryPage() {
         )}
       </Modal>
     </div>
+  );
+}
+
+/** Chọn bộ flashcard / bộ câu hỏi của mình để bật – tắt chia sẻ lên Thư viện */
+function ShareMine({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const decks = useResource<LearnOverview>(open ? '/learn/overview' : null).data?.decks ?? [];
+  const quizzes = useResource<{ items: Quiz[] }>(open ? '/quizzes?limit=200' : null).data?.items ?? [];
+  const [tab, setTab] = useState<Kind>('deck');
+  const items = tab === 'deck' ? decks.map((d) => ({ id: d.id, title: d.title, count: (d as unknown as { total?: number }).total })) : quizzes.map((q) => ({ id: q.id, title: q.title, count: q.questions?.length }));
+  return (
+    <Modal open={open} onClose={onClose} title={tr('Chia sẻ bộ của tôi')} width={600}>
+      <div className="col" style={{ gap: 12 }}>
+        <p className="small muted">{tr('Bật công tắc để đưa bộ lên Thư viện cộng đồng (cần ít nhất 3 thẻ/câu). Người khác chỉ sao chép được, không sửa được bản của bạn. Tắt lúc nào cũng được.')}</p>
+        <div className="chips">
+          <button className={`chip ${tab === 'deck' ? 'active' : ''}`} onClick={() => setTab('deck')}>
+            🃏 {tr('Bộ flashcard')}
+          </button>
+          <button className={`chip ${tab === 'quiz' ? 'active' : ''}`} onClick={() => setTab('quiz')}>
+            📝 {tr('Bộ câu hỏi')}
+          </button>
+        </div>
+        {items.length === 0 ? (
+          <p className="muted">{tab === 'deck' ? tr('Bạn chưa có bộ flashcard nào. Tạo ở mục Ôn tập & quiz trước nhé.') : tr('Bạn chưa có bộ câu hỏi nào. Tạo ở mục Ôn tập & quiz trước nhé.')}</p>
+        ) : (
+          <div className="list" style={{ maxHeight: 380, overflowY: 'auto' }}>
+            {items.map((i) => (
+              <div key={i.id} className="list-item">
+                <span className="grow col" style={{ gap: 0 }}>
+                  <b className="truncate">{i.title}</b>
+                  {i.count !== undefined && <span className="small muted">{tab === 'deck' ? tr('{0} thẻ', i.count) : tr('{0} câu', i.count)}</span>}
+                </span>
+                <ShareToLibrary kind={tab} id={i.id} />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </Modal>
   );
 }

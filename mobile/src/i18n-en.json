@@ -1519,5 +1519,9 @@
  "Đã tắt thông báo": "Muted",
  "Đã xem": "Seen",
  "Đã xem bởi {0}": "Seen by {0}",
- "Đổi tên": "Rename"
+ "Đổi tên": "Rename",
+ "Chia sẻ bộ của tôi": "Share my sets",
+ "Bật công tắc để đưa bộ lên Thư viện cộng đồng (cần ít nhất 3 thẻ/câu). Người khác chỉ sao chép được, không sửa được bản của bạn. Tắt lúc nào cũng được.": "Turn the switch on to put a set in the community library (at least 3 cards/questions). Others can only copy it – they can’t edit yours. Turn it off any time.",
+ "Bạn chưa có bộ flashcard nào. Tạo ở mục Ôn tập & quiz trước nhé.": "You don’t have any flashcard decks yet. Create one in Review & quizzes first.",
+ "Bạn chưa có bộ câu hỏi nào. Tạo ở mục Ôn tập & quiz trước nhé.": "You don’t have any quizzes yet. Create one in Review & quizzes first."
 }

@@ -40,6 +40,9 @@ export function LibraryScreen() {
   const [sort, setSort] = useState<'popular' | 'new'>('popular');
   const list = useApi<{ items: LibItem[] }>(`/library?kind=${kind}&sort=${sort}${query ? `&q=${encodeURIComponent(query)}` : ''}`);
   const [open, setOpen] = useState<LibDetail | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
+  const { decks, quizzes, cards } = useData();
+  const [shareTab, setShareTab] = useState<Kind>('deck');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   useEffect(() => {
@@ -71,6 +74,7 @@ export function LibraryScreen() {
   return (
     <Screen>
       <Muted>{tr('Bộ flashcard và bộ câu hỏi do người học khác chia sẻ. Sao chép về để học – bản của bạn là bản riêng, sửa thoải mái.')}</Muted>
+      <Button variant="marker" icon="upload" title={tr('Chia sẻ bộ của tôi')} onPress={() => setShareOpen(true)} />
       <Chips>
         <Chip label={`🃏 ${tr('Flashcard')}`} active={kind === 'deck'} onPress={() => setKind('deck')} />
         <Chip label={`📝 ${tr('Bộ câu hỏi')}`} active={kind === 'quiz'} onPress={() => setKind('quiz')} />
@@ -96,6 +100,33 @@ export function LibraryScreen() {
           </Pressable>
         ))
       )}
+      <Modal visible={shareOpen} animationType="slide" onRequestClose={() => (setShareOpen(false), void list.reload())}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
+          <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
+            <H1>{tr('Chia sẻ bộ của tôi')}</H1>
+            <Muted>{tr('Bật công tắc để đưa bộ lên Thư viện cộng đồng (cần ít nhất 3 thẻ/câu). Người khác chỉ sao chép được, không sửa được bản của bạn. Tắt lúc nào cũng được.')}</Muted>
+            <Chips>
+              <Chip label={`🃏 ${tr('Bộ flashcard')}`} active={shareTab === 'deck'} onPress={() => setShareTab('deck')} />
+              <Chip label={`📝 ${tr('Bộ câu hỏi')}`} active={shareTab === 'quiz'} onPress={() => setShareTab('quiz')} />
+            </Chips>
+            {(shareTab === 'deck' ? decks : quizzes)
+              .filter((x) => !x.id.startsWith('c_'))
+              .map((x) => (
+                <View key={x.id} style={{ gap: 4 }}>
+                  <Text style={{ fontWeight: '700', color: colors.text }}>
+                    {x.title}{' '}
+                    <Text style={{ color: colors.muted, fontWeight: '400', fontSize: 12.5 }}>
+                      ({shareTab === 'deck' ? tr('{0} thẻ', cards.filter((c) => c.deck === x.id).length) : tr('{0} câu', (x as { questions?: unknown[] }).questions?.length ?? 0)})
+                    </Text>
+                  </Text>
+                  <ShareToLibrary kind={shareTab} id={x.id} />
+                </View>
+              ))}
+            {(shareTab === 'deck' ? decks : quizzes).length === 0 && <Empty text={shareTab === 'deck' ? tr('Bạn chưa có bộ flashcard nào. Tạo ở mục Ôn tập & quiz trước nhé.') : tr('Bạn chưa có bộ câu hỏi nào. Tạo ở mục Ôn tập & quiz trước nhé.')} />}
+            <Button variant="ghost" title={tr('Đóng')} onPress={() => (setShareOpen(false), void list.reload())} />
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
       <Modal visible={!!open} animationType="slide" onRequestClose={() => setOpen(null)}>
         <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
           {open && (
