@@ -45,6 +45,8 @@ export const env = {
     provider: (process.env.AI_PROVIDER ?? 'auto').toLowerCase(),
     groqKey: (process.env.GROQ_API_KEY ?? '').trim(),
     groqModel: process.env.GROQ_MODEL ?? 'openai/gpt-oss-120b',
+    /** model Groq đọc được ảnh (dùng khi tin nhắn có ảnh) */
+    groqVisionModel: process.env.GROQ_VISION_MODEL ?? 'meta-llama/llama-4-scout-17b-16e-instruct',
     geminiKey: (process.env.GEMINI_API_KEY ?? '').trim(),
     geminiModel: process.env.GEMINI_MODEL ?? 'gemini-flash-latest',
     model: process.env.AI_MODEL ?? 'claude-haiku-5-5',

@@ -12,6 +12,8 @@ const messageSchema = new Schema(
     origin: { type: String, default: '' },
     /** đánh giá của người học: 1 = 👍, -1 = 👎 */
     vote: { type: Number, default: 0 },
+    /** tệp đính kèm khi người học gửi (chỉ lưu tên + loại để hiển thị) */
+    attachments: { type: [new Schema({ name: String, kind: String }, { _id: false })], default: undefined },
   },
   { _id: false },
 );
@@ -23,6 +25,8 @@ const conversationSchema = new Schema(
     material: { type: Schema.Types.ObjectId, ref: 'Material', default: null },
     subject: { type: Schema.Types.ObjectId, ref: 'Subject', default: null },
     messages: { type: [messageSchema], default: [] },
+    /** chữ trích từ các file đã đính kèm trong cuộc trò chuyện – để hỏi tiếp về file */
+    attachmentsText: { type: String, default: '', select: false },
     deletedAt: { type: Date, default: null },
   },
   jsonOptions,

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, Modal, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Image, Linking, Modal, Pressable, ScrollView, View } from 'react-native';
 import { Text, TextInput } from '../components/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -13,6 +13,7 @@ import { Button, Card, Chip, Chips, Empty, H3, KeyboardView, Muted, Row, Screen,
 import { Icon } from '../components/Icon';
 import { ForecastCard } from '../components/FocusForecast';
 import { Feedback } from '../components/Feedback';
+import { pickFile, type Picked } from '../components/ImportFileSheet';
 import { LOCALE, tr } from '../i18n';
 
 const plain = (t: string) => t.replace(/\*\*/g, '').replace(/^#+\s/gm, '').replace(/`/g, '').replace(/(^|\s)_([^_\n]+)_(?=\s|$)/g, '$1$2');
@@ -81,21 +82,54 @@ export function AIChatScreen({ route }: { route: { params?: { materialId?: strin
     });
   }, [nav]);
 
+  /* ---- tệp đính kèm: ảnh (AI nhìn ảnh) + PDF/Word/Excel/TXT ---- */
+  const [files, setFiles] = useState<Picked[]>([]);
+  const attach = async () => {
+    setError('');
+    try {
+      const f = await pickFile(CHAT_MIME);
+      if (!f) return;
+      if (f.size > 15 * 1024 * 1024) return setError(tr('“{0}” lớn hơn 15MB.', f.name));
+      setFiles((cur) => (cur.length >= 4 ? cur : [...cur, f]));
+    } catch (e) {
+      setError(errorMessage(e));
+    }
+  };
+
   const send = async (text = input) => {
-    if (!text.trim() || busy) return;
+    if ((!text.trim() && !files.length) || busy) return;
     setBusy(true);
     setError('');
     setInput('');
+    const sending = files;
+    setFiles([]);
+    const attachments = sending.map((f) => ({ name: f.name, kind: f.type.startsWith('image/') ? 'image' : 'file', uri: f.uri }));
     setConv((c) => ({
-      ...(c ?? { id: '', title: text, material: materialId, subject: null, updatedAt: '' }),
-      messages: [...(c?.messages ?? []), { role: 'user', content: text, at: new Date().toISOString() }],
+      ...(c ?? { id: '', title: text || attachments.map((a) => a.name).join(', '), material: materialId, subject: null, updatedAt: '' }),
+      messages: [...(c?.messages ?? []), { role: 'user', content: text, at: new Date().toISOString(), ...(attachments.length ? { attachments } : {}) }],
     }));
     toEnd();
     try {
-      const r = await api<{ item: Conversation }>('/ai/chat', { method: 'POST', body: { conversationId: conv?.id || undefined, message: text, materialId }, timeoutMs: 90000 });
+      let r: { item: Conversation };
+      if (sending.length) {
+        const fd = new FormData();
+        if (conv?.id) fd.append('conversationId', conv.id);
+        fd.append('message', text);
+        if (materialId) fd.append('materialId', materialId);
+        sending.forEach((f) => fd.append('files', { uri: f.uri, name: f.name, type: f.type } as unknown as Blob));
+        r = await api<{ item: Conversation }>('/ai/chat', { method: 'POST', body: fd, timeoutMs: 120000 });
+        // giữ ảnh xem trước cho tin vừa gửi (máy chủ không lưu ảnh)
+        const msgs = r.item.messages ?? [];
+        const idx = msgs.length - 2;
+        if (idx >= 0 && msgs[idx].attachments) msgs[idx] = { ...msgs[idx], attachments };
+      } else {
+        r = await api<{ item: Conversation }>('/ai/chat', { method: 'POST', body: { conversationId: conv?.id || undefined, message: text, materialId }, timeoutMs: 90000 });
+      }
       setConv(r.item);
     } catch (e) {
       setError(errorMessage(e));
+      setInput(text);
+      setFiles(sending);
     } finally {
       setBusy(false);
       toEnd();
@@ -143,7 +177,12 @@ export function AIChatScreen({ route }: { route: { params?: { materialId?: strin
                 borderColor: m.role === 'user' ? colors.marker : colors.border,
               }}
             >
-              {m.role === 'assistant' ? <RichText text={m.content} /> : <Text selectable style={{ color: colors.text, lineHeight: 21 }}>{m.content}</Text>}
+              {!!m.attachments?.length && <Attachments items={m.attachments} />}
+              {m.role === 'assistant' ? (
+                <RichText text={m.content} />
+              ) : m.content.startsWith('📎 ') && m.attachments?.length ? null : m.content ? (
+                <Text selectable style={{ color: colors.text, lineHeight: 21 }}>{m.content}</Text>
+              ) : null}
               {m.role === 'assistant' && !!conv?.id && (
                 <Feedback kind="answer" origin={m.origin || 'brain'} text={conv.messages?.[i - 1]?.content} initial={m.vote ?? 0} conversationId={conv.id} index={i} />
               )}
@@ -157,22 +196,46 @@ export function AIChatScreen({ route }: { route: { params?: { materialId?: strin
           )}
           {!!error && <Text style={s.error}>{error}</Text>}
         </ScrollView>
-        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, padding: 10, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface }}>
+        {files.length > 0 && (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: 10, paddingTop: 8, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.border }}>
+            {files.map((f, i) => (
+              <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: '100%', borderWidth: 1, borderColor: colors.border, borderRadius: 999, paddingLeft: 6, paddingRight: 2, paddingVertical: 3 }}>
+                {f.type.startsWith('image/') ? <Image source={{ uri: f.uri }} style={{ width: 26, height: 26, borderRadius: 6 }} /> : <Text>📄</Text>}
+                <Text numberOfLines={1} style={{ color: colors.text, fontSize: 13, maxWidth: 170 }}>
+                  {f.name}
+                </Text>
+                <Pressable accessibilityLabel={tr('Bỏ tệp')} hitSlop={8} onPress={() => setFiles((cur) => cur.filter((_, k) => k !== i))} style={{ padding: 4 }}>
+                  <Icon name="x" size={14} color={colors.muted} />
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        )}
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, padding: 10, borderTopWidth: files.length ? 0 : 1, borderTopColor: colors.border, backgroundColor: colors.surface }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={tr('Đính kèm tệp')}
+            disabled={busy || files.length >= 4}
+            onPress={attach}
+            style={{ width: 46, height: 46, borderRadius: 12, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', opacity: busy || files.length >= 4 ? 0.45 : 1 }}
+          >
+            <Icon name="clip" size={20} color={colors.text} />
+          </Pressable>
           <TextInput
             style={[s.input, { flex: 1, maxHeight: 120, paddingVertical: 10 }]}
             value={input}
             onChangeText={setInput}
             onFocus={toEnd}
-            placeholder={tr('Nhập câu hỏi...')}
+            placeholder={tr('Hỏi gì cũng được, hoặc gửi ảnh/file...')}
             placeholderTextColor="#a0a5c0"
             multiline
           />
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={tr('Gửi')}
-            disabled={busy || !input.trim()}
+            disabled={busy || (!input.trim() && !files.length)}
             onPress={() => send()}
-            style={{ width: 46, height: 46, borderRadius: 12, backgroundColor: colors.marker, alignItems: 'center', justifyContent: 'center', opacity: busy || !input.trim() ? 0.45 : 1 }}
+            style={{ width: 46, height: 46, borderRadius: 12, backgroundColor: colors.marker, alignItems: 'center', justifyContent: 'center', opacity: busy || (!input.trim() && !files.length) ? 0.45 : 1 }}
           >
             <Icon name="send" size={20} color={colors.text} />
           </Pressable>
@@ -384,5 +447,36 @@ export function AICoachScreen() {
         ))}
       </Card>
     </Screen>
+  );
+}
+
+const CHAT_MIME = [
+  'image/*',
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'text/plain',
+  'text/csv',
+  'text/comma-separated-values',
+  'text/markdown',
+  'text/tab-separated-values',
+];
+
+function Attachments({ items }: { items: { name: string; kind: string; uri?: string }[] }) {
+  return (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
+      {items.map((a, i) =>
+        a.uri && a.kind === 'image' ? (
+          <Image key={i} source={{ uri: a.uri }} style={{ width: 160, height: 120, borderRadius: 8 }} resizeMode="cover" />
+        ) : (
+          <View key={i} style={{ flexDirection: 'row', gap: 4, alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, maxWidth: 220 }}>
+            <Text>{a.kind === 'image' ? '🖼' : '📄'}</Text>
+            <Text numberOfLines={1} style={{ color: colors.text, fontSize: 13, flexShrink: 1 }}>
+              {a.name}
+            </Text>
+          </View>
+        ),
+      )}
+    </View>
   );
 }

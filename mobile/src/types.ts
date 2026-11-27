@@ -439,6 +439,6 @@ export interface Conversation {
   title: string;
   material: string | null;
   subject: string | null;
-  messages?: { role: 'user' | 'assistant'; content: string; at: string; origin?: string; vote?: number }[];
+  messages?: { role: 'user' | 'assistant'; content: string; at: string; origin?: string; vote?: number; attachments?: { name: string; kind: string; uri?: string }[] }[];
   updatedAt: string;
 }

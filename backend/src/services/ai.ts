@@ -9,9 +9,30 @@ import { HttpError } from '../utils/http';
  * Nguyên tắc: AI chỉ đưa GỢI Ý – mọi nội dung sinh ra là bản nháp để người học sửa/từ chối.
  */
 
+export type ContentPart = { type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } };
 export interface ChatMessage {
   role: 'user' | 'assistant';
-  content: string;
+  /** chuỗi, hoặc mảng phần (chữ + ảnh data:URL) khi người học gửi ảnh */
+  content: string | ContentPart[];
+}
+const hasImages = (ms: ChatMessage[]) => ms.some((m) => Array.isArray(m.content) && m.content.some((c) => c.type === 'image_url'));
+const largestImage = (ms: ChatMessage[]) =>
+  Math.max(0, ...ms.flatMap((m) => (Array.isArray(m.content) ? m.content.map((c) => (c.type === 'image_url' ? c.image_url.url.length : 0)) : [])));
+
+/** Định dạng Anthropic cho ảnh */
+function toClaudeMessages(ms: ChatMessage[]) {
+  return ms.map((m) =>
+    typeof m.content === 'string'
+      ? m
+      : {
+          role: m.role,
+          content: m.content.map((c) => {
+            if (c.type === 'text') return c;
+            const mm = /^data:([^;]+);base64,(.*)$/s.exec(c.image_url.url);
+            return { type: 'image', source: { type: 'base64', media_type: mm?.[1] ?? 'image/jpeg', data: mm?.[2] ?? '' } };
+          }),
+        },
+  );
 }
 
 /** AI luôn bật: mặc định chạy FOCUSLY Brain; chỉ dùng Claude khi AI_PROVIDER=claude và có khoá */
@@ -90,7 +111,7 @@ async function callClaude(opts: CompleteOpts) {
     res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-api-key': env.ai.apiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: env.ai.model, max_tokens: opts.maxTokens ?? 1500, temperature: opts.temperature ?? 0.4, system: opts.system, messages: opts.messages }),
+      body: JSON.stringify({ model: env.ai.model, max_tokens: opts.maxTokens ?? 1500, temperature: opts.temperature ?? 0.4, system: opts.system, messages: toClaudeMessages(opts.messages) }),
       signal: controller.signal,
     });
   } catch (e) {
@@ -121,11 +142,14 @@ export async function complete(opts: CompleteOpts): Promise<string> {
     opts = { ...opts, system: `${opts.system}\n\nIMPORTANT: The learner uses the English interface. Write every reply in English (JSON values included), unless the learner writes in another language.` };
   }
   let lastErr: unknown = null;
+  const vision = hasImages(opts.messages);
   for (const p of providers) {
     try {
+      // Groq nhận ảnh base64 tối đa ~4MB -> ảnh lớn hơn để Gemini xử lý
+      if (vision && p === 'groq' && largestImage(opts.messages) > 5_200_000) throw new HttpError(413, 'Ảnh quá lớn cho Groq', 'AI_ERROR');
       const r =
         p === 'groq'
-          ? await openAiCompatible('https://api.groq.com/openai/v1', env.ai.groqKey, env.ai.groqModel, opts)
+          ? await openAiCompatible('https://api.groq.com/openai/v1', env.ai.groqKey, vision ? env.ai.groqVisionModel : env.ai.groqModel, opts)
           : p === 'gemini'
             ? await openAiCompatible('https://generativelanguage.googleapis.com/v1beta/openai', env.ai.geminiKey, env.ai.geminiModel, opts)
             : await callClaude(opts);

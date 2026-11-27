@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { del, errorMessage, get, post } from '@/lib/api';
+import { api, del, errorMessage, get, post } from '@/lib/api';
 import { useResource } from '@/lib/hooks';
 import { fmtRelative } from '@/lib/format';
 import type { Conversation, Insight, Material } from '@/lib/types';
@@ -100,22 +100,68 @@ function Chat({ initialMaterial }: { initialMaterial: string | null }) {
     setMaterialId(r.item.material ?? '');
   };
 
+  /* ---- tệp đính kèm: ảnh (AI nhìn ảnh) + PDF/Word/Excel/TXT ---- */
+  const [files, setFiles] = useState<Attach[]>([]);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = useState(false);
+  const addFiles = async (list: FileList | File[]) => {
+    setError('');
+    const picked: Attach[] = [];
+    for (const f of Array.from(list)) {
+      if (!ACCEPT_RE.test(f.name) && !f.type.startsWith('image/')) {
+        setError(tr('“{0}” chưa hỗ trợ. Đính kèm ảnh, PDF, Word, Excel, TXT hoặc CSV.', f.name));
+        continue;
+      }
+      if (f.size > 15 * 1024 * 1024) {
+        setError(tr('“{0}” lớn hơn 15MB.', f.name));
+        continue;
+      }
+      const isImage = f.type.startsWith('image/');
+      const file = isImage ? await shrinkImage(f) : f;
+      picked.push({ file, preview: isImage ? URL.createObjectURL(file) : undefined });
+    }
+    setFiles((cur) => {
+      const next = [...cur, ...picked];
+      if (next.length > 4) setError(tr('Tối đa 4 tệp mỗi tin nhắn.'));
+      return next.slice(0, 4);
+    });
+  };
+
   const send = async (text = input) => {
-    if (!text.trim()) return;
+    if (!text.trim() && !files.length) return;
     setBusy(true);
     setError('');
+    const sending = files;
+    const attachments = sending.map((a) => ({ name: a.file.name, kind: a.preview ? 'image' : 'file', preview: a.preview }));
+    const mine = { role: 'user' as const, content: text, at: new Date().toISOString(), ...(attachments.length ? { attachments } : {}) };
     const optimistic: Conversation = conv
-      ? { ...conv, messages: [...(conv.messages ?? []), { role: 'user', content: text, at: new Date().toISOString() }] }
-      : { id: '', title: text, material: materialId || null, subject: null, updatedAt: '', messages: [{ role: 'user', content: text, at: new Date().toISOString() }] };
+      ? { ...conv, messages: [...(conv.messages ?? []), mine] }
+      : { id: '', title: text || attachments.map((a) => a.name).join(', '), material: materialId || null, subject: null, updatedAt: '', messages: [mine] };
     setConv(optimistic);
     setInput('');
+    setFiles([]);
     try {
-      const r = await post<{ item: Conversation }>('/ai/chat', { conversationId: conv?.id || undefined, message: text, materialId: materialId || null });
+      let r: { item: Conversation };
+      if (sending.length) {
+        const fd = new FormData();
+        if (conv?.id) fd.append('conversationId', conv.id);
+        fd.append('message', text);
+        if (materialId) fd.append('materialId', materialId);
+        sending.forEach((a) => fd.append('files', a.file, a.file.name));
+        r = await api<{ item: Conversation }>('/ai/chat', { method: 'POST', body: fd });
+        // giữ ảnh xem trước cho tin vừa gửi (máy chủ không lưu ảnh)
+        const msgs = r.item.messages ?? [];
+        const idx = msgs.length - 2;
+        if (idx >= 0 && msgs[idx].attachments) msgs[idx] = { ...msgs[idx], attachments: attachments };
+      } else {
+        r = await post<{ item: Conversation }>('/ai/chat', { conversationId: conv?.id || undefined, message: text, materialId: materialId || null });
+      }
       setConv(r.item);
       void convs.reload();
     } catch (e) {
       setError(errorMessage(e));
       setInput(text);
+      setFiles(sending);
     } finally {
       setBusy(false);
     }
@@ -157,7 +203,23 @@ function Chat({ initialMaterial }: { initialMaterial: string | null }) {
         ))}
       </div>
 
-      <div className="card col chat-panel">
+      <div
+        className={`card col chat-panel ${dragging ? 'dragging' : ''}`}
+        onDragOver={(e) => {
+          if (e.dataTransfer.types.includes('Files')) {
+            e.preventDefault();
+            setDragging(true);
+          }
+        }}
+        onDragLeave={(e) => {
+          if (e.currentTarget === e.target) setDragging(false);
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragging(false);
+          if (e.dataTransfer.files.length) void addFiles(e.dataTransfer.files);
+        }}
+      >
         <div className="row" style={{ flex: 'none' }}>
           <span className="small muted">{tr('Ngữ cảnh:')}</span>
           <select value={materialId} onChange={(e) => setMaterialId(e.target.value)} disabled={Boolean(conv?.id)} style={{ maxWidth: 360 }}>
@@ -189,7 +251,8 @@ function Chat({ initialMaterial }: { initialMaterial: string | null }) {
           )}
           {conv?.messages?.map((m, i) => (
             <div key={i} className={`bubble ${m.role}`}>
-              {m.role === 'assistant' ? <Markdown text={m.content} /> : m.content}
+              {m.attachments?.length ? <AttachmentChips items={m.attachments} /> : null}
+              {m.role === 'assistant' ? <Markdown text={m.content} /> : m.content.startsWith('📎 ') && m.attachments?.length ? null : m.content}
               {m.role === 'assistant' && conv?.id && (
                 <Feedback kind="answer" origin={m.origin || 'brain'} text={conv.messages?.[i - 1]?.content} initial={m.vote ?? 0} conversationId={conv.id} index={i} />
               )}
@@ -199,9 +262,48 @@ function Chat({ initialMaterial }: { initialMaterial: string | null }) {
           <div ref={endRef} />
         </div>
         {error && <p className="error-text">{error}</p>}
+        {files.length > 0 && (
+          <div className="attach-pending">
+            {files.map((a, i) => (
+              <span key={i} className="attach-chip">
+                {a.preview ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={a.preview} alt="" className="attach-mini" />
+                ) : (
+                  '📄'
+                )}
+                <span className="truncate">{a.file.name}</span>
+                <button className="icon-btn" aria-label={tr('Bỏ tệp')} onClick={() => setFiles((cur) => cur.filter((_, k) => k !== i))}>
+                  ✕
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
         <div className="row chat-input">
+          <input
+            ref={fileRef}
+            type="file"
+            hidden
+            multiple
+            accept={ACCEPT}
+            onChange={(e) => {
+              if (e.target.files) void addFiles(e.target.files);
+              e.target.value = '';
+            }}
+          />
+          <button className="btn secondary icon-only" title={tr('Đính kèm ảnh hoặc tệp (PDF, Word, Excel, TXT)')} aria-label={tr('Đính kèm tệp')} disabled={busy} onClick={() => fileRef.current?.click()}>
+            <Icon name="clip" size={18} />
+          </button>
           <textarea
             value={input}
+            onPaste={(e) => {
+              const imgs = Array.from(e.clipboardData.files).filter((f) => f.type.startsWith('image/'));
+              if (imgs.length) {
+                e.preventDefault();
+                void addFiles(imgs);
+              }
+            }}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
@@ -209,10 +311,10 @@ function Chat({ initialMaterial }: { initialMaterial: string | null }) {
                 void send();
               }
             }}
-            placeholder={tr('Nhập câu hỏi… (Enter để gửi, Shift+Enter xuống dòng)')}
+            placeholder={tr('Hỏi gì cũng được, hoặc đính kèm/dán ảnh, file… (Enter để gửi)')}
             rows={1} style={{ minHeight: 48, maxHeight: 160 }}
           />
-          <button className="btn" disabled={busy || !input.trim()} onClick={() => send()}>
+          <button className="btn" disabled={busy || (!input.trim() && !files.length)} onClick={() => send()}>
             {tr('Gửi')}
           </button>
         </div>
@@ -370,5 +472,44 @@ export default function AIPage() {
     <Suspense fallback={<Spinner />}>
       <AIInner />
     </Suspense>
+  );
+}
+
+type Attach = { file: File; preview?: string };
+const ACCEPT = 'image/png,image/jpeg,image/webp,image/gif,.pdf,.docx,.xlsx,.txt,.md,.csv,.tsv';
+const ACCEPT_RE = /\.(png|jpe?g|webp|gif|pdf|docx|xlsx|txt|md|csv|tsv)$/i;
+
+/** Thu nhỏ ảnh lớn (≤ 1600px, JPEG) để gửi nhanh và vừa giới hạn của AI */
+async function shrinkImage(f: File): Promise<File> {
+  if (f.size < 900 * 1024 || f.type === 'image/gif') return f;
+  try {
+    const bmp = await createImageBitmap(f);
+    const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bmp.width * scale);
+    canvas.height = Math.round(bmp.height * scale);
+    canvas.getContext('2d')!.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((ok) => canvas.toBlob(ok, 'image/jpeg', 0.85));
+    if (!blob || blob.size >= f.size) return f;
+    return new File([blob], f.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' });
+  } catch {
+    return f;
+  }
+}
+
+function AttachmentChips({ items }: { items: { name: string; kind: string; preview?: string }[] }) {
+  return (
+    <div className="attach-row">
+      {items.map((a, i) =>
+        a.preview ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img key={i} src={a.preview} alt={a.name} className="attach-thumb" />
+        ) : (
+          <span key={i} className="attach-chip" title={a.name}>
+            {a.kind === 'image' ? '🖼' : '📄'} <span className="truncate">{a.name}</span>
+          </span>
+        ),
+      )}
+    </div>
   );
 }

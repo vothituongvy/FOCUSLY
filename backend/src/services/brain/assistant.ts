@@ -75,7 +75,14 @@ export async function directAnswer(userId: string, message: string): Promise<str
   return (await answer(userId, message, null, true)) || null;
 }
 
-export async function answer(userId: string, message: string, materialId?: string | null, intentsOnly = false): Promise<string> {
+export async function answer(
+  userId: string,
+  message: string,
+  materialId?: string | null,
+  intentsOnly = false,
+  /** nội dung file người học vừa đính kèm trong khung chat */
+  attached?: { title: string; text: string } | null,
+): Promise<string> {
   const q = fold(message);
   const vi = isVietnamese(message) || !/^[\x00-\x7f]*$/.test(message) || !/\b(what|how|when|why|explain|summar|quiz|today|task)\b/i.test(message);
   const user = await UserModel.findById(userId).select('name profile').lean();
@@ -119,8 +126,8 @@ export async function answer(userId: string, message: string, materialId?: strin
   }
 
   /* ---------- đang hỏi về một tài liệu cụ thể ---------- */
-  if (materialId && !intentsOnly) {
-    const m = await materialText(userId, materialId);
+  if ((materialId || attached?.text) && !intentsOnly) {
+    const m = attached?.text ? attached : await materialText(userId, materialId!);
     if (m?.text) {
       if (has(q, /(tom tat|y chinh|summar|main idea)/)) return makeSummary(m.text, m.title);
       // "Tài liệu này nói về gì?" -> giới thiệu ngắn: ý chính + từ khoá
@@ -250,20 +257,25 @@ export async function answer(userId: string, message: string, materialId?: strin
   /* ---------- câu hỏi kiến thức: tìm trong tài liệu của người dùng ---------- */
   if (intentsOnly) return '';
   // 1) tài liệu, flashcard, ghi chú của chính người dùng  2) không có -> tra Wikipedia
-  const docs = await knowledge(userId, materialId);
+  const scoped = Boolean(materialId || attached?.text);
+  const docs: Doc[] = attached?.text
+    ? sentences(attached.text, 25, 400)
+        .slice(0, 1500)
+        .map((t, i) => ({ id: `att:${i}`, text: t, source: attached.title }))
+    : await knowledge(userId, materialId);
   const concept = conceptOf(message);
-  if (concept && !materialId && docs.length) {
+  if (concept && !scoped && docs.length) {
     const all = docs.filter((d) => d.source !== 'Flashcard' && d.source !== 'Ghi chú').map((d) => d.text).join('\n');
     const ex = explainFromText(concept, all);
     if (ex) return ex;
   }
   const hits = docs.length ? bm25(docs, message) : [];
   // đang hỏi trong một tài liệu mà không khớp từ khoá nào -> giới thiệu tài liệu thay vì đi tra Wikipedia
-  if (materialId && !hits.length && docs.length) {
+  if (scoped && !hits.length && docs.length) {
     const main = summarize(docs.map((d) => d.text).join('\n'), 4);
     return [`Mình không thấy đoạn nào khớp trực tiếp với câu hỏi. Tài liệu **“${docs[0].source}”** chủ yếu nói về:`, ...main.map((x) => `- ${x}`), '', '_Thử hỏi bằng tên một khái niệm trong bài, VD: “X là gì?”._'].join('\n');
   }
-  if (!hits.length || (hits[0].score < 1.2 && !materialId)) {
+  if (!hits.length || (hits[0].score < 1.2 && !scoped)) {
     // thư viện kiến thức chung (đã tải sẵn) trước, rồi mới tra Wikipedia trực tiếp
     const lib = await libraryAnswer(message, concept);
     if (lib) return lib;

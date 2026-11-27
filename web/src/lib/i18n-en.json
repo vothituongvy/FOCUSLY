@@ -1090,5 +1090,13 @@
  "Trí nhớ trung bình {0}": "Average recall {0}",
  "{0} thẻ dưới 70% trong 24 giờ tới": "{0} cards below 70% within 24 hours",
  "Khả năng còn nhớ {0}": "Recall probability {0}",
- "Model half-life regression học từ lịch sử ôn thẻ – ôn đúng lúc sắp quên giúp nhớ lâu nhất.": "A half-life regression model learned from review history – reviewing right before you forget makes memories last."
+ "Model half-life regression học từ lịch sử ôn thẻ – ôn đúng lúc sắp quên giúp nhớ lâu nhất.": "A half-life regression model learned from review history – reviewing right before you forget makes memories last.",
+ "“{0}” chưa hỗ trợ. Đính kèm ảnh, PDF, Word, Excel, TXT hoặc CSV.": "“{0}” is not supported. Attach an image, PDF, Word, Excel, TXT or CSV file.",
+ "“{0}” lớn hơn 15MB.": "“{0}” is larger than 15MB.",
+ "Tối đa 4 tệp mỗi tin nhắn.": "Up to 4 files per message.",
+ "Bỏ tệp": "Remove file",
+ "Đính kèm tệp": "Attach file",
+ "Đính kèm ảnh hoặc tệp (PDF, Word, Excel, TXT)": "Attach an image or file (PDF, Word, Excel, TXT)",
+ "Hỏi gì cũng được, hoặc đính kèm/dán ảnh, file… (Enter để gửi)": "Ask anything, or attach/paste an image or file… (Enter to send)",
+ "Hỏi gì cũng được, hoặc gửi ảnh/file...": "Ask anything, or send an image/file..."
 }

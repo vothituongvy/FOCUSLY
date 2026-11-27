@@ -9,7 +9,7 @@ import { MaterialModel, RecallModel } from '../models/Learn';
 import { FocusSessionModel } from '../models/FocusSession';
 import { SubjectModel, TaskModel } from '../models/Learning';
 import { findOwned } from '../services/entities';
-import { aiEnabled, complete, completeJson, llmProviders, relevantChunks, TRANSLATE_LIMIT_PER_HOUR, TUTOR_SYSTEM, usedLastHour } from '../services/ai';
+import { aiEnabled, type ChatMessage, complete, completeJson, llmProviders, relevantChunks, TRANSLATE_LIMIT_PER_HOUR, TUTOR_SYSTEM, usedLastHour } from '../services/ai';
 import { computeInsights } from '../services/analytics';
 import { CardModel } from '../models/Learn';
 import { UserModel } from '../models/User';
@@ -93,71 +93,135 @@ router.delete(
   }),
 );
 
+/** Tệp đính kèm trong khung chat: ảnh (AI nhìn ảnh) + tài liệu (trích chữ) */
+const chatUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 15 * 1024 * 1024, files: 4 },
+  fileFilter: (_req, file, cb) => {
+    if (/^image\/(png|jpe?g|webp|gif)$/.test(file.mimetype) || /\.(png|jpe?g|webp|gif|pdf|docx|xlsx|txt|md|csv|tsv|json)$/i.test(file.originalname) || /pdf|wordprocessingml|spreadsheetml|^text\//.test(file.mimetype)) cb(null, true);
+    else cb(badRequest('Chỉ đính kèm được ảnh (PNG, JPG, WEBP), PDF, Word, Excel, TXT, CSV'));
+  },
+});
+const ATTACH_TEXT_MAX = 60_000;
+
 router.post(
   '/chat',
+  chatUpload.array('files', 4),
   ah(async (req, res) => {
+    const files = (req.files as Express.Multer.File[] | undefined) ?? [];
     const data = parse(
       z.object({
         conversationId: z.string().optional(),
-        message: z.string().trim().min(1).max(4000),
-        materialId: z.string().nullable().optional(),
-        subjectId: z.string().nullable().optional(),
+        message: z.string().trim().max(4000).default(''),
+        materialId: z.string().nullable().optional().transform((v) => v || null),
+        subjectId: z.string().nullable().optional().transform((v) => v || null),
       }),
       req.body,
     );
+    if (!data.message && !files.length) throw badRequest('Nhập câu hỏi hoặc đính kèm tệp');
     const userId = uid(req);
-    let conv = data.conversationId ? await ConversationModel.findOne({ _id: data.conversationId, user: userId, deletedAt: null }) : null;
+
+    /* ---- đọc tệp đính kèm ---- */
+    const images: { name: string; url: string }[] = [];
+    const docs: { name: string; text: string }[] = [];
+    const attachments: { name: string; kind: string }[] = [];
+    for (const f of files) {
+      const name = Buffer.from(f.originalname, 'latin1').toString('utf8');
+      const isImage = f.mimetype.startsWith('image/') || /\.(png|jpe?g|webp|gif)$/i.test(name);
+      if (isImage) {
+        const mime = f.mimetype.startsWith('image/') ? f.mimetype : `image/${/\.png$/i.test(name) ? 'png' : /\.webp$/i.test(name) ? 'webp' : 'jpeg'}`;
+        images.push({ name, url: `data:${mime};base64,${f.buffer.toString('base64')}` });
+        attachments.push({ name, kind: 'image' });
+      } else {
+        const { text } = await extractText(f.buffer, f.mimetype, name);
+        if (!text.trim()) throw badRequest(`Không đọc được chữ trong “${name}” (PDF scan / file trống). Thử chụp ảnh trang đó rồi gửi ảnh.`);
+        docs.push({ name, text });
+        attachments.push({ name, kind: 'file' });
+      }
+    }
+    const message =
+      data.message ||
+      (images.length && !docs.length ? 'Hãy xem ảnh này và giải thích/giải giúp mình.' : 'Tệp này nói về gì? Tóm tắt các ý chính giúp mình.');
+
+    let conv = data.conversationId ? await ConversationModel.findOne({ _id: data.conversationId, user: userId, deletedAt: null }).select('+attachmentsText') : null;
     if (!conv) {
       conv = await ConversationModel.create({
         user: userId,
-        title: data.message.slice(0, 60),
+        title: (data.message || attachments.map((a) => a.name).join(', ')).slice(0, 60),
         material: data.materialId ?? null,
         subject: data.subjectId ?? null,
       });
     }
+    // gom chữ của các file vào cuộc trò chuyện để hỏi tiếp ở các tin sau
+    if (docs.length) {
+      const added = docs.map((d) => `=== ${d.name} ===\n${d.text}`).join('\n\n');
+      conv.set('attachmentsText', `${added}\n\n${conv.get('attachmentsText') ?? ''}`.slice(0, ATTACH_TEXT_MAX));
+    }
+    const attachedText: string = conv.get('attachmentsText') ?? '';
+    const attachedTitle = docs.length ? docs.map((d) => d.name).join(', ') : 'tệp đã gửi';
     const materialId = data.materialId ?? (conv.material ? String(conv.material) : null);
+
     let reply: string;
     let origin = 'brain';
     // 1) câu hỏi về dữ liệu của chính người học -> Brain trả lời bằng số liệu thật
-    const direct = await brain.directAnswer(userId, data.message);
+    const direct = files.length ? null : await brain.directAnswer(userId, message);
     if (direct) {
       reply = direct;
       origin = 'data';
     } else if (!brain.useBrain()) {
-      // 2) LLM (Groq / Gemini / Claude) trả lời, kèm ngữ cảnh từ tài liệu + thư viện FOCUSLY
+      // 2) LLM (Groq / Gemini / Claude) trả lời, kèm ngữ cảnh từ tệp đính kèm + tài liệu + thư viện FOCUSLY
       try {
         let system = TUTOR_SYSTEM;
-        if (!materialId) {
-          const ctx = await brain.contextFor(userId, data.message);
+        if (attachedText) {
+          system += `\n\nTỆP NGƯỜI HỌC ĐÃ ĐÍNH KÈM (trả lời dựa trên nội dung này khi câu hỏi liên quan):\n${relevantChunks(attachedText, message, 14_000)}`;
+        } else if (!materialId) {
+          const ctx = await brain.contextFor(userId, message);
           if (ctx) system += `\n\nNGỮ CẢNH (ưu tiên dùng khi liên quan, ghi rõ nguồn trong ngoặc vuông):\n${ctx}`;
         }
         if (materialId) {
           const src = await loadMaterialText(userId, materialId);
-          system += `\n\nTÀI LIỆU THAM KHẢO – "${src!.material.title}":\n${relevantChunks(src!.text, data.message, 12_000)}`;
+          system += `\n\nTÀI LIỆU THAM KHẢO – "${src!.material.title}":\n${relevantChunks(src!.text, message, 12_000)}`;
         } else if (conv.subject) {
           const s = await SubjectModel.findById(conv.subject).select('name');
           if (s) system += `\n\nNgười học đang học môn: ${s.name}.`;
         }
+        if (images.length) system += '\n\nNgười học gửi kèm ảnh: đọc kỹ chữ, công thức, hình vẽ trong ảnh. Nếu là bài tập, giải từng bước và giải thích vì sao.';
         const history = (conv.messages as unknown as { role: 'user' | 'assistant'; content: string }[]).slice(-20).map((m) => ({ role: m.role, content: m.content }));
+        const userContent: ChatMessage['content'] = images.length ? [{ type: 'text', text: message }, ...images.map((im) => ({ type: 'image_url' as const, image_url: { url: im.url } }))] : message;
         reply = await complete({
           userId,
           feature: 'chat',
           system,
-          messages: [...history, { role: 'user', content: data.message }],
+          messages: [...history, { role: 'user', content: userContent }],
           maxTokens: 1800,
         });
         origin = 'llm';
       } catch (e) {
         if (!llmDown(e)) throw e;
-        reply = await brain.answer(userId, data.message, materialId);
+        reply = await brainReply();
       }
     } else {
       // 3) không có LLM -> FOCUSLY Brain
-      reply = await brain.answer(userId, data.message, materialId);
+      reply = await brainReply();
     }
-    conv.messages.push({ role: 'user', content: data.message, at: new Date() }, { role: 'assistant', content: reply, at: new Date(), origin });
+
+    async function brainReply() {
+      const note = images.length
+        ? '_FOCUSLY Brain chưa đọc được ảnh – cần bật Groq hoặc Gemini (thêm GROQ_API_KEY / GEMINI_API_KEY trên máy chủ). Bạn có thể gõ lại nội dung trong ảnh để mình giúp._'
+        : '';
+      if (images.length && !attachedText) return note;
+      const r = await brain.answer(userId, message, materialId, false, attachedText ? { title: attachedTitle, text: attachedText } : null);
+      return note ? `${note}\n\n${r}` : r;
+    }
+
+    conv.messages.push(
+      { role: 'user', content: data.message || `📎 ${attachments.map((a) => a.name).join(', ')}`, at: new Date(), ...(attachments.length ? { attachments } : {}) },
+      { role: 'assistant', content: reply, at: new Date(), origin },
+    );
     await conv.save();
-    res.json({ conversationId: conv.id, reply, item: conv });
+    const item = conv.toJSON() as Record<string, unknown>;
+    delete item.attachmentsText;
+    res.json({ conversationId: conv.id, reply, item });
   }),
 );
 
