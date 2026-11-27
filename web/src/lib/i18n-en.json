@@ -1081,5 +1081,14 @@
  "Tải file gốc": "Download original file",
  "Xem bản gốc": "View original",
  "FOCUSLY Brain · thư viện {0} bài kiến thức · không giới hạn lượt": "FOCUSLY Brain · {0}-article knowledge library · unlimited",
- "Bản gốc": "Original"
+ "Bản gốc": "Original",
+ "Đánh giá nội dung AI": "Rate AI content",
+ "Hữu ích": "Helpful",
+ "Chưa tốt": "Not good",
+ "Cảm ơn! Brain sẽ học từ đánh giá này.": "Thanks! Brain will learn from this.",
+ "Brain dự báo: thẻ sắp quên": "Brain forecast: cards you may forget",
+ "Trí nhớ trung bình {0}": "Average recall {0}",
+ "{0} thẻ dưới 70% trong 24 giờ tới": "{0} cards below 70% within 24 hours",
+ "Khả năng còn nhớ {0}": "Recall probability {0}",
+ "Model half-life regression học từ lịch sử ôn thẻ – ôn đúng lúc sắp quên giúp nhớ lâu nhất.": "A half-life regression model learned from review history – reviewing right before you forget makes memories last."
 }

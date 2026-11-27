@@ -96,7 +96,7 @@ export default function MaterialsPage() {
           <button className="btn secondary sm" onClick={deepSearch} title={tr('Tìm cả trong nội dung PDF/văn bản')}>
             <Icon name="search" size={16} />{' '}{tr('Tìm trong nội dung')}
           </button>
-          <select value={subject} onChange={(e) => setSubject(e.target.value)} style={{ width: 170 }}>
+          <select value={subject} onChange={(e) => setSubject(e.target.value)} className="filter">
             <option value="">{tr('Mọi môn học')}</option>
             {subjects.map((s) => (
               <option key={s.id} value={s.id}>
@@ -104,7 +104,7 @@ export default function MaterialsPage() {
               </option>
             ))}
           </select>
-          <select value={category} onChange={(e) => setCategory(e.target.value)} style={{ width: 150 }}>
+          <select value={category} onChange={(e) => setCategory(e.target.value)} className="filter">
             <option value="">{tr('Mọi phân loại')}</option>
             {cats.data?.items.map((c) => (
               <option key={c} value={c}>
@@ -112,7 +112,7 @@ export default function MaterialsPage() {
               </option>
             ))}
           </select>
-          <select value={type} onChange={(e) => setType(e.target.value)} style={{ width: 130 }}>
+          <select value={type} onChange={(e) => setType(e.target.value)} className="filter">
             <option value="">{tr('Mọi định dạng')}</option>
             <option value="pdf">PDF</option>
             <option value="image">{tr('Hình ảnh')}</option>

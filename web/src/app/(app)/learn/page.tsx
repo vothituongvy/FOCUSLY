@@ -11,6 +11,7 @@ import type { LearnOverview, Mistake, Quiz } from '@/lib/types';
 import { Empty, Spinner } from '@/components/ui';
 import { Icon } from '@/components/Icon';
 import { ImportFromFile } from '@/components/ImportFromFile';
+import { MemoryForecast } from '@/components/MemoryForecast';
 import { tr } from '@/lib/i18n';
 
 type Tab = 'cards' | 'quiz' | 'mistakes' | 'progress';
@@ -68,6 +69,8 @@ function LearnInner() {
           </div>
         </div>
       )}
+
+      <MemoryForecast />
 
       <div className="card">
         <div className="tabs">

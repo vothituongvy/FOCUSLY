@@ -299,6 +299,8 @@ export interface Question {
   correctIndex?: number | null;
   correctIndexes?: number[];
   correctBoolean?: boolean | null;
+  /** cách AI tạo câu – để chấm 👍/👎 */
+  origin?: string;
   acceptedAnswers: string[];
   explanation?: string;
 }
@@ -436,6 +438,6 @@ export interface Conversation {
   title: string;
   material: string | null;
   subject: string | null;
-  messages?: { role: 'user' | 'assistant'; content: string; at: string }[];
+  messages?: { role: 'user' | 'assistant'; content: string; at: string; origin?: string; vote?: number }[];
   updatedAt: string;
 }

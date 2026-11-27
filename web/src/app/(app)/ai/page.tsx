@@ -11,6 +11,7 @@ import { Markdown } from '@/components/Markdown';
 import { Empty, Spinner } from '@/components/ui';
 import { Icon } from '@/components/Icon';
 import { ForecastCard } from '@/components/FocusForecast';
+import { Feedback } from '@/components/Feedback';
 import { LOCALE, tr } from '@/lib/i18n';
 
 interface AIStatus {
@@ -174,6 +175,9 @@ function Chat({ initialMaterial }: { initialMaterial: string | null }) {
           {conv?.messages?.map((m, i) => (
             <div key={i} className={`bubble ${m.role}`}>
               {m.role === 'assistant' ? <Markdown text={m.content} /> : m.content}
+              {m.role === 'assistant' && conv?.id && (
+                <Feedback kind="answer" origin={m.origin || 'brain'} text={conv.messages?.[i - 1]?.content} initial={m.vote ?? 0} conversationId={conv.id} index={i} />
+              )}
             </div>
           ))}
           {busy && <div className="bubble assistant muted">{tr('Đang suy nghĩ…')}</div>}

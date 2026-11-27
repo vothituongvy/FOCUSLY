@@ -102,3 +102,7 @@ img, svg, video, iframe { max-width: 100%; }
   .chip { min-height: 34px; }
   .btn.sm { min-height: 34px; }
 }
+
+@media (max-width: 640px) {
+  select.filter { flex: 1 1 140px; max-width: none; }
+}

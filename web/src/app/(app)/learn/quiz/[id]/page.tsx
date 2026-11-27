@@ -12,6 +12,7 @@ import { Spinner } from '@/components/ui';
 import { Icon } from '@/components/Icon';
 import { tr } from '@/lib/i18n';
 import { ImportFromFile } from '@/components/ImportFromFile';
+import { Feedback } from '@/components/Feedback';
 
 const TYPE_LABEL: Record<QuestionType, string> = { mcq: tr('Trắc nghiệm'), multi: tr('Nhiều đáp án đúng'), true_false: tr('Đúng / Sai'), short: tr('Trả lời ngắn') };
 const blank = (type: QuestionType = 'mcq'): Question => ({
@@ -120,7 +121,10 @@ function QuizEditor({ initial, onSaved, onCancel }: { initial: Draft; onSaved: (
       {d.questions.map((q, i) => (
         <div key={i} className="card col">
           <div className="row between">
-            <b>{tr('Câu {0}', i + 1)}</b>
+            <span className="row" style={{ gap: 8 }}>
+              <b>{tr('Câu {0}', i + 1)}</b>
+              {q.origin && <Feedback kind="question" origin={q.origin} text={q.prompt} />}
+            </span>
             <div className="row">
               <select
                 value={q.type}

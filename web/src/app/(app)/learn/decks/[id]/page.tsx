@@ -17,6 +17,7 @@ interface DraftCard {
   front: string;
   back: string;
   hint?: string;
+  origin?: string;
   keep: boolean;
 }
 
@@ -67,6 +68,9 @@ function DeckInner() {
   };
 
   const saveDrafts = async (deckId: string) => {
+    // Brain học ngầm: thẻ được giữ = 👍, thẻ bị bỏ chọn = 👎
+    const fb = drafts.filter((d) => d.origin).map((d) => ({ kind: 'card', origin: d.origin, vote: d.keep ? 1 : -1, text: d.front.slice(0, 200) }));
+    if (fb.length) void post('/ai/feedback', { items: fb }).catch(() => undefined);
     for (const c of drafts.filter((d) => d.keep && d.front.trim() && d.back.trim())) {
       await post('/cards', { deck: deckId, front: c.front, back: c.back, hint: c.hint ?? '', source: 'ai' });
     }
