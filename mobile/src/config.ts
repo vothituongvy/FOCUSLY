@@ -15,7 +15,7 @@ export const API_URL = __DEV__ ? DEV_URL : PROD_URL;
 export const GOOGLE_WEB_CLIENT_ID = '87109894039-ol0hdo9ssm8jslhco2kuqjv18vid9p4o.apps.googleusercontent.com';
 
 /** Phiên bản app – giữ khớp với versionName trong android/app/build.gradle */
-export const APP_VERSION = '1.0.9';
+export const APP_VERSION = '1.0.10';
 /** Repo GitHub chứa các bản APK (Releases). Repo phải để công khai để người dùng tải được. */
 /** Báo lỗi app lên Sentry (sentry.io → Project → Client Keys → DSN). Để trống = tắt. */
 export const SENTRY_DSN = '';
