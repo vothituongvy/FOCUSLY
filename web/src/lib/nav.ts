@@ -7,7 +7,7 @@ export interface NavItem {
   icon: IconName;
 }
 
-/** Điều hướng chính. Nhóm có `key` gập/mở được để thanh bên gọn (nhóm đang mở trang luôn mở). */
+/** Điều hướng chính – luôn hiện đủ mọi mục, chia nhóm cho dễ tìm */
 export const NAV_GROUPS: { key: string; label: string | null; items: NavItem[] }[] = [
   {
     key: 'main',
@@ -50,9 +50,6 @@ export const NAV_GROUPS: { key: string; label: string | null; items: NavItem[] }
     ],
   },
 ];
-
-/** Lần đầu: gập sẵn các nhóm ít dùng */
-export const NAV_DEFAULT_COLLAPSED = ['together', 'review'];
 
 export const EXTRA_PAGES: NavItem[] = [
   { href: '/notifications', label: tr('Thông báo'), icon: 'bell' },
