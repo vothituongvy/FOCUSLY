@@ -145,3 +145,6 @@ a.menu-item:hover, button.menu-item:hover, .menu-item:focus-visible { background
   .nav-group { padding: 9px 10px 2px; }
   .sidebar .brand { height: 50px; }
 }
+.topbar-icon.is-active { background: var(--marker-soft); color: var(--ink); }
+/* điện thoại: thanh trên chật -> Hướng dẫn chỉ còn trong menu tài khoản */
+@media (max-width: 520px) { .topbar-help { display: none; } }

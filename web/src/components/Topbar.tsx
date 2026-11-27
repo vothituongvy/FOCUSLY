@@ -9,6 +9,7 @@ import type { FocusSession } from '@/lib/types';
 import { tr } from '@/lib/i18n';
 import { Icon } from './Icon';
 import { NotificationBell } from './NotificationBell';
+import { MessagesButton } from './MessagesButton';
 import { UserMenu } from './UserMenu';
 import { GlobalSearch } from './GlobalSearch';
 
@@ -51,10 +52,11 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
       <GlobalSearch />
       <div className="topbar-right">
         <SessionChip />
-        <Link href="/guide" className="icon-btn topbar-icon" aria-label={tr('Hướng dẫn sử dụng')} title={tr('Hướng dẫn sử dụng')}>
+        <MessagesButton />
+        <NotificationBell />
+        <Link href="/guide" className="icon-btn topbar-icon topbar-help" aria-label={tr('Hướng dẫn sử dụng')} title={tr('Hướng dẫn sử dụng')}>
           <Icon name="help" size={20} />
         </Link>
-        <NotificationBell />
         <UserMenu />
       </div>
     </header>

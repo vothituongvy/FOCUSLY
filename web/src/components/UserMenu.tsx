@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/lib/auth';
+import { get } from '@/lib/api';
 import { disconnectSocket } from '@/lib/socket';
 import { LANG, setLang, tr, type Lang } from '@/lib/i18n';
 import { Avatar } from './ui';
@@ -15,6 +16,13 @@ export function UserMenu() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  // mục "Số liệu sử dụng" chỉ hiện với quản trị viên (ADMIN_EMAILS)
+  const [admin, setAdmin] = useState(false);
+  useEffect(() => {
+    get<{ admin: boolean }>('/admin/me')
+      .then((r) => setAdmin(r.admin))
+      .catch(() => setAdmin(false));
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -56,6 +64,11 @@ export function UserMenu() {
           <Link href="/guide" role="menuitem" className="menu-item" onClick={close}>
             <Icon name="help" size={17} /> {tr('Hướng dẫn sử dụng')}
           </Link>
+          {admin && (
+            <Link href="/admin" role="menuitem" className="menu-item" onClick={close}>
+              <Icon name="analytics" size={17} /> {tr('Số liệu sử dụng')}
+            </Link>
+          )}
           <Link href="/notifications" role="menuitem" className="menu-item" onClick={close}>
             <Icon name="bell" size={17} /> {tr('Thông báo')}
           </Link>

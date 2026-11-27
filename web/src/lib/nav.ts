@@ -7,7 +7,7 @@ export interface NavItem {
   icon: IconName;
 }
 
-/** Điều hướng chính – luôn hiện đủ mọi mục, chia nhóm cho dễ tìm */
+/** Điều hướng chính – luôn hiện đủ mọi mục. Tin nhắn, Thông báo, Hướng dẫn, Cài đặt nằm trên thanh trên. */
 export const NAV_GROUPS: { key: string; label: string | null; items: NavItem[] }[] = [
   {
     key: 'main',
@@ -16,7 +16,6 @@ export const NAV_GROUPS: { key: string; label: string | null; items: NavItem[] }
       { href: '/dashboard', label: tr('Hôm nay'), icon: 'home' },
       { href: '/focus', label: tr('Tập trung'), icon: 'focus' },
       { href: '/plan', label: tr('Kế hoạch'), icon: 'plan' },
-      { href: '/messages', label: tr('Tin nhắn'), icon: 'chat' },
     ],
   },
   {

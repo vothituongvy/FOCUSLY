@@ -1462,5 +1462,6 @@
  "Bật công tắc để đưa lên Thư viện cộng đồng (bộ thẻ/câu hỏi cần ít nhất 3 thẻ/câu). Người khác chỉ sao chép được, không sửa được bản của bạn. Tắt lúc nào cũng được.": "Turn the switch on to put it in the community library (decks/quizzes need at least 3 cards/questions). Others can only copy it – they can't edit yours. Turn it off any time.",
  "Chia sẻ tài liệu": "Share material",
  "Tôi xác nhận": "I confirm",
- "Hướng dẫn": "Guide"
+ "Hướng dẫn": "Guide",
+ "Tin nhắn ({0} chưa đọc)": "Messages ({0} unread)"
 }
