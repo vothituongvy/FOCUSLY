@@ -13,7 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint:types": "tsc --noEmit",
-    "db:indexes": "tsx src/scripts/sync-indexes.ts"
+    "db:indexes": "tsx src/scripts/sync-indexes.ts",
+    "brain:knowledge": "tsx src/scripts/build-knowledge.ts"
   },
   "engines": {
     "node": ">=20"

@@ -13,6 +13,8 @@ import { env } from '../../config/env';
 import { MaterialModel } from '../../models/Learn';
 import { bm25, sentences, type Doc } from './text';
 import { lookup } from './wiki';
+import { knowledgeArticle } from './knowledge';
+export { searchKnowledge, knowledgeArticle, knowledgeStats } from './knowledge';
 export { answerFromWiki, lookup as wikiLookup } from './wiki';
 
 export { makeFlashcards, makeQuiz, makeSummary, explainFromText } from './generate';
@@ -37,7 +39,9 @@ export async function topicText(userId: string, topic: string): Promise<{ text: 
   }
   const hits = bm25(docs, topic);
   if (!hits.length || hits[0].score < 1.2) {
-    // tài liệu của người dùng không có chủ đề này -> dùng bài Wikipedia
+    // tài liệu của người dùng không có chủ đề này -> thư viện kiến thức chung -> Wikipedia trực tiếp
+    const lib = await knowledgeArticle(topic).catch(() => null);
+    if (lib) return { text: lib.text, sources: [`Thư viện FOCUSLY – ${lib.title}`] };
     const a = await lookup(topic);
     return a ? { text: a.text, sources: [`Wikipedia – ${a.title}`] } : { text: '', sources: [] };
   }

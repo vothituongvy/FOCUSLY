@@ -15,6 +15,7 @@ import { bm25, type Doc, fold, isVietnamese, keyphrases, sentences, seeded, summ
 import { definitions, explainFromText, makeQuiz, makeSummary } from './generate';
 import { forecastFor } from './forecast';
 import { answerFromWiki, fetchWiki, lookup } from './wiki';
+import { knowledgeArticle, searchKnowledge } from './knowledge';
 import { notifyChange } from '../realtime';
 
 const has = (q: string, re: RegExp) => re.test(q);
@@ -229,6 +230,9 @@ export async function answer(userId: string, message: string, materialId?: strin
     return [`Mình không thấy đoạn nào khớp trực tiếp với câu hỏi. Tài liệu **“${docs[0].source}”** chủ yếu nói về:`, ...main.map((x) => `- ${x}`), '', '_Thử hỏi bằng tên một khái niệm trong bài, VD: “X là gì?”._'].join('\n');
   }
   if (!hits.length || (hits[0].score < 1.2 && !materialId)) {
+    // thư viện kiến thức chung (đã tải sẵn) trước, rồi mới tra Wikipedia trực tiếp
+    const lib = await libraryAnswer(message, concept);
+    if (lib) return lib;
     const wiki = await answerFromWiki(message, concept);
     if (wiki) return wiki.text;
     return vi
@@ -269,4 +273,29 @@ export async function translateFree(text: string, to: 'auto' | 'vi' | 'en') {
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** Trả lời bằng thư viện kiến thức chung của FOCUSLY (bài Wikipedia đã lưu sẵn) */
+async function libraryAnswer(message: string, concept: string | null): Promise<string | null> {
+  if (concept) {
+    const art = await knowledgeArticle(concept).catch(() => null);
+    if (art) {
+      const ex = explainFromText(concept, art.text);
+      const lead = sentences(art.text, 30, 420).slice(0, 2);
+      const body = ex ?? lead.map((s) => `- ${s}`).join('\n');
+      return `**Theo thư viện FOCUSLY – ${art.title}:**\n${body}\n\n[Đọc bài đầy đủ](${art.url}) · _Wikipedia, CC BY-SA_\n\nGõ **“lưu bài ${art.title}”** để lưu thành tài liệu của bạn.`;
+    }
+  }
+  const hits = (await searchKnowledge(message, 6).catch(() => [])).filter((h) => h.score >= 3);
+  if (!hits.length) return null;
+  const best = hits[0].entry;
+  const same = hits.filter((h) => h.entry.title === best.title && h.score >= hits[0].score * 0.5).slice(0, 3);
+  return [
+    `**Theo thư viện FOCUSLY – ${best.title}:**`,
+    ...same.map((h) => `- ${h.entry.text}`),
+    '',
+    `[Đọc bài đầy đủ](${best.url}) · _Wikipedia, CC BY-SA_`,
+    '',
+    `Gõ **“lưu bài ${best.title}”** để lưu thành tài liệu và tạo flashcard, câu hỏi từ bài này.`,
+  ].join('\n');
 }

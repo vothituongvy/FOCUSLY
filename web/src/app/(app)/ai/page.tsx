@@ -16,6 +16,7 @@ import { LOCALE, tr } from '@/lib/i18n';
 interface AIStatus {
   enabled: boolean;
   provider?: 'brain' | 'claude';
+  knowledge?: { articles: number; topics: number } | null;
   model: string;
   usedLastHour: number;
   limitPerHour: number;
@@ -38,7 +39,7 @@ function AIInner() {
         {status.data && (
           <span className="small muted">
             {status.data.provider === 'brain'
-              ? tr('FOCUSLY Brain · AI tự xây, chạy trên máy chủ FOCUSLY, không giới hạn lượt')
+              ? tr('FOCUSLY Brain · thư viện {0} bài kiến thức · không giới hạn lượt', status.data.knowledge?.articles ?? 0)
               : status.data.enabled
                 ? tr('Model {0} · {1}/{2} lượt trong 1 giờ', status.data.model, status.data.usedLastHour, status.data.limitPerHour)
                 : ''}

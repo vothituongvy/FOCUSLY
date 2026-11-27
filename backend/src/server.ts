@@ -5,6 +5,7 @@ import { connectDb } from './config/db';
 import { createApp } from './app';
 import { initRealtime } from './services/realtime';
 import { startScheduler, stopScheduler } from './services/scheduler';
+import { startKnowledgeBuilder } from './services/brain/knowledge';
 
 async function main() {
   await connectDb();
@@ -15,6 +16,8 @@ async function main() {
   server.listen(env.port, () => {
     console.log(`[api] FOCUSLY API chạy tại http://localhost:${env.port}/api`);
     startScheduler();
+    // FOCUSLY Brain: tự tải thư viện kiến thức chung (chạy nền, chỉ tải chủ đề còn thiếu)
+    startKnowledgeBuilder();
   });
 
   const shutdown = async (signal: string) => {

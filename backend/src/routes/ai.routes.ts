@@ -56,6 +56,7 @@ router.get(
     res.json({
       enabled: aiEnabled(),
       provider: brain.useBrain() ? 'brain' : 'claude',
+      knowledge: await brain.knowledgeStats().catch(() => null),
       model: brain.useBrain() ? 'FOCUSLY Brain' : env.ai.model,
       usedLastHour: await usedLastHour(uid(req)),
       limitPerHour: env.ai.maxRequestsPerHour,
