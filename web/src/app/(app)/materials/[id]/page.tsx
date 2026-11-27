@@ -12,6 +12,7 @@ import { Markdown } from '@/components/Markdown';
 import { Empty, Modal, Progress, Spinner } from '@/components/ui';
 import { Icon } from '@/components/Icon';
 import { tr } from '@/lib/i18n';
+import { ShareToLibrary } from '@/components/ShareToLibrary';
 
 type Tab = 'notes' | 'ai';
 
@@ -84,6 +85,7 @@ export default function MaterialDetailPage() {
             {material.category}
             {subject ? ` · ${subject.icon} ${subject.name}` : ''}{' '}{tr('· thêm {0}', fmtDate(material.createdAt))}
           </p>
+          {!(material as unknown as { sourceRef?: string }).sourceRef?.startsWith('lib:') && <ShareToLibrary kind="material" id={id} />}
         </div>
         <div className="row">
           <button className="btn secondary sm" onClick={() => setEditing(true)}>

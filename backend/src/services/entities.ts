@@ -403,8 +403,10 @@ const PHASE2: Record<Exclude<EntityName, 'subjects' | 'courses' | 'goals' | 'tas
       }
     },
     afterDelete: async (userId, doc) => {
-      const full = await MaterialModel.findById(doc._id).select('+storageId');
-      await removeStored(full?.storageId);
+      const full = await MaterialModel.findById(doc._id).select('+storageId url');
+      // file còn được bản sao trong Thư viện cộng đồng dùng chung -> giữ lại file
+      const shared = full?.url ? await MaterialModel.exists({ _id: { $ne: doc._id }, url: full.url, deletedAt: null }) : null;
+      if (!shared) await removeStored(full?.storageId);
       await MaterialNoteModel.updateMany({ user: userId, material: doc._id, deletedAt: null }, { deletedAt: new Date() });
       notifyChange(userId, 'materialNotes', 'bulk', null);
     },

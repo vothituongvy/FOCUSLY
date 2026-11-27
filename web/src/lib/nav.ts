@@ -7,17 +7,20 @@ export interface NavItem {
   icon: IconName;
 }
 
-/** Điều hướng chính */
-export const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
+/** Điều hướng chính. Nhóm có `key` gập/mở được để thanh bên gọn (nhóm đang mở trang luôn mở). */
+export const NAV_GROUPS: { key: string; label: string | null; items: NavItem[] }[] = [
   {
+    key: 'main',
     label: null,
     items: [
       { href: '/dashboard', label: tr('Hôm nay'), icon: 'home' },
       { href: '/focus', label: tr('Tập trung'), icon: 'focus' },
       { href: '/plan', label: tr('Kế hoạch'), icon: 'plan' },
+      { href: '/messages', label: tr('Tin nhắn'), icon: 'chat' },
     ],
   },
   {
+    key: 'learn',
     label: tr('Học'),
     items: [
       { href: '/learn', label: tr('Ôn tập & quiz'), icon: 'cards' },
@@ -28,15 +31,16 @@ export const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
     ],
   },
   {
+    key: 'together',
     label: tr('Cùng nhau'),
     items: [
-      { href: '/messages', label: tr('Tin nhắn'), icon: 'chat' },
       { href: '/friends', label: tr('Bạn bè & xếp hạng'), icon: 'users' },
       { href: '/rooms', label: tr('Phòng học chung'), icon: 'room' },
       { href: '/classes', label: tr('Lớp học'), icon: 'school' },
     ],
   },
   {
+    key: 'review',
     label: tr('Nhìn lại'),
     items: [
       { href: '/analytics', label: tr('Phân tích'), icon: 'analytics' },
@@ -46,6 +50,9 @@ export const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
     ],
   },
 ];
+
+/** Lần đầu: gập sẵn các nhóm ít dùng */
+export const NAV_DEFAULT_COLLAPSED = ['together', 'review'];
 
 export const EXTRA_PAGES: NavItem[] = [
   { href: '/notifications', label: tr('Thông báo'), icon: 'bell' },

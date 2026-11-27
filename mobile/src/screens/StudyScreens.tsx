@@ -119,6 +119,7 @@ export function MaterialDetailScreen({ route, navigation }: NativeStackScreenPro
           {m.hasText && <Button title={tr('Hỏi AI')} small variant="secondary" icon="ai" onPress={() => navigation.navigate('AIChat', { materialId: m.id })} />}
         </Row>
       </Card>
+      {!m.id.startsWith('c_') && !(m as unknown as { sourceRef?: string }).sourceRef?.startsWith('lib:') && <ShareToLibrary kind="material" id={m.id} />}
 
       {m.hasText && (
         <Card>

@@ -124,3 +124,17 @@ a.menu-item:hover, button.menu-item:hover, .menu-item:focus-visible { background
 .brand-word { font-weight: 800; letter-spacing: 0.02em; }
 .topbar-brand .brand-mark { width: 26px; height: 26px; }
 .nav-badge { order: 3; margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--stop); color: #fff; font-size: 11.5px; font-weight: 800; display: inline-grid; place-items: center; font-variant-numeric: tabular-nums; }
+
+/* Thanh bên gọn: nhóm gập/mở, danh sách cuộn riêng, chân (Hướng dẫn, Cài đặt) luôn ở dưới */
+.sidebar { overflow: hidden; }
+.sidebar-nav { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; margin: 0 -6px; padding: 0 6px 8px; scrollbar-width: thin; }
+.sidebar-footer { flex: none; }
+.nav-link { padding: 7px 10px; }
+.nav-group-btn { display: flex; align-items: center; gap: 6px; width: 100%; background: none; border: 0; cursor: pointer; font: inherit; font-size: 12px; text-align: left; border-radius: 6px; }
+.nav-group-btn:hover { color: var(--ink); }
+.nav-group-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+.nav-group-btn > span:first-child { flex: 1; }
+.nav-chevron { transition: transform .15s; color: var(--muted); }
+.nav-group-btn.open .nav-chevron { transform: rotate(90deg); }
+.nav-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--stop); }
+@media (prefers-reduced-motion: reduce) { .nav-chevron { transition: none; } }

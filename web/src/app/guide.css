@@ -47,3 +47,8 @@
   .search.expanded .search-toggle { display: none; }
   .search.expanded .search-box { display: flex; background: var(--paper); border-color: var(--ink); }
 }
+
+/* Mục lục hướng dẫn: cuộn riêng trong khung nhìn khi có nhiều mục */
+@media (min-width: 901px) {
+  .guide-toc { max-height: calc(100vh - 104px); overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; scrollbar-width: thin; }
+}

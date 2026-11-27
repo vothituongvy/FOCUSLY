@@ -25,6 +25,15 @@ export default function GuidePage() {
     return () => io.disconnect();
   }, [sections]);
 
+  // mục lục cuộn riêng: luôn giữ mục đang đọc trong tầm nhìn
+  useEffect(() => {
+    const toc = document.querySelector<HTMLElement>('.guide-toc');
+    const link = toc?.querySelector<HTMLElement>(`a[href="#${active}"]`);
+    if (!toc || !link) return;
+    const top = link.offsetTop - toc.offsetTop;
+    if (top < toc.scrollTop + 30 || top > toc.scrollTop + toc.clientHeight - 60) toc.scrollTo({ top: top - toc.clientHeight / 3, behavior: 'smooth' });
+  }, [active]);
+
   return (
     <div>
       <div className="page-header">

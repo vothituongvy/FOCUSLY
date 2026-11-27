@@ -7,7 +7,7 @@ import { get } from '@/lib/api';
 import { useResource } from '@/lib/hooks';
 import { useSocketEvent } from '@/lib/socket';
 import { Icon } from './Icon';
-import { NAV_GROUPS } from '@/lib/nav';
+import { NAV_DEFAULT_COLLAPSED, NAV_GROUPS } from '@/lib/nav';
 import { tr } from '@/lib/i18n';
 
 /** Thanh điều hướng bên trái. Trên màn hình nhỏ là ngăn kéo mở từ nút menu ở thanh trên. */
@@ -41,6 +41,27 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
 
   const active = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
+  // nhóm menu gập/mở – nhớ trên máy này
+  const [collapsed, setCollapsed] = useState<string[]>(NAV_DEFAULT_COLLAPSED);
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem('focusly.navCollapsed');
+      if (v) setCollapsed(JSON.parse(v) as string[]);
+    } catch {
+      /* trình duyệt chặn lưu trữ */
+    }
+  }, []);
+  const toggleGroup = (key: string) =>
+    setCollapsed((cur) => {
+      const next = cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key];
+      try {
+        localStorage.setItem('focusly.navCollapsed', JSON.stringify(next));
+      } catch {
+        /* bỏ qua */
+      }
+      return next;
+    });
+
   return (
     <>
       {open && <div className="drawer-backdrop" onClick={onClose} aria-hidden />}
@@ -49,10 +70,26 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
           <img src="/icons/logo-mark.png" alt="" className="brand-mark" width={30} height={30} /> <span className="brand-word">FOCUSLY</span>
         </Link>
         <nav className="sidebar-nav">
-          {NAV_GROUPS.map((g) => (
-            <div key={g.label ?? 'main'} className="nav-section">
-              {g.label && <div className="nav-group">{g.label}</div>}
-              {g.items.map((n) => (
+          {NAV_GROUPS.map((g) => {
+            const hasActive = g.items.some((n) => active(n.href));
+            const isOpen = !g.label || hasActive || !collapsed.includes(g.key);
+            const groupUnread = g.items.some((n) => n.href === '/messages') ? unread : 0;
+            return (
+            <div key={g.key} className="nav-section">
+              {g.label && (
+                <button
+                  type="button"
+                  className={`nav-group nav-group-btn ${isOpen ? 'open' : ''}`}
+                  aria-expanded={isOpen}
+                  onClick={() => !hasActive && toggleGroup(g.key)}
+                  title={hasActive ? undefined : isOpen ? tr('Thu gọn') : tr('Mở rộng')}
+                >
+                  <span>{g.label}</span>
+                  {!isOpen && groupUnread > 0 && <span className="nav-dot" aria-hidden />}
+                  {!hasActive && <Icon name="chevronRight" size={14} className="nav-chevron" />}
+                </button>
+              )}
+              {isOpen && g.items.map((n) => (
                 <Link key={n.href} href={n.href} className={`nav-link ${active(n.href) ? 'active' : ''}`} aria-current={active(n.href) ? 'page' : undefined}>
                   <Icon name={n.icon} />
                   {n.href === '/messages' && unread > 0 && <span className="nav-badge" aria-label={tr('{0} tin chưa đọc', unread)}>{unread > 99 ? '99+' : unread}</span>}
@@ -60,7 +97,8 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
                 </Link>
               ))}
             </div>
-          ))}
+            );
+          })}
         </nav>
         <div className="sidebar-footer">
           {admin && (

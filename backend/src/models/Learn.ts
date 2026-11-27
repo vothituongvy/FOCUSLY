@@ -7,6 +7,17 @@ import { jsonOptions, syncFields, syncable } from './common';
  * ==================================================================== */
 
 /* ---------- Learning Materials ---------- */
+/** Chia sẻ công khai (thư viện cộng đồng) + nguồn khi sao chép (thư viện / bài tập lớp) */
+const publicFields = {
+  isPublic: { type: Boolean, default: false },
+  publishedAt: { type: Date, default: null },
+  authorName: { type: String, default: '' },
+  copies: { type: Number, default: 0 },
+  itemCount: { type: Number, default: 0 },
+  /** "lib:<id>" khi lấy từ thư viện, "assign:<assignmentId>" khi là bài tập lớp */
+  sourceRef: { type: String, default: '', index: true },
+} as const;
+
 export const MATERIAL_TYPES = ['pdf', 'image', 'text', 'link', 'document'] as const;
 
 const materialSchema = new Schema(
@@ -36,10 +47,12 @@ const materialSchema = new Schema(
     },
     aiSummary: { type: String, default: '' },
     aiSummaryAt: { type: Date, default: null },
+    ...publicFields,
   },
   jsonOptions,
 );
 syncable(materialSchema);
+materialSchema.index({ isPublic: 1, copies: -1 });
 materialSchema.index({ user: 1, lastOpenedAt: -1 });
 materialSchema.index({ title: 'text', description: 'text', tags: 'text', textContent: 'text' }, { weights: { title: 10, tags: 5, description: 3, textContent: 1 }, default_language: 'none' });
 export const MaterialModel = model('Material', materialSchema);
@@ -61,16 +74,6 @@ const materialNoteSchema = new Schema(
 syncable(materialNoteSchema);
 export const MaterialNoteModel = model('MaterialNote', materialNoteSchema);
 
-/** Chia sẻ công khai (thư viện cộng đồng) + nguồn khi sao chép (thư viện / bài tập lớp) */
-const publicFields = {
-  isPublic: { type: Boolean, default: false },
-  publishedAt: { type: Date, default: null },
-  authorName: { type: String, default: '' },
-  copies: { type: Number, default: 0 },
-  itemCount: { type: Number, default: 0 },
-  /** "lib:<id>" khi lấy từ thư viện, "assign:<assignmentId>" khi là bài tập lớp */
-  sourceRef: { type: String, default: '', index: true },
-} as const;
 
 /* ---------- Flashcards ---------- */
 const deckSchema = new Schema(

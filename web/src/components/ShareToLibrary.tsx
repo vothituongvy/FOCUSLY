@@ -7,17 +7,19 @@ import { Toggle } from '@/components/ui';
 import { useResource } from '@/lib/hooks';
 
 /** Bật/tắt chia sẻ bộ thẻ / bộ câu hỏi lên Thư viện cộng đồng */
-export function ShareToLibrary({ kind, id }: { kind: 'deck' | 'quiz'; id: string }) {
+export function ShareToLibrary({ kind, id }: { kind: 'deck' | 'quiz' | 'material'; id: string }) {
   const info = useResource<{ item: { isPublic: boolean; copies: number } }>(id ? `/library/${kind}/${id}` : null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   if (!id || !info.data) return null;
   const on = info.data.item.isPublic;
   const set = async (v: boolean) => {
+    // tài liệu: phải xác nhận có quyền chia sẻ (tránh đăng sách/tài liệu có bản quyền)
+    if (v && kind === 'material' && !confirm(tr('Bạn xác nhận tài liệu này do bạn tự soạn hoặc được tác giả cho phép chia sẻ công khai? Không đăng sách, đề thi hay tài liệu có bản quyền của người khác.'))) return;
     setBusy(true);
     setError('');
     try {
-      await post(`/library/${kind}/${id}/publish`, { isPublic: v });
+      await post(`/library/${kind}/${id}/publish`, { isPublic: v, confirmRights: v && kind === 'material' });
       info.setData(await get(`/library/${kind}/${id}`));
     } catch (e) {
       setError(errorMessage(e));

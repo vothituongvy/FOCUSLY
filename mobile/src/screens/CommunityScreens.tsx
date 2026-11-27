@@ -16,7 +16,11 @@ import { Avatar } from './SocialScreens';
 type Nav = NativeStackNavigationProp<AppStackParams>;
 
 /* ======================= Thư viện cộng đồng ======================= */
-type Kind = 'deck' | 'quiz';
+type Kind = 'deck' | 'quiz' | 'material';
+const TYPE_LABEL: Record<string, string> = { pdf: 'PDF', image: 'Ảnh', text: 'Văn bản', link: 'Link', document: 'Word/Excel' };
+const kb = (n?: number) => (!n ? '' : n > 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
+const countLabel = (k: Kind, i: { itemCount: number; materialType?: string; sizeBytes?: number; category?: string }) =>
+  k === 'deck' ? tr('{0} thẻ', i.itemCount) : k === 'quiz' ? tr('{0} câu', i.itemCount) : [tr(TYPE_LABEL[i.materialType ?? ''] ?? 'Tài liệu'), i.category ? tr(i.category) : '', kb(i.sizeBytes)].filter(Boolean).join(' · ');
 interface LibItem {
   id: string;
   title: string;
@@ -24,11 +28,15 @@ interface LibItem {
   authorName: string;
   copies: number;
   itemCount: number;
+  materialType?: string;
+  category?: string;
+  sizeBytes?: number;
   mine: boolean;
 }
 interface LibDetail extends LibItem {
   kind: Kind;
   preview: { front: string; back: string }[];
+  excerpt?: string;
 }
 
 export function LibraryScreen() {
@@ -41,7 +49,7 @@ export function LibraryScreen() {
   const list = useApi<{ items: LibItem[] }>(`/library?kind=${kind}&sort=${sort}${query ? `&q=${encodeURIComponent(query)}` : ''}`);
   const [open, setOpen] = useState<LibDetail | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
-  const { decks, quizzes, cards } = useData();
+  const { decks, quizzes, cards, materials } = useData();
   const [shareTab, setShareTab] = useState<Kind>('deck');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -64,7 +72,8 @@ export function LibraryScreen() {
       await sync();
       setOpen(null);
       if (r.kind === 'deck') nav.navigate('DeckEdit', { deckId: r.id });
-      else nav.navigate('QuizTake', { quizId: r.id });
+      else if (r.kind === 'quiz') nav.navigate('QuizTake', { quizId: r.id });
+      else nav.navigate('MaterialDetail', { materialId: r.id });
     } catch (e) {
       setError(errorMessage(e));
     } finally {
@@ -78,6 +87,7 @@ export function LibraryScreen() {
       <Chips>
         <Chip label={`🃏 ${tr('Flashcard')}`} active={kind === 'deck'} onPress={() => setKind('deck')} />
         <Chip label={`📝 ${tr('Bộ câu hỏi')}`} active={kind === 'quiz'} onPress={() => setKind('quiz')} />
+        <Chip label={`📄 ${tr('Tài liệu')}`} active={kind === 'material'} onPress={() => setKind('material')} />
         <Chip label={tr('Phổ biến nhất')} active={sort === 'popular'} onPress={() => setSort('popular')} />
         <Chip label={tr('Mới nhất')} active={sort === 'new'} onPress={() => setSort('new')} />
       </Chips>
@@ -86,7 +96,7 @@ export function LibraryScreen() {
       {!list.data ? (
         <Muted>{tr('Đang tải…')}</Muted>
       ) : list.data.items.length === 0 ? (
-        <Empty text={query ? tr('Không tìm thấy bộ nào phù hợp.') : tr('Chưa có bộ nào được chia sẻ. Hãy là người đầu tiên: mở một bộ của bạn và bật “Chia sẻ lên Thư viện cộng đồng”.')} />
+        <Empty text={query ? tr('Không tìm thấy bộ nào phù hợp.') : tr('Chưa có gì được chia sẻ ở mục này. Hãy là người đầu tiên: bấm “Chia sẻ bộ của tôi”.')} />
       ) : (
         list.data.items.map((i) => (
           <Pressable key={i.id} onPress={() => preview(i.id)}>
@@ -94,7 +104,7 @@ export function LibraryScreen() {
               <Text style={{ fontWeight: '700', color: colors.text, fontSize: 15 }}>{i.title}</Text>
               {!!i.description && <Muted numberOfLines={2}>{i.description}</Muted>}
               <Muted>
-                {kind === 'deck' ? tr('{0} thẻ', i.itemCount) : tr('{0} câu', i.itemCount)} · {tr('{0} lượt sao chép', i.copies)} · {i.mine ? tr('Của bạn') : tr('bởi {0}', i.authorName || '—')}
+                {countLabel(kind, i)} · {tr('{0} lượt sao chép', i.copies)} · {i.mine ? tr('Của bạn') : tr('bởi {0}', i.authorName || '—')}
               </Muted>
             </Card>
           </Pressable>
@@ -104,25 +114,27 @@ export function LibraryScreen() {
         <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
           <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
             <H1>{tr('Chia sẻ bộ của tôi')}</H1>
-            <Muted>{tr('Bật công tắc để đưa bộ lên Thư viện cộng đồng (cần ít nhất 3 thẻ/câu). Người khác chỉ sao chép được, không sửa được bản của bạn. Tắt lúc nào cũng được.')}</Muted>
+            <Muted>{tr('Bật công tắc để đưa lên Thư viện cộng đồng (bộ thẻ/câu hỏi cần ít nhất 3 thẻ/câu). Người khác chỉ sao chép được, không sửa được bản của bạn. Tắt lúc nào cũng được.')}</Muted>
             <Chips>
               <Chip label={`🃏 ${tr('Bộ flashcard')}`} active={shareTab === 'deck'} onPress={() => setShareTab('deck')} />
               <Chip label={`📝 ${tr('Bộ câu hỏi')}`} active={shareTab === 'quiz'} onPress={() => setShareTab('quiz')} />
+              <Chip label={`📄 ${tr('Tài liệu')}`} active={shareTab === 'material'} onPress={() => setShareTab('material')} />
             </Chips>
-            {(shareTab === 'deck' ? decks : quizzes)
+            {shareTab === 'material' && <Text style={{ color: colors.text2, fontSize: 13 }}>⚠️ {tr('Chỉ chia sẻ tài liệu do bạn tự soạn (ghi chú, đề cương, bài tóm tắt…) hoặc được tác giả cho phép. Không đăng sách, đề thi hay tài liệu có bản quyền của người khác.')}</Text>}
+            {(shareTab === 'deck' ? decks : shareTab === 'quiz' ? quizzes : materials.filter((x) => !(x as unknown as { sourceRef?: string }).sourceRef?.startsWith('lib:')))
               .filter((x) => !x.id.startsWith('c_'))
               .map((x) => (
                 <View key={x.id} style={{ gap: 4 }}>
                   <Text style={{ fontWeight: '700', color: colors.text }}>
                     {x.title}{' '}
                     <Text style={{ color: colors.muted, fontWeight: '400', fontSize: 12.5 }}>
-                      ({shareTab === 'deck' ? tr('{0} thẻ', cards.filter((c) => c.deck === x.id).length) : tr('{0} câu', (x as { questions?: unknown[] }).questions?.length ?? 0)})
+                      ({shareTab === 'deck' ? tr('{0} thẻ', cards.filter((c) => c.deck === x.id).length) : shareTab === 'quiz' ? tr('{0} câu', (x as { questions?: unknown[] }).questions?.length ?? 0) : tr(TYPE_LABEL[(x as { type?: string }).type ?? ''] ?? 'Tài liệu')})
                     </Text>
                   </Text>
                   <ShareToLibrary kind={shareTab} id={x.id} />
                 </View>
               ))}
-            {(shareTab === 'deck' ? decks : quizzes).length === 0 && <Empty text={shareTab === 'deck' ? tr('Bạn chưa có bộ flashcard nào. Tạo ở mục Ôn tập & quiz trước nhé.') : tr('Bạn chưa có bộ câu hỏi nào. Tạo ở mục Ôn tập & quiz trước nhé.')} />}
+            {(shareTab === 'deck' ? decks : shareTab === 'quiz' ? quizzes : materials).length === 0 && <Empty text={shareTab === 'deck' ? tr('Bạn chưa có bộ flashcard nào. Tạo ở mục Ôn tập & quiz trước nhé.') : shareTab === 'quiz' ? tr('Bạn chưa có bộ câu hỏi nào. Tạo ở mục Ôn tập & quiz trước nhé.') : tr('Bạn chưa có tài liệu nào. Thêm ở mục Tài liệu trước nhé.')} />}
             <Button variant="ghost" title={tr('Đóng')} onPress={() => (setShareOpen(false), void list.reload())} />
           </ScrollView>
         </SafeAreaView>
@@ -134,16 +146,17 @@ export function LibraryScreen() {
               <H1>{open.title}</H1>
               {!!open.description && <Muted>{open.description}</Muted>}
               <Muted>
-                {open.kind === 'deck' ? tr('{0} thẻ', open.itemCount) : tr('{0} câu', open.itemCount)} · {tr('bởi {0}', open.authorName || '—')}
+                {countLabel(open.kind, open)} · {tr('bởi {0}', open.authorName || '—')}
               </Muted>
-              <Card style={{ gap: 0, padding: 0 }}>
+              {open.kind === 'material' && <Card><Text style={{ color: colors.text2 }}>{open.excerpt ? `${open.excerpt}${open.excerpt.length >= 900 ? '…' : ''}` : tr('Tài liệu này chưa có phần chữ để xem trước. Sao chép về để mở bản gốc.')}</Text></Card>}
+              {open.kind !== 'material' && <Card style={{ gap: 0, padding: 0 }}>
                 {open.preview.map((p, i) => (
                   <View key={i} style={{ padding: 12, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border, gap: 2 }}>
                     <Text style={{ color: colors.text }}>{p.front}</Text>
                     {open.kind === 'deck' && <Muted>{p.back}</Muted>}
                   </View>
                 ))}
-              </Card>
+              </Card>}
               <Button variant="marker" icon="download" title={tr('Sao chép về tài khoản của tôi')} loading={busy} onPress={() => copy(open)} />
               <Button variant="ghost" title={tr('Đóng')} onPress={() => setOpen(null)} />
             </ScrollView>
@@ -171,14 +184,23 @@ export function ShareToLibrary({ kind, id }: { kind: Kind; id?: string }) {
           value={on}
           trackColor={{ true: colors.marker, false: colors.track }}
           thumbColor={colors.text}
-          onValueChange={async (v) => {
-            setError('');
-            try {
-              await api(`/library/${kind}/${id}/publish`, { method: 'POST', body: { isPublic: v } });
-              void info.reload();
-            } catch (e) {
-              setError(errorMessage(e));
-            }
+          onValueChange={(v) => {
+            const go = async () => {
+              setError('');
+              try {
+                await api(`/library/${kind}/${id}/publish`, { method: 'POST', body: { isPublic: v, confirmRights: v && kind === 'material' } });
+                void info.reload();
+              } catch (e) {
+                setError(errorMessage(e));
+              }
+            };
+            // tài liệu: xác nhận có quyền chia sẻ trước khi công khai
+            if (v && kind === 'material')
+              Alert.alert(tr('Chia sẻ tài liệu'), tr('Bạn xác nhận tài liệu này do bạn tự soạn hoặc được tác giả cho phép chia sẻ công khai? Không đăng sách, đề thi hay tài liệu có bản quyền của người khác.'), [
+                { text: tr('Huỷ'), style: 'cancel' },
+                { text: tr('Tôi xác nhận'), onPress: () => void go() },
+              ]);
+            else void go();
           }}
         />
       </Row>
