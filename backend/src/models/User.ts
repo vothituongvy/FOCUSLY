@@ -26,6 +26,8 @@ const userSchema = new Schema(
     googleId: { type: String, index: true, sparse: true },
     name: { type: String, required: true, trim: true },
     avatarUrl: { type: String, default: null },
+    /** mã kết bạn / mời bạn (6 ký tự) */
+    friendCode: { type: String, index: true, sparse: true, unique: true },
     avatarPublicId: { type: String, default: null, select: false },
     profile: {
       learningGoal: { type: String, default: '' },
@@ -62,6 +64,8 @@ const userSchema = new Schema(
       dailySummary: { type: Boolean, default: true },
       dailySummaryTime: { type: String, default: '21:30' },
       reviewReminder: { type: Boolean, default: true }, // flashcard đến hạn ôn
+      weeklyReport: { type: Boolean, default: true }, // báo cáo tuần tối Chủ nhật (thông báo)
+      weeklyEmail: { type: Boolean, default: true }, // gửi kèm email
       push: { type: Boolean, default: true },
       quietStart: { type: String, default: '23:00' },
       quietEnd: { type: String, default: '06:30' },

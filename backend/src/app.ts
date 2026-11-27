@@ -22,6 +22,12 @@ import notificationRoutes from './routes/notifications.routes';
 import aiRoutes from './routes/ai.routes';
 import analyticsRoutes from './routes/analytics.routes';
 import { crudRouter } from './routes/crud.routes';
+import socialRoutes from './routes/social.routes';
+import examRoutes from './routes/exams.routes';
+import libraryRoutes from './routes/library.routes';
+import classRoutes from './routes/classes.routes';
+import adminRoutes from './routes/admin.routes';
+import { trackUsage } from './middleware/usage';
 import { aiEnabled } from './services/ai';
 import { pushEnabled } from './services/notifications';
 
@@ -82,6 +88,7 @@ export function createApp() {
 
   const api = express.Router();
   api.use(apiLimiter);
+  api.use(trackUsage);
   api.use('/auth', authRoutes);
   api.use('/users', userRoutes);
   api.use('/', insightRoutes); // /dashboard, /distractions/stats (đặt trước CRUD distractions)
@@ -107,6 +114,12 @@ export function createApp() {
   // Phase 3
   api.use('/ai', aiRoutes);
   api.use('/analytics', analyticsRoutes);
+  // Học cùng nhau, ngày thi, thư viện cộng đồng, lớp học, quản trị
+  api.use('/social', socialRoutes);
+  api.use('/exams', examRoutes);
+  api.use('/library', libraryRoutes);
+  api.use('/classes', classRoutes);
+  api.use('/admin', adminRoutes);
   app.use('/api', api);
 
   app.use(notFoundHandler);

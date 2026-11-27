@@ -29,3 +29,11 @@ export function disconnectSocket() {
   socket?.disconnect();
   socket = null;
 }
+
+/** Nghe thêm một sự kiện realtime (VD: room:update) – trả về hàm huỷ */
+export function onSocket(event: string, fn: (payload: unknown) => void): () => void {
+  socket?.on(event, fn);
+  return () => {
+    socket?.off(event, fn);
+  };
+}

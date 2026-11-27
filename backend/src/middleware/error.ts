@@ -2,12 +2,13 @@ import { ErrorRequestHandler, RequestHandler } from 'express';
 import mongoose from 'mongoose';
 import { MulterError } from 'multer';
 import { HttpError } from '../utils/http';
+import { captureException } from '../services/sentry';
 
 export const notFoundHandler: RequestHandler = (req, res) => {
   res.status(404).json({ error: { code: 'NOT_FOUND', message: `Không có route ${req.method} ${req.path}` } });
 };
 
-export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
+export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   if (err instanceof HttpError) {
     return res.status(err.status).json({ error: { code: err.code, message: err.message, details: err.details } });
   }
@@ -24,5 +25,6 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     return res.status(400).json({ error: { code: 'UPLOAD', message: err.message } });
   }
   console.error('[error]', err);
+  captureException(err, { userId: req.userId, method: req.method, url: req.originalUrl });
   return res.status(500).json({ error: { code: 'INTERNAL', message: 'Lỗi máy chủ' } });
 };

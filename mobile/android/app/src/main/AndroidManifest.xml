@@ -24,5 +24,31 @@
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
       </activity>
+
+      <!-- Widget màn hình chính: phút học hôm nay, thẻ cần ôn, bắt đầu phiên 25 phút -->
+      <receiver
+        android:name=".FocuslyWidget"
+        android:label="FOCUSLY"
+        android:exported="false">
+        <intent-filter>
+          <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+        </intent-filter>
+        <meta-data
+          android:name="android.appwidget.provider"
+          android:resource="@xml/focusly_widget_info" />
+      </receiver>
     </application>
+
+    <!-- Tìm hộp thoại nhận giọng nói (luyện phát âm) và dịch vụ đọc thành tiếng trên Android 11+ -->
+    <queries>
+      <intent>
+        <action android:name="android.speech.RecognitionService" />
+      </intent>
+      <intent>
+        <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
+      </intent>
+      <intent>
+        <action android:name="android.intent.action.TTS_SERVICE" />
+      </intent>
+    </queries>
 </manifest>

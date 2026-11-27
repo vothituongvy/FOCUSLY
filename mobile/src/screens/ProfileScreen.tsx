@@ -28,12 +28,23 @@ const MENU: { title: string; items: MenuItem[] }[] = [
       { screen: 'Materials', label: tr('Tài liệu'), icon: 'materials' },
       { screen: 'AIChat', label: tr('Trợ lý AI'), icon: 'ai' },
       { screen: 'AICoach', label: tr('Đề xuất & kế hoạch'), icon: 'zap' },
+      { screen: 'Exams', label: tr('Ôn thi'), icon: 'target' },
+      { screen: 'Library', label: tr('Thư viện cộng đồng'), icon: 'library' },
+    ],
+  },
+  {
+    title: tr('Cùng nhau'),
+    items: [
+      { screen: 'Friends', label: tr('Bạn bè & xếp hạng'), icon: 'users' },
+      { screen: 'Rooms', label: tr('Phòng học chung'), icon: 'room' },
+      { screen: 'Classes', label: tr('Lớp học'), icon: 'school' },
     ],
   },
   {
     title: tr('Nhìn lại'),
     items: [
       { screen: 'Analytics', label: tr('Phân tích học tập'), icon: 'analytics' },
+      { screen: 'WeeklyReport', label: tr('Báo cáo tuần'), icon: 'trophy' },
       { screen: 'History', label: tr('Lịch sử phiên học'), icon: 'history' },
       { screen: 'Journal', label: tr('Nhật ký phân tâm'), icon: 'journal' },
       { screen: 'Mistakes', label: tr('Ôn câu sai'), icon: 'repeat' },

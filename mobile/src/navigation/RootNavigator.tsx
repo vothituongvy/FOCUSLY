@@ -25,6 +25,12 @@ import { OnboardingScreen, SplashScreen } from '../screens/OnboardingScreen';
 import type { AppStackParams, AuthStackParams, TabParams } from './types';
 import { prefGet, prefSet, tr } from '../i18n';
 import { SessionBar } from '../components/SessionBar';
+import { AppState } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { consumeWidgetAction } from '../native';
+import { FriendsScreen, RoomScreen, RoomsScreen, WeeklyReportScreen } from '../screens/SocialScreens';
+import { ExamDetailScreen, ExamEditScreen, ExamsScreen } from '../screens/ExamScreens';
+import { ClassDetailScreen, ClassesScreen, LibraryScreen } from '../screens/CommunityScreens';
 
 const AuthStack = createNativeStackNavigator<AuthStackParams>();
 const AppStack = createNativeStackNavigator<AppStackParams>();
@@ -56,6 +62,31 @@ function TabIcon({ name, focused }: { name: IconName; focused: boolean }) {
 const icon =
   (name: IconName) =>
   ({ focused }: { focused: boolean }) => <TabIcon name={name} focused={focused} />;
+
+/** Đọc hành động khi người dùng bấm widget màn hình chính (mở app / bắt đầu 25 phút / ôn thẻ) */
+function WidgetBridge() {
+  const nav = useNavigation<any>(); // eslint-disable-line @typescript-eslint/no-explicit-any
+  useEffect(() => {
+    const check = async () => {
+      const a = await consumeWidgetAction();
+      if (a === 'startFocus') nav.navigate('Focus', { quickStart: Date.now() });
+      else if (a === 'review') nav.navigate('Review');
+    };
+    void check();
+    const sub = AppState.addEventListener('change', (st) => st === 'active' && void check());
+    return () => sub.remove();
+  }, [nav]);
+  return null;
+}
+
+function DashboardWithBridge() {
+  return (
+    <>
+      <WidgetBridge />
+      <DashboardScreen />
+    </>
+  );
+}
 
 function Tabs() {
   const running = useSession((s) => s.session);
@@ -90,7 +121,7 @@ function Tabs() {
           : { height: 68 + insets.bottom, paddingTop: 8, paddingBottom: Math.max(8, insets.bottom), backgroundColor: colors.board, borderTopWidth: 1, borderTopColor: colors.border, elevation: 0 },
       }}
     >
-      <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ title: tr('Hôm nay'), tabBarIcon: icon('home') }} />
+      <Tab.Screen name="Dashboard" component={DashboardWithBridge} options={{ title: tr('Hôm nay'), tabBarIcon: icon('home') }} />
       <Tab.Screen name="Plan" component={PlanScreen} options={{ title: tr('Kế hoạch'), tabBarIcon: icon('plan') }} />
       <Tab.Screen name="Focus" component={FocusScreen} options={{ title: tr('Tập trung'), tabBarIcon: icon('focus') }} />
       <Tab.Screen name="Learn" component={LearnScreen} options={{ title: tr('Ôn tập'), tabBarIcon: icon('cards') }} />
@@ -149,6 +180,16 @@ export function RootNavigator() {
           <AppStack.Screen name="Mistakes" component={MistakesScreen} options={{ title: tr('Ôn câu sai') }} />
           <AppStack.Screen name="LearnProgress" component={LearnProgressScreen} options={{ title: tr('Tiến độ ghi nhớ') }} />
           <AppStack.Screen name="Goals" component={GoalsScreen} options={{ title: tr('Mục tiêu học tập') }} />
+          <AppStack.Screen name="Friends" component={FriendsScreen} options={{ title: tr('Bạn bè & xếp hạng') }} />
+          <AppStack.Screen name="Rooms" component={RoomsScreen} options={{ title: tr('Phòng học chung') }} />
+          <AppStack.Screen name="Room" component={RoomScreen} options={{ title: tr('Phòng học') }} />
+          <AppStack.Screen name="WeeklyReport" component={WeeklyReportScreen} options={{ title: tr('Báo cáo tuần') }} />
+          <AppStack.Screen name="Exams" component={ExamsScreen} options={{ title: tr('Ôn thi') }} />
+          <AppStack.Screen name="ExamDetail" component={ExamDetailScreen} options={{ title: tr('Kế hoạch ôn thi') }} />
+          <AppStack.Screen name="ExamEdit" component={ExamEditScreen} options={{ title: tr('Kỳ thi') }} />
+          <AppStack.Screen name="Library" component={LibraryScreen} options={{ title: tr('Thư viện cộng đồng') }} />
+          <AppStack.Screen name="Classes" component={ClassesScreen} options={{ title: tr('Lớp học') }} />
+          <AppStack.Screen name="ClassDetail" component={ClassDetailScreen} options={{ title: tr('Lớp học') }} />
         </AppStack.Navigator>
       ) : (
         <AuthStack.Navigator screenOptions={{ headerShown: false }}>

@@ -368,6 +368,8 @@ export interface NotificationSettings {
   dailySummary: boolean;
   dailySummaryTime: string;
   reviewReminder: boolean;
+  weeklyReport?: boolean;
+  weeklyEmail?: boolean;
   push: boolean;
   quietStart: string;
   quietEnd: string;

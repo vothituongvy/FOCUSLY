@@ -13,6 +13,7 @@ import { Icon } from '../components/Icon';
 import { ImportFileSheet, pickFile, type Picked } from '../components/ImportFileSheet';
 import { Feedback } from '../components/Feedback';
 import { LOCALE, tr } from '../i18n';
+import { ShareToLibrary } from './CommunityScreens';
 
 const plain = (t: string) => t.replace(/\*\*/g, '').replace(/^#+\s/gm, '').replace(/`/g, '');
 /** Word / Excel / PowerPoint: mở bằng trình xem Office Online để thấy đủ hình ảnh, bảng, định dạng */
@@ -460,6 +461,7 @@ export function DeckEditScreen({ route, navigation }: NativeStackScreenProps<App
         {!deckId && <Button title={tr('Tạo bộ thẻ')} disabled={!title.trim()} onPress={() => void ensureDeck()} />}
         {!!deckId && list.length > 0 && <Button title={tr('Ôn bộ thẻ này')} icon="cards" variant="marker" onPress={() => navigation.navigate('Review', { deckId })} />}
       </Card>
+      {deckId && <ShareToLibrary kind="deck" id={deckId} />}
 
       <Card>
         <H3>{tr('Tạo từ file')}</H3>
@@ -757,6 +759,7 @@ export function QuizEditScreen({ route, navigation }: NativeStackScreenProps<App
         <Field label={tr('Tên bộ câu hỏi')} value={title} onChangeText={(v) => { setTitle(v); setDirty(true); }} placeholder={tr('VD: Ôn tập chương 3')} />
         {quiz && !dirty && questions.length > 0 && <Button title={tr('Làm bài')} icon="play" variant="marker" onPress={() => navigation.navigate('QuizTake', { quizId: quiz.id })} />}
       </Card>
+      {quiz && !dirty && <ShareToLibrary kind="quiz" id={quiz.id} />}
 
       <Card>
         <H3>{tr('Tự soạn câu hỏi')}</H3>

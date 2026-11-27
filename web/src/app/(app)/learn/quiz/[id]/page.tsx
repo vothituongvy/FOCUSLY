@@ -13,6 +13,7 @@ import { Icon } from '@/components/Icon';
 import { tr } from '@/lib/i18n';
 import { ImportFromFile } from '@/components/ImportFromFile';
 import { Feedback } from '@/components/Feedback';
+import { ShareToLibrary } from '@/components/ShareToLibrary';
 
 const TYPE_LABEL: Record<QuestionType, string> = { mcq: tr('Trắc nghiệm'), multi: tr('Nhiều đáp án đúng'), true_false: tr('Đúng / Sai'), short: tr('Trả lời ngắn') };
 const blank = (type: QuestionType = 'mcq'): Question => ({
@@ -415,6 +416,7 @@ function QuizInner() {
           <p className="muted small">
             {tr('{0} câu ·', q.questions.length)}{' '}{q.source === 'ai' ? tr('tạo bởi AI') : tr('tự tạo')}
           </p>
+          {mode === 'view' && <ShareToLibrary kind="quiz" id={q.id} />}
         </div>
         {mode === 'view' && (
           <div className="row">

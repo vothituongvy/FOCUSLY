@@ -7,7 +7,7 @@ export type AuthStackParams = {
 export type TabParams = {
   Dashboard: undefined;
   Plan: undefined;
-  Focus: { taskId?: string } | undefined;
+  Focus: { taskId?: string; quickStart?: number } | undefined;
   Learn: undefined;
   Profile: undefined;
 };
@@ -39,4 +39,15 @@ export type AppStackParams = {
   Mistakes: undefined;
   LearnProgress: undefined;
   Goals: undefined;
+  // Học cùng nhau, ôn thi, thư viện, lớp học
+  Friends: undefined;
+  Rooms: { code?: string } | undefined;
+  Room: { roomId: string };
+  WeeklyReport: undefined;
+  Exams: undefined;
+  ExamDetail: { examId: string };
+  ExamEdit: { examId?: string } | undefined;
+  Library: undefined;
+  Classes: undefined;
+  ClassDetail: { classId: string };
 };

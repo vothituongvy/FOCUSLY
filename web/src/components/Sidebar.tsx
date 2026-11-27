@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { get } from '@/lib/api';
 import { Icon } from './Icon';
 import { NAV_GROUPS } from '@/lib/nav';
 import { tr } from '@/lib/i18n';
@@ -10,6 +11,13 @@ import { tr } from '@/lib/i18n';
 /** Thanh điều hướng bên trái. Trên màn hình nhỏ là ngăn kéo mở từ nút menu ở thanh trên. */
 export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const pathname = usePathname();
+  // mục "Số liệu sử dụng" chỉ hiện với quản trị viên (ADMIN_EMAILS)
+  const [admin, setAdmin] = useState(false);
+  useEffect(() => {
+    get<{ admin: boolean }>('/admin/me')
+      .then((r) => setAdmin(r.admin))
+      .catch(() => setAdmin(false));
+  }, []);
 
   // đóng ngăn kéo khi chuyển trang
   useEffect(() => {
@@ -47,6 +55,12 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
           ))}
         </nav>
         <div className="sidebar-footer">
+          {admin && (
+            <Link href="/admin" className={`nav-link ${active('/admin') ? 'active' : ''}`}>
+              <Icon name="analytics" />
+              <span className="nav-label">{tr('Số liệu sử dụng')}</span>
+            </Link>
+          )}
           <Link href="/guide" className={`nav-link ${active('/guide') ? 'active' : ''}`}>
             <Icon name="help" />
             <span className="nav-label">{tr('Hướng dẫn sử dụng')}</span>

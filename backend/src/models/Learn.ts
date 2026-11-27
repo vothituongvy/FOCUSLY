@@ -61,6 +61,17 @@ const materialNoteSchema = new Schema(
 syncable(materialNoteSchema);
 export const MaterialNoteModel = model('MaterialNote', materialNoteSchema);
 
+/** Chia sẻ công khai (thư viện cộng đồng) + nguồn khi sao chép (thư viện / bài tập lớp) */
+const publicFields = {
+  isPublic: { type: Boolean, default: false },
+  publishedAt: { type: Date, default: null },
+  authorName: { type: String, default: '' },
+  copies: { type: Number, default: 0 },
+  itemCount: { type: Number, default: 0 },
+  /** "lib:<id>" khi lấy từ thư viện, "assign:<assignmentId>" khi là bài tập lớp */
+  sourceRef: { type: String, default: '', index: true },
+} as const;
+
 /* ---------- Flashcards ---------- */
 const deckSchema = new Schema(
   {
@@ -70,10 +81,12 @@ const deckSchema = new Schema(
     title: { type: String, required: true, trim: true, maxlength: 150 },
     description: { type: String, default: '', maxlength: 1000 },
     color: { type: String, default: '#6366f1' },
+    ...publicFields,
   },
   jsonOptions,
 );
 syncable(deckSchema);
+deckSchema.index({ isPublic: 1, copies: -1 });
 export const DeckModel = model('Deck', deckSchema);
 
 const cardSchema = new Schema(
@@ -152,10 +165,12 @@ const quizSchema = new Schema(
     questions: { type: [questionSchema], default: [] },
     source: { type: String, enum: ['manual', 'ai'], default: 'manual' },
     timeLimitMinutes: { type: Number, default: 0 },
+    ...publicFields,
   },
   jsonOptions,
 );
 syncable(quizSchema);
+quizSchema.index({ isPublic: 1, copies: -1 });
 export const QuizModel = model('Quiz', quizSchema);
 export type QuizDoc = HydratedDocument<InferSchemaType<typeof quizSchema>>;
 

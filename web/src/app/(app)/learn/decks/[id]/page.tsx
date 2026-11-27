@@ -12,6 +12,7 @@ import { Empty, Spinner } from '@/components/ui';
 import { Icon } from '@/components/Icon';
 import { tr } from '@/lib/i18n';
 import { ImportFromFile } from '@/components/ImportFromFile';
+import { ShareToLibrary } from '@/components/ShareToLibrary';
 
 interface DraftCard {
   front: string;
@@ -172,6 +173,7 @@ function DeckInner() {
           </Link>
           <h1>{d.title}</h1>
           <p className="muted small">{tr('{0} thẻ', list.length)}</p>
+          <ShareToLibrary kind="deck" id={id} />
         </div>
         <div className="row">
           <Link href={`/learn/review?deck=${id}`} className="btn">

@@ -5,6 +5,7 @@ import './shell.css';
 import './guide.css';
 import './responsive.css';
 import { PwaRegister } from '@/components/PwaRegister';
+import { ErrorReporter } from '@/components/ErrorReporter';
 import { cookies } from 'next/headers';
 import { tr } from '@/lib/i18n';
 import { LangGate } from '@/components/LangGate';
@@ -38,6 +39,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body>
         {lang === 'en' ? <LangGate>{children}</LangGate> : children}
         <PwaRegister />
+        <ErrorReporter />
       </body>
     </html>
   );

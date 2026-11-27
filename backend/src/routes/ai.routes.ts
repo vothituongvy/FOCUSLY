@@ -9,7 +9,7 @@ import { MaterialModel, RecallModel } from '../models/Learn';
 import { FocusSessionModel } from '../models/FocusSession';
 import { SubjectModel, TaskModel } from '../models/Learning';
 import { findOwned } from '../services/entities';
-import { aiEnabled, type ChatMessage, complete, completeJson, llmProviders, relevantChunks, TRANSLATE_LIMIT_PER_HOUR, TUTOR_SYSTEM, usedLastHour } from '../services/ai';
+import { aiEnabled, type ChatMessage, complete, llmDown, completeJson, llmProviders, relevantChunks, TRANSLATE_LIMIT_PER_HOUR, TUTOR_SYSTEM, usedLastHour } from '../services/ai';
 import { computeInsights } from '../services/analytics';
 import { CardModel } from '../models/Learn';
 import { UserModel } from '../models/User';
@@ -17,6 +17,7 @@ import { dayKey, safeTimeZone } from '../utils/time';
 import * as brain from '../services/brain';
 import { extractText } from '../services/textExtract';
 import { parseCards, parseQuiz } from '../services/importParse';
+import { parseApkg } from '../services/anki';
 
 /**
  * PHASE 3 – AI Learning Assistant
@@ -465,8 +466,8 @@ const importUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 15 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    if (/\.(pdf|docx|xlsx|txt|md|csv|tsv)$/i.test(file.originalname) || /pdf|wordprocessingml|spreadsheetml|^text\//.test(file.mimetype)) cb(null, true);
-    else cb(badRequest('Chỉ hỗ trợ PDF, Word (.docx), Excel (.xlsx), TXT, CSV'));
+    if (/\.(pdf|docx|xlsx|txt|md|csv|tsv|apkg)$/i.test(file.originalname) || /pdf|wordprocessingml|spreadsheetml|^text\//.test(file.mimetype)) cb(null, true);
+    else cb(badRequest('Chỉ hỗ trợ PDF, Word (.docx), Excel (.xlsx), TXT, CSV, Anki (.apkg)'));
   },
 });
 
@@ -475,18 +476,33 @@ router.post(
   importUpload.single('file'),
   ah(async (req, res) => {
     const file = req.file;
-    if (!file) throw badRequest('Chọn một file');
     const data = parse(
       z.object({
         target: z.enum(['quiz', 'flashcards']),
         mode: z.enum(['auto', 'parse', 'ai']).default('auto'),
         count: z.coerce.number().int().min(3).max(40).optional(),
+        /** dán văn bản trực tiếp (VD: xuất từ Quizlet) thay cho file */
+        text: z.string().max(500_000).optional(),
+        title: z.string().max(150).optional(),
       }),
       req.body,
     );
-    const name = Buffer.from(file.originalname, 'latin1').toString('utf8');
-    const title = name.replace(/\.[^.]+$/, '');
-    const { text } = await extractText(file.buffer, file.mimetype, name);
+    if (!file && !data.text?.trim()) throw badRequest('Chọn một file hoặc dán nội dung');
+    const name = file ? Buffer.from(file.originalname, 'latin1').toString('utf8') : `${data.title || 'Bộ thẻ nhập'}.txt`;
+    const title = data.title || name.replace(/\.[^.]+$/, '');
+    // Bộ thẻ Anki (.apkg)
+    if (file && /\.apkg$/i.test(name)) {
+      if (data.target !== 'flashcards') throw badRequest('File Anki chỉ dùng để tạo bộ flashcard');
+      let cards;
+      try {
+        cards = parseApkg(file.buffer);
+      } catch (e) {
+        throw badRequest((e as Error).message);
+      }
+      if (!cards.length) throw badRequest('Không tìm thấy thẻ nào trong file Anki');
+      return res.json({ mode: 'parsed', draft: { title, material: null, subject: null, cards } });
+    }
+    const { text } = file ? await extractText(file.buffer, file.mimetype, name) : { text: data.text!.trim() };
     if (!text.trim()) throw badRequest('Không đọc được chữ trong file (PDF dạng ảnh scan chưa hỗ trợ). Hãy thử file Word, Excel hoặc TXT.');
 
     if (data.mode !== 'ai') {
@@ -812,8 +828,5 @@ router.get(
 );
 
 /** LLM không dùng được (chưa cấu hình, hết lượt, lỗi mạng) -> chuyển sang FOCUSLY Brain */
-function llmDown(e: unknown) {
-  return e instanceof HttpError && ['AI_DISABLED', 'AI_ERROR', 'AI_UNAVAILABLE', 'AI_RATE_LIMIT', 'LLM_DOWN', 'AI_BAD_OUTPUT'].includes(e.code);
-}
 
 export default router;

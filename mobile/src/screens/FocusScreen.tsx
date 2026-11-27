@@ -70,6 +70,13 @@ function Setup() {
     }
   }, [route.params?.taskId, tasks]);
 
+  // bấm "Bắt đầu 25 phút" trên widget màn hình chính -> vào phiên ngay
+  useEffect(() => {
+    if (!route.params?.quickStart) return;
+    void start({ subject: null, task: null, goal: tr('Phiên tập trung 25 phút'), mode: 'custom', plannedMinutes: 25, pomodoro: pomo, shieldEnabled: shield, strict: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route.params?.quickStart]);
+
   const openTasks = tasks.filter((t) => ['todo', 'in_progress'].includes(t.status) && (!subject || t.subject === subject));
 
   return (

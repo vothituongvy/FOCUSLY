@@ -1,7 +1,7 @@
 import { Schema, model } from 'mongoose';
 import { jsonOptions } from './common';
 
-export const NOTIFICATION_TYPES = ['study_reminder', 'task_reminder', 'break_reminder', 'daily_summary', 'review_due', 'system'] as const;
+export const NOTIFICATION_TYPES = ['study_reminder', 'task_reminder', 'break_reminder', 'daily_summary', 'review_due', 'social', 'weekly_report', 'class', 'system'] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
 const notificationSchema = new Schema(

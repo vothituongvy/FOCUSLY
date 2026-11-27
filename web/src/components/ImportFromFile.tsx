@@ -42,14 +42,17 @@ export function ImportFromFile({ target, className = 'btn secondary', label }: {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [showSample, setShowSample] = useState(false);
+  const [source, setSource] = useState<'file' | 'paste'>('file');
+  const [pasted, setPasted] = useState('');
 
   const run = async () => {
-    if (!file) return;
+    if (source === 'file' ? !file : !pasted.trim()) return;
     setBusy(true);
     setError('');
     try {
       const fd = new FormData();
-      fd.append('file', file);
+      if (source === 'file' && file) fd.append('file', file);
+      else fd.append('text', pasted);
       fd.append('target', target);
       fd.append('mode', mode);
       const r = await api<{ mode: 'parsed' | 'ai'; draft: Record<string, unknown> }>('/ai/import', { method: 'POST', body: fd });
@@ -75,17 +78,39 @@ export function ImportFromFile({ target, className = 'btn secondary', label }: {
       </button>
       <Modal open={open} onClose={() => setOpen(false)} title={target === 'quiz' ? tr('Tạo bộ câu hỏi từ file') : tr('Tạo bộ flashcard từ file')}>
         <div className="col" style={{ gap: 14 }}>
-          <p className="small muted">{tr('Hỗ trợ Word (.docx), Excel (.xlsx), PDF, TXT, CSV – tối đa 15 MB. Bạn sẽ xem lại bản nháp trước khi lưu.')}</p>
+          <p className="small muted">
+            {target === 'flashcards'
+              ? tr('Hỗ trợ Word, Excel, PDF, TXT, CSV và bộ thẻ Anki (.apkg) – tối đa 15 MB. Từ Quizlet: chọn “Dán văn bản” rồi dán nội dung xuất ra. Bạn sẽ xem lại bản nháp trước khi lưu.')
+              : tr('Hỗ trợ Word (.docx), Excel (.xlsx), PDF, TXT, CSV – tối đa 15 MB. Bạn sẽ xem lại bản nháp trước khi lưu.')}
+          </p>
 
-          <button type="button" className="dropzone" onClick={() => input.current?.click()}>
-            <Icon name="upload" size={22} />
-            <span>{file ? file.name : tr('Chọn file từ máy')}</span>
-          </button>
+          <div className="chips">
+            <button type="button" className={`chip ${source === 'file' ? 'active' : ''}`} onClick={() => setSource('file')}>
+              {tr('Chọn file')}
+            </button>
+            <button type="button" className={`chip ${source === 'paste' ? 'active' : ''}`} onClick={() => setSource('paste')}>
+              {target === 'flashcards' ? tr('Dán văn bản (Quizlet…)') : tr('Dán văn bản')}
+            </button>
+          </div>
+
+          {source === 'file' ? (
+            <button type="button" className="dropzone" onClick={() => input.current?.click()}>
+              <Icon name="upload" size={22} />
+              <span>{file ? file.name : tr('Chọn file từ máy')}</span>
+            </button>
+          ) : (
+            <div className="col" style={{ gap: 6 }}>
+              <textarea value={pasted} onChange={(e) => setPasted(e.target.value)} rows={7} placeholder={target === 'flashcards' ? tr('Dán nội dung, mỗi dòng một thẻ…') : tr('Dán câu hỏi hoặc nội dung bài học…')} />
+              {target === 'flashcards' && (
+                <span className="small muted">{tr('Quizlet: mở học phần → ⋯ → Xuất → giữ “Tab” giữa thuật ngữ và định nghĩa, “Dòng mới” giữa các thẻ → Sao chép văn bản rồi dán vào đây.')}</span>
+              )}
+            </div>
+          )}
           <input
             ref={input}
             type="file"
             hidden
-            accept=".docx,.xlsx,.pdf,.txt,.md,.csv,.tsv"
+            accept={target === 'flashcards' ? '.docx,.xlsx,.pdf,.txt,.md,.csv,.tsv,.apkg' : '.docx,.xlsx,.pdf,.txt,.md,.csv,.tsv'}
             onChange={(e) => {
               setFile(e.target.files?.[0] ?? null);
               setError('');
@@ -128,7 +153,7 @@ export function ImportFromFile({ target, className = 'btn secondary', label }: {
 
           {error && <p className="error-text">{error}</p>}
           <div className="row">
-            <button type="button" className="btn" disabled={!file || busy} onClick={run}>
+            <button type="button" className="btn" disabled={(source === 'file' ? !file : !pasted.trim()) || busy} onClick={run}>
               {busy ? (mode === 'parse' ? tr('Đang đọc file...') : tr('Đang xử lý... (AI có thể mất 20–40 giây)')) : tr('Tạo bản nháp')}
             </button>
             <button type="button" className="btn ghost" onClick={() => setOpen(false)}>

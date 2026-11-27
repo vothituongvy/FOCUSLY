@@ -6,7 +6,7 @@ import { inflateRawSync } from 'zlib';
  */
 
 /** Giải nén các mục trong file ZIP có tên thoả điều kiện */
-function unzip(buf: Buffer, want: (name: string) => boolean): Map<string, Buffer> {
+export function unzip(buf: Buffer, want: (name: string) => boolean): Map<string, Buffer> {
   const out = new Map<string, Buffer>();
   // Tìm "End of central directory" (chữ ký 0x06054b50) từ cuối file
   let eocd = -1;

@@ -8,6 +8,7 @@ import { GRADES, previewInterval } from '@/lib/srs';
 import type { Card } from '@/lib/types';
 import { Empty, Progress, Spinner } from '@/components/ui';
 import { tr } from '@/lib/i18n';
+import { isEnglish, PronounceButton, speak, SpeakButton } from '@/components/Speech';
 
 /** PHASE 2 – Ôn flashcard theo Spaced Repetition (phím tắt: Space lật thẻ, 1–4 chấm điểm) */
 function ReviewInner() {
@@ -15,6 +16,23 @@ function ReviewInner() {
   const [queue, setQueue] = useState<Card[] | null>(null);
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
+  // tự đọc mặt trước mỗi thẻ (ghi nhớ trên máy này)
+  const [autoRead, setAutoReadState] = useState(false);
+  useEffect(() => {
+    try {
+      setAutoReadState(localStorage.getItem('focusly.autoRead') === '1');
+    } catch {
+      /* trình duyệt chặn lưu trữ */
+    }
+  }, []);
+  const setAutoRead = (v: boolean) => {
+    setAutoReadState(v);
+    try {
+      localStorage.setItem('focusly.autoRead', v ? '1' : '0');
+    } catch {
+      /* bỏ qua */
+    }
+  };
   const [stats, setStats] = useState({ again: 0, hard: 0, good: 0, easy: 0 });
   const [error, setError] = useState('');
   const [startedAt] = useState(Date.now());
@@ -58,6 +76,11 @@ function ReviewInner() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [flipped, grade]);
+
+  const front = queue && index < queue.length ? queue[index]?.front : undefined;
+  useEffect(() => {
+    if (autoRead && front) speak(front);
+  }, [front, autoRead]);
 
   if (!queue) return <Spinner />;
   const done = index >= queue.length;
@@ -113,6 +136,13 @@ function ReviewInner() {
                 </div>
                 <div className="flashcard-face back">{card.back}</div>
               </div>
+            </div>
+            <div className="row wrap" style={{ justifyContent: 'center' }}>
+              <SpeakButton text={flipped ? card.back : card.front} label={flipped ? tr('Nghe mặt sau') : tr('Nghe mặt trước')} />
+              <PronounceButton text={isEnglish(card.front) ? card.front : card.back} />
+              <label className="row small muted" style={{ gap: 6 }}>
+                <input type="checkbox" checked={autoRead} onChange={(e) => setAutoRead(e.target.checked)} style={{ width: 'auto' }} /> {tr('Tự đọc mặt trước')}
+              </label>
             </div>
             {!flipped ? (
               <div style={{ textAlign: 'center' }}>

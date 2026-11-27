@@ -17,6 +17,8 @@ import { Icon, type IconName } from '../components/Icon';
 import { Button, Card, Empty, Muted, Paper, ProgressBar, Section, SyncBar } from '../components/ui';
 import { FadeIn, useAnimatedNumber } from '../components/motion';
 import { LOCALE, tr } from '../i18n';
+import { DailyQuests } from '../components/Gamify';
+import { updateWidget } from '../native';
 
 
 function spoken(minutes: number) {
@@ -146,7 +148,7 @@ function Metric({
 export function DashboardScreen() {
   const nav = useNavigation<BottomTabNavigationProp<TabParams>>();
   const user = useAuth((s) => s.user);
-  const { sync, sessions } = useData();
+  const { sync, sessions, cards } = useData();
   const active = useSession((s) => s.session);
   const [data, setData] = useState<Dashboard | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -195,6 +197,20 @@ export function DashboardScreen() {
         ? tr('Đã tập trung {0}, còn {1} nữa là đạt mục tiêu.', spoken(focusMin), spoken(left))
         : tr('Đã tập trung {0}, vượt mục tiêu {1}.', spoken(focusMin), spoken(target));
   const max = Math.max(target, ...(data?.weeklyProgress.map((d) => d.focusMinutes) ?? [1]), 1);
+
+  // cập nhật widget màn hình chính mỗi khi số liệu hôm nay đổi
+  const dueCount = cards.filter((c) => !c.suspended && new Date(c.srs?.due ?? 0).getTime() <= Date.now()).length;
+  useEffect(() => {
+    if (!data) return;
+    updateWidget({
+      minutes: String(Math.round(focusMin)),
+      minutesLabel: tr('/{0} phút hôm nay', target),
+      cardsLine: dueCount ? tr('🃏 {0} thẻ cần ôn – chạm để ôn', dueCount) : tr('🃏 Không có thẻ đến hạn'),
+      streakLine: data.streak.current ? `🔥 ${data.streak.current}` : '',
+      startLabel: tr('▶ Bắt đầu 25 phút'),
+      progress: Math.min(100, Math.round((focusMin / Math.max(1, target)) * 100)),
+    });
+  }, [data, dueCount, focusMin, target]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={[]}>
@@ -255,6 +271,10 @@ export function DashboardScreen() {
                 <Metric icon="focus" tint={tints.sky} label={tr('Điểm tập trung')} value={String(data.focusScore.score)} unit="/100" note={tr('Chỉ để tham khảo')} />
               </FadeIn>
             </View>
+
+            <FadeIn delay={300}>
+              <DailyQuests />
+            </FadeIn>
 
             <FadeIn delay={340}>
             <Section title={tr('Việc tiếp theo')}>

@@ -80,6 +80,8 @@ const settingsSchema = z
     dailySummary: z.boolean(),
     dailySummaryTime: hm,
     reviewReminder: z.boolean(),
+    weeklyReport: z.boolean(),
+    weeklyEmail: z.boolean(),
     push: z.boolean(),
     quietStart: hm,
     quietEnd: hm,

@@ -9,6 +9,7 @@ import { PRIORITY_LABEL, type Dashboard, type FocusSession } from '@/lib/types';
 import { Icon, type IconName } from '@/components/Icon';
 import { Empty, Spinner } from '@/components/ui';
 import { LOCALE, tr } from '@/lib/i18n';
+import { DailyQuests } from '@/components/Gamify';
 
 /** Lời mời xem hướng dẫn cho người mới, ẩn được và nhớ trên trình duyệt này */
 function GuideHint() {
@@ -202,6 +203,8 @@ export default function DashboardPage() {
           <div className="small muted">{tr('Chỉ để tham khảo')}</div>
         </div>
       </section>
+
+      <DailyQuests />
 
       <div className="grid grid-3-1" style={{ gap: 20 }}>
         <section className="card">

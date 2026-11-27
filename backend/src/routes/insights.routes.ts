@@ -7,6 +7,8 @@ import { DistractionModel } from '../models/Distraction';
 import { SubjectModel, TaskModel } from '../models/Learning';
 import { computeFocusSeconds, getActiveSession, viewSession } from '../services/sessions';
 import { dayKey, hourIn, lastDayKeys, safeTimeZone, wideRange } from '../utils/time';
+import { GamifyModel } from '../models/Social';
+import { computeStreak } from '../services/social/logic';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -143,17 +145,12 @@ router.get(
       const open = ['active', 'paused', 'on_break'].includes(s.status);
       secondsByDay.set(k, (secondsByDay.get(k) ?? 0) + (open ? computeFocusSeconds(s, now) : s.actualFocusSeconds));
     }
-    const qualifies = (k: string) => (secondsByDay.get(k) ?? 0) >= STREAK_MIN_SECONDS;
     const days = lastDayKeys(366, tz, now).reverse(); // [today, yesterday, ...]
-    let streak = 0;
-    let i = qualifies(days[0]) ? 0 : 1; // hôm nay chưa học thì chưa làm đứt chuỗi
-    for (; i < days.length && qualifies(days[i]); i++) streak++;
-    let best = 0;
-    let run = 0;
-    for (const k of [...days].reverse()) {
-      run = qualifies(k) ? run + 1 : 0;
-      best = Math.max(best, run);
-    }
+    // ngày dùng thẻ đóng băng được tính như ngày có học
+    const frozenDays = new Set((await GamifyModel.findOne({ user: userId }).select('frozenDays').lean())?.frozenDays ?? []);
+    const st = computeStreak(days, new Set(days.filter((k) => (secondsByDay.get(k) ?? 0) >= STREAK_MIN_SECONDS)), frozenDays);
+    const streak = st.current;
+    const best = st.best;
 
     // ---- Phân tâm hôm nay
     const todayDistractions = (

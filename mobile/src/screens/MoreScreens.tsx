@@ -105,8 +105,19 @@ export function NotificationsScreen() {
   );
   const openLink = (link?: string) => {
     if (!link) return;
+    const code = /[?&]code=([A-Z0-9]+)/.exec(link)?.[1];
+    const id = link.split('?')[0].split('/')[2];
     if (link.startsWith('/focus')) nav.navigate('Tabs');
+    else if (link.startsWith('/learn/review')) nav.navigate('Review');
     else if (link.startsWith('/learn')) nav.navigate('Tabs');
+    else if (link.startsWith('/friends')) nav.navigate('Friends');
+    else if (link.startsWith('/rooms')) nav.navigate('Rooms', code ? { code } : undefined);
+    else if (link.startsWith('/report')) nav.navigate('WeeklyReport');
+    else if (link.startsWith('/classes/') && id) nav.navigate('ClassDetail', { classId: id });
+    else if (link.startsWith('/classes')) nav.navigate('Classes');
+    else if (link.startsWith('/exams/') && id) nav.navigate('ExamDetail', { examId: id });
+    else if (link.startsWith('/exams')) nav.navigate('Exams');
+    else if (link.startsWith('/plan')) nav.navigate('Tabs');
   };
   return (
     <ScrollView

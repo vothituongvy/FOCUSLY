@@ -2,11 +2,13 @@
 
 import { useEffect } from 'react';
 import { tr } from '@/lib/i18n';
+import { captureException } from '@/lib/sentry';
 
 /** Error boundary cho khu vực đã đăng nhập (Phase 4) */
 export default function AppError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
     console.error('[ui]', error);
+    captureException(error, { kind: 'error-boundary', digest: error.digest ?? '' });
   }, [error]);
   return (
     <div className="center-page">

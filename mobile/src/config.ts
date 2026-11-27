@@ -17,6 +17,11 @@ export const GOOGLE_WEB_CLIENT_ID = '87109894039-ol0hdo9ssm8jslhco2kuqjv18vid9p4
 /** Phiên bản app – giữ khớp với versionName trong android/app/build.gradle */
 export const APP_VERSION = '1.0.9';
 /** Repo GitHub chứa các bản APK (Releases). Repo phải để công khai để người dùng tải được. */
+/** Báo lỗi app lên Sentry (sentry.io → Project → Client Keys → DSN). Để trống = tắt. */
+export const SENTRY_DSN = '';
+
+/** Trang web FOCUSLY (link mời phòng học, chia sẻ) */
+export const WEB_URL = 'https://focusly-nu-sage.vercel.app';
 export const GITHUB_REPO = 'vothituongvy/FOCUSLY';
 
 export const PLATFORM: 'android' | 'ios' = Platform.OS === 'ios' ? 'ios' : 'android';

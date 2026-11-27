@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { ActivityIndicator, Modal, NativeModules, Platform, Pressable, ScrollView, View } from 'react-native';
-import { Text } from './AppText';
+import { Text, TextInput } from './AppText';
 import { api, errorMessage } from '../api/client';
 import { colors } from '../theme';
 import type { Question } from '../types';
-import { Button, H3, Muted, Row, s } from './ui';
+import { Button, Chip, H3, Muted, Row, s } from './ui';
 import { Icon } from './Icon';
 import { tr } from '../i18n';
 
@@ -61,12 +61,14 @@ export function ImportFileSheet<T extends 'quiz' | 'flashcards'>({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [sample, setSample] = useState(false);
+  const [source, setSource] = useState<'file' | 'paste'>('file');
+  const [pasted, setPasted] = useState('');
 
   const pick = async () => {
     setError('');
     if (!native) return setError(tr('Bản app này chưa hỗ trợ chọn file. Hãy cập nhật app lên bản mới nhất.'));
     try {
-      const f = await native.pick(MIME);
+      const f = await native.pick(target === 'flashcards' ? [...MIME, 'application/apkg', 'application/zip'] : MIME);
       if (f) setFile(f);
     } catch (e) {
       setError(errorMessage(e));
@@ -74,12 +76,13 @@ export function ImportFileSheet<T extends 'quiz' | 'flashcards'>({
   };
 
   const run = async () => {
-    if (!file) return;
+    if (source === 'file' ? !file : !pasted.trim()) return;
     setBusy(true);
     setError('');
     try {
       const fd = new FormData();
-      fd.append('file', { uri: file.uri, name: file.name, type: file.type } as unknown as Blob);
+      if (source === 'file' && file) fd.append('file', { uri: file.uri, name: file.name, type: file.type } as unknown as Blob);
+      else fd.append('text', pasted);
       fd.append('target', target);
       fd.append('mode', mode);
       const r = await api<{ mode: 'parsed' | 'ai'; draft: never }>('/ai/import', { method: 'POST', body: fd, timeoutMs: 120000 });
@@ -110,9 +113,30 @@ export function ImportFileSheet<T extends 'quiz' | 'flashcards'>({
               <Icon name="x" size={22} color={colors.text} />
             </Pressable>
           </Row>
-          <Muted>{tr('Hỗ trợ Word (.docx), Excel (.xlsx), PDF, TXT, CSV – tối đa 15 MB. Bạn sẽ xem lại bản nháp trước khi lưu.')}</Muted>
+          <Muted>
+            {target === 'flashcards'
+              ? tr('Hỗ trợ Word, Excel, PDF, TXT, CSV và bộ thẻ Anki (.apkg) – tối đa 15 MB. Từ Quizlet: chọn “Dán văn bản” rồi dán nội dung xuất ra. Bạn sẽ xem lại bản nháp trước khi lưu.')
+              : tr('Hỗ trợ Word (.docx), Excel (.xlsx), PDF, TXT, CSV – tối đa 15 MB. Bạn sẽ xem lại bản nháp trước khi lưu.')}
+          </Muted>
+          <Row>
+            <Chip label={tr('Chọn file')} active={source === 'file'} onPress={() => setSource('file')} />
+            <Chip label={target === 'flashcards' ? tr('Dán văn bản (Quizlet…)') : tr('Dán văn bản')} active={source === 'paste'} onPress={() => setSource('paste')} />
+          </Row>
+          {source === 'paste' && (
+            <View style={{ gap: 6 }}>
+              <TextInput
+                value={pasted}
+                onChangeText={setPasted}
+                multiline
+                placeholder={target === 'flashcards' ? tr('Dán nội dung, mỗi dòng một thẻ…') : tr('Dán câu hỏi hoặc nội dung bài học…')}
+                placeholderTextColor="#9aa2b6"
+                style={[s.input, { minHeight: 140, textAlignVertical: 'top' }]}
+              />
+              {target === 'flashcards' && <Muted style={{ fontSize: 12 }}>{tr('Quizlet: mở học phần → ⋯ → Xuất → giữ “Tab” giữa thuật ngữ và định nghĩa, “Dòng mới” giữa các thẻ → Sao chép văn bản rồi dán vào đây.')}</Muted>}
+            </View>
+          )}
 
-          <Pressable
+          {source === 'file' && <Pressable
             onPress={pick}
             disabled={busy}
             style={{ alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 100, padding: 16, borderRadius: 14, borderWidth: 1.5, borderStyle: 'dashed', borderColor: file ? colors.text : colors.borderStrong, backgroundColor: file ? colors.markerSoft : colors.surface }}
@@ -120,7 +144,7 @@ export function ImportFileSheet<T extends 'quiz' | 'flashcards'>({
             <Icon name="upload" size={24} color={colors.text} />
             <Text style={{ color: colors.text, fontWeight: '700', textAlign: 'center' }}>{file ? file.name : tr('Chọn file từ máy')}</Text>
             {file && <Muted style={{ fontSize: 12 }}>{tr('{0} KB · chạm để đổi file', Math.max(1, Math.round(file.size / 1024)))}</Muted>}
-          </Pressable>
+          </Pressable>}
 
           {modes.map(([v, l, d]) => {
             const on = mode === v;
@@ -166,7 +190,7 @@ export function ImportFileSheet<T extends 'quiz' | 'flashcards'>({
               <Muted>{mode === 'parse' ? tr('Đang đọc file...') : tr('Đang xử lý... (AI có thể mất 20–40 giây)')}</Muted>
             </Row>
           )}
-          <Button title={tr('Tạo bản nháp')} icon="upload" disabled={!file || busy} onPress={run} />
+          <Button title={tr('Tạo bản nháp')} icon="upload" disabled={(source === 'file' ? !file : !pasted.trim()) || busy} onPress={run} />
         </ScrollView>
       </View>
     </Modal>

@@ -329,6 +329,10 @@ export async function endSession(userId: string, id: string, body: unknown) {
     }
   }
   emitToUser(userId, 'session:ended', viewSession(s));
+  // bạn đồng hành nhận thông báo khi người học bỏ dở phiên
+  if (s.status === 'abandoned' && s.actualFocusSeconds >= 30) {
+    void import('./social/friends').then((m) => m.notifyBuddies(userId, { id: s.id, actualFocusSeconds: s.actualFocusSeconds })).catch(() => undefined);
+  }
   return broadcast(userId, s);
 }
 

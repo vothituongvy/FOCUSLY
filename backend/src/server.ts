@@ -6,6 +6,7 @@ import { createApp } from './app';
 import { initRealtime } from './services/realtime';
 import { startScheduler, stopScheduler } from './services/scheduler';
 import { startKnowledgeBuilder } from './services/brain/knowledge';
+import { captureException } from './services/sentry';
 
 async function main() {
   await connectDb();
@@ -31,7 +32,14 @@ async function main() {
   process.on('SIGTERM', () => void shutdown('SIGTERM'));
 }
 
-process.on('unhandledRejection', (reason) => console.error('[api] unhandledRejection', reason));
+process.on('unhandledRejection', (reason) => {
+  console.error('[api] unhandledRejection', reason);
+  captureException(reason, { tags: { kind: 'unhandledRejection' } });
+});
+process.on('uncaughtException', (err) => {
+  console.error('[api] uncaughtException', err);
+  captureException(err, { tags: { kind: 'uncaughtException' } });
+});
 
 main().catch((err) => {
   console.error('[api] Không khởi động được server', err);

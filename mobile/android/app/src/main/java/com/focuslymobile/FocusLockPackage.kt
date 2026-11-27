@@ -11,6 +11,8 @@ class FocusLockPackage : BaseReactPackage() {
       when (name) {
         FocusLockModule.NAME -> FocusLockModule(reactContext)
         FilePickerModule.NAME -> FilePickerModule(reactContext) // chọn file để tạo câu hỏi / flashcard
+        SpeechModule.NAME -> SpeechModule(reactContext) // đọc thành tiếng + luyện phát âm
+        WidgetModule.NAME -> WidgetModule(reactContext) // widget màn hình chính
         else -> null
       }
 
@@ -20,6 +22,10 @@ class FocusLockPackage : BaseReactPackage() {
             ReactModuleInfo(FocusLockModule.NAME, FocusLockModule::class.java.name, false, false, false, false),
         FilePickerModule.NAME to
             ReactModuleInfo(FilePickerModule.NAME, FilePickerModule::class.java.name, false, false, false, false),
+        SpeechModule.NAME to
+            ReactModuleInfo(SpeechModule.NAME, SpeechModule::class.java.name, false, false, false, false),
+        WidgetModule.NAME to
+            ReactModuleInfo(WidgetModule.NAME, WidgetModule::class.java.name, false, false, false, false),
     )
   }
 }

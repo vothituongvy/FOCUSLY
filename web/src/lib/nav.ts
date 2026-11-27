@@ -23,12 +23,23 @@ export const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
       { href: '/learn', label: tr('Ôn tập & quiz'), icon: 'cards' },
       { href: '/materials', label: tr('Tài liệu'), icon: 'materials' },
       { href: '/ai', label: tr('Trợ lý AI'), icon: 'ai' },
+      { href: '/exams', label: tr('Ôn thi'), icon: 'target' },
+      { href: '/library', label: tr('Thư viện cộng đồng'), icon: 'library' },
+    ],
+  },
+  {
+    label: tr('Cùng nhau'),
+    items: [
+      { href: '/friends', label: tr('Bạn bè & xếp hạng'), icon: 'users' },
+      { href: '/rooms', label: tr('Phòng học chung'), icon: 'room' },
+      { href: '/classes', label: tr('Lớp học'), icon: 'school' },
     ],
   },
   {
     label: tr('Nhìn lại'),
     items: [
       { href: '/analytics', label: tr('Phân tích'), icon: 'analytics' },
+      { href: '/report', label: tr('Báo cáo tuần'), icon: 'trophy' },
       { href: '/history', label: tr('Lịch sử phiên'), icon: 'history' },
       { href: '/journal', label: tr('Nhật ký phân tâm'), icon: 'journal' },
     ],

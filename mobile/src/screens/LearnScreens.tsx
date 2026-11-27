@@ -13,7 +13,9 @@ import { Button, Card as Box, Chip, Chips, Empty, H1, H3, Muted, ProgressBar, Ro
 import { AppHeader } from '../components/AppHeader';
 import { Icon } from '../components/Icon';
 import { MemoryForecast } from '../components/MemoryForecast';
-import { tr } from '../i18n';
+import { prefGet, prefSet, tr } from '../i18n';
+import { PronounceButton, SpeakButton } from '../components/Speech';
+import { isEnglish, speak } from '../native';
 
 /* ======================================================================
  * PHASE 2 trên Mobile: Flashcard (Spaced Repetition) & Quiz – chạy được OFFLINE
@@ -120,7 +122,13 @@ const GRADES = [
 const GRADE_TINT: Record<number, { bg: string; border: string }> = { 1: tints.peach, 3: tints.lemon, 4: tints.mint, 5: tints.sky };
 
 export function ReviewScreen({ route, navigation }: NativeStackScreenProps<AppStackParams, 'Review'>) {
-  const { cards, patchLocal, queueCustom } = useData();
+  const { cards, patchLocal, queueCustom, online } = useData();
+  // tự đọc mặt trước mỗi thẻ (lưu trên máy)
+  const [autoRead, setAutoReadState] = useState(() => prefGet('autoRead') === '1');
+  const setAutoRead = (v: boolean) => {
+    setAutoReadState(v);
+    prefSet('autoRead', v ? '1' : '0');
+  };
   const initial = useMemo(
     () => cards.filter((c) => isDue(c) && (!route.params?.deckId || c.deck === route.params.deckId)).sort((a, b) => a.srs.due.localeCompare(b.srs.due)),
     [], // eslint-disable-line react-hooks/exhaustive-deps
@@ -130,6 +138,9 @@ export function ReviewScreen({ route, navigation }: NativeStackScreenProps<AppSt
   const [flipped, setFlipped] = useState(false);
   const [count, setCount] = useState(0);
   const card = queue[i];
+  useEffect(() => {
+    if (autoRead && card && !flipped) void speak(card.front);
+  }, [card?.id, i, autoRead]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const grade = async (g: number) => {
     if (!card) return;
@@ -172,6 +183,12 @@ export function ReviewScreen({ route, navigation }: NativeStackScreenProps<AppSt
           {!flipped && !!card.hint && <Muted>{card.hint}</Muted>}
         </Box>
       </Pressable>
+      <Row style={{ justifyContent: 'center' }}>
+        <SpeakButton text={flipped ? card.back : card.front} label={flipped ? tr('Nghe mặt sau') : tr('Nghe mặt trước')} />
+        <Chip label={autoRead ? tr('✓ Tự đọc mặt trước') : tr('Tự đọc mặt trước')} active={autoRead} onPress={() => setAutoRead(!autoRead)} />
+      </Row>
+      <PronounceButton text={isEnglish(card.front) ? card.front : card.back} />
+      {!online && <Muted style={{ textAlign: 'center' }}>{tr('Đang offline – kết quả ôn được lưu trên máy và tự đồng bộ khi có mạng.')}</Muted>}
       {!flipped ? (
         <Button title={tr('Hiện đáp án')} onPress={() => setFlipped(true)} />
       ) : (

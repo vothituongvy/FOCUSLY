@@ -96,3 +96,17 @@ export function isWithinSchedule(
     return (s.days.includes(wd) && mins >= start) || (s.days.includes(prevWd) && mins < end);
   });
 }
+
+/** Mốc UTC của "YYYY-MM-DD HH:mm" theo giờ địa phương của múi giờ */
+export function zonedDate(ymd: string, hm: string, timeZone: string): Date {
+  const [y, mo, d] = ymd.split('-').map(Number);
+  const target = parseHm(hm);
+  let t = Date.UTC(y, mo - 1, d, Math.floor(target / 60), target % 60);
+  for (let i = 0; i < 2; i++) {
+    const at = new Date(t);
+    const dayDiff = Math.round((Date.parse(`${ymd}T00:00:00Z`) - Date.parse(`${dayKey(at, timeZone)}T00:00:00Z`)) / 60000);
+    const diff = dayDiff + target - minutesOfDay(at, timeZone);
+    t += diff * 60000;
+  }
+  return new Date(t);
+}

@@ -224,3 +224,8 @@ Nguyên tắc:
 - Khuyến khích tư duy: khi phù hợp, đặt 1 câu hỏi gợi mở để người học tự kiểm tra.
 - Nếu có tài liệu tham khảo, ưu tiên dựa vào tài liệu và nói rõ khi thông tin không có trong tài liệu.
 - Không bịa đặt. Nếu không chắc chắn, hãy nói rõ.`;
+
+/** Lỗi do LLM không dùng được (chưa cấu hình, hết lượt, mất mạng…) -> nên chuyển sang FOCUSLY Brain */
+export function llmDown(e: unknown) {
+  return e instanceof HttpError && ['AI_DISABLED', 'AI_ERROR', 'AI_UNAVAILABLE', 'AI_RATE_LIMIT', 'LLM_DOWN', 'AI_BAD_OUTPUT'].includes(e.code);
+}

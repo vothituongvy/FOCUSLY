@@ -6,7 +6,8 @@ import { DistractionModel } from '../models/Distraction';
 import { CardModel } from '../models/Learn';
 import { notify } from './notifications';
 import { computeFocusSeconds } from './sessions';
-import { dayKey, minutesOfDay, parseHm, safeTimeZone, wideRange } from '../utils/time';
+import { dayKey, minutesOfDay, parseHm, safeTimeZone, weekdayIn, wideRange } from '../utils/time';
+import { sendWeeklyReport } from './social/report';
 
 /**
  * Bộ nhắc chạy mỗi phút (trong cùng process API).
@@ -43,6 +44,11 @@ async function userReminders(now: Date) {
           dedupeKey: `study:${today}:${t.start}`,
         });
       }
+    }
+
+    // Báo cáo tuần: 19:00 tối Chủ nhật giờ địa phương
+    if (ns.weeklyReport !== false && weekdayIn(now, tz) === 0 && near(m, 19 * 60)) {
+      await sendWeeklyReport(uid, today, ns.weeklyEmail !== false).catch((e) => console.warn('[weekly]', (e as Error).message));
     }
 
     if (ns.dailySummary !== false && near(m, parseHm(ns.dailySummaryTime ?? '21:30'))) {
