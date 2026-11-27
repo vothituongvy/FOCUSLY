@@ -136,6 +136,7 @@ const questionSchema = new Schema(
     correctBoolean: { type: Boolean, default: null }, // true_false
     acceptedAnswers: { type: [String], default: [] }, // short
     explanation: { type: String, default: '', maxlength: 2000 },
+    origin: { type: String, default: '' }, // cách AI tạo câu (học từ 👍/👎)
   },
   { _id: false },
 );

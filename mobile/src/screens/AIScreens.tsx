@@ -12,6 +12,7 @@ import type { AppStackParams } from '../navigation/types';
 import { Button, Card, Chip, Chips, Empty, H3, KeyboardView, Muted, Row, Screen, s } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { ForecastCard } from '../components/FocusForecast';
+import { Feedback } from '../components/Feedback';
 import { LOCALE, tr } from '../i18n';
 
 const plain = (t: string) => t.replace(/\*\*/g, '').replace(/^#+\s/gm, '').replace(/`/g, '').replace(/(^|\s)_([^_\n]+)_(?=\s|$)/g, '$1$2');
@@ -143,6 +144,9 @@ export function AIChatScreen({ route }: { route: { params?: { materialId?: strin
               }}
             >
               {m.role === 'assistant' ? <RichText text={m.content} /> : <Text selectable style={{ color: colors.text, lineHeight: 21 }}>{m.content}</Text>}
+              {m.role === 'assistant' && !!conv?.id && (
+                <Feedback kind="answer" origin={m.origin || 'brain'} text={conv.messages?.[i - 1]?.content} initial={m.vote ?? 0} conversationId={conv.id} index={i} />
+              )}
             </View>
           ))}
           {busy && (

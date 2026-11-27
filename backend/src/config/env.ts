@@ -38,8 +38,15 @@ export const env = {
   ai: {
     /** Anthropic Claude API – để trống thì các tính năng AI trả 503 */
     apiKey: process.env.ANTHROPIC_API_KEY ?? '',
-    /** 'brain' (mặc định) = FOCUSLY Brain tự xây, miễn phí · 'claude' = dùng Claude API (cần ANTHROPIC_API_KEY) */
-    provider: (process.env.AI_PROVIDER ?? 'brain').toLowerCase(),
+    /**
+     * 'auto' (mặc định): có GROQ_API_KEY / GEMINI_API_KEY thì dùng LLM miễn phí đó, hết lượt hoặc lỗi thì FOCUSLY Brain trả lời thay.
+     * 'brain': chỉ dùng FOCUSLY Brain. 'claude': dùng Claude trước (trả phí, cần ANTHROPIC_API_KEY).
+     */
+    provider: (process.env.AI_PROVIDER ?? 'auto').toLowerCase(),
+    groqKey: (process.env.GROQ_API_KEY ?? '').trim(),
+    groqModel: process.env.GROQ_MODEL ?? 'openai/gpt-oss-120b',
+    geminiKey: (process.env.GEMINI_API_KEY ?? '').trim(),
+    geminiModel: process.env.GEMINI_MODEL ?? 'gemini-flash-latest',
     model: process.env.AI_MODEL ?? 'claude-haiku-5-5',
     maxRequestsPerHour: Number(process.env.AI_MAX_REQUESTS_PER_HOUR ?? 40),
   },

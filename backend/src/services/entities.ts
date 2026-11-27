@@ -188,6 +188,7 @@ const question = z
     correctBoolean: z.boolean().nullable().optional(),
     acceptedAnswers: z.array(z.string().max(300)).max(10).default([]),
     explanation: z.string().max(2000).optional(),
+    origin: z.string().max(60).optional(),
   })
   .superRefine((q, ctx) => {
     if (q.type === 'mcq' && (q.options.length < 2 || q.correctIndex == null || q.correctIndex >= q.options.length)) {

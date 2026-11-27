@@ -9,7 +9,13 @@ export interface Card {
   front: string;
   back: string;
   hint?: string;
+  /** cách Brain tạo thẻ – dùng để học từ đánh giá của người dùng */
+  origin?: string;
 }
+
+/** Hệ số ưu tiên theo cách tạo (học từ 👍/👎): 1 = bình thường, >1 được thích, <1 bị chê */
+export type Prefs = Record<string, number>;
+const pref = (p: Prefs | undefined, k: string) => Math.min(2.5, Math.max(0.2, p?.[k] ?? 1));
 
 export type QType = 'mcq' | 'multi' | 'true_false' | 'short';
 export interface Question {
@@ -21,6 +27,8 @@ export interface Question {
   correctBoolean: boolean | null;
   acceptedAnswers: string[];
   explanation: string;
+  /** cách Brain tạo câu hỏi – dùng để học từ đánh giá của người dùng */
+  origin: string;
 }
 
 const BLANK = '_____';
@@ -83,7 +91,7 @@ const blankOut = (s: string, phrase: string) => {
 };
 
 /* ---------------- Flashcard ---------------- */
-export function makeFlashcards(text: string, count = 15, title = ''): { title: string; cards: Card[] } {
+export function makeFlashcards(text: string, count = 15, title = '', prefs?: Prefs): { title: string; cards: Card[] } {
   const vi = isVietnamese(text);
   const cards: Card[] = [];
   const fronts = new Set<string>();
@@ -95,7 +103,11 @@ export function makeFlashcards(text: string, count = 15, title = ''): { title: s
   };
 
   // 1) thẻ định nghĩa – chất lượng tốt nhất
-  for (const d of definitions(text)) push({ front: d.ask, back: cap(d.definition) });
+  // tỉ lệ thẻ định nghĩa / thẻ điền khuyết theo đánh giá của người dùng
+  const pd = pref(prefs, 'brain:def');
+  const pc = pref(prefs, 'brain:cloze');
+  const maxDef = Math.max(2, Math.round((count * pd) / (pd + pc) + count * 0.25));
+  for (const d of definitions(text).slice(0, maxDef)) push({ front: d.ask, back: cap(d.definition), origin: 'brain:def' });
 
   // 2) thẻ điền khuyết theo cụm khái niệm quan trọng
   const sents = sentences(text, 40, 260);
@@ -108,7 +120,7 @@ export function makeFlashcards(text: string, count = 15, title = ''): { title: s
     const q = blankOut(s, p.key);
     if (!q) continue;
     used.add(s);
-    push({ front: q, back: p.text, hint: vi ? `${p.words} từ` : `${p.words} word(s)` });
+    push({ front: q, back: p.text, hint: vi ? `${p.words} từ` : `${p.words} word(s)`, origin: 'brain:cloze' });
   }
   return { title: title || (vi ? 'Thẻ ghi nhớ' : 'Flashcards'), cards };
 }
@@ -147,19 +159,30 @@ function falsify(s: string, pool: Phrase[], rnd: () => number): string | null {
 const cap = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 const clip = (s: string, n = 180) => (s.length > n ? s.slice(0, n - 1).replace(/\s+\S*$/, '') + '…' : s);
 
-export function makeQuiz(text: string, count = 10, types: readonly QType[] = ['mcq', 'multi', 'true_false', 'short'], title = ''): { title: string; questions: Question[] } {
+export function makeQuiz(text: string, count = 10, types: readonly QType[] = ['mcq', 'multi', 'true_false', 'short'], title = '', prefs?: Prefs): { title: string; questions: Question[] } {
   const vi = isVietnamese(text);
   const rnd = seeded(text.slice(0, 2000) + count);
   const pool = keyphrases(text, 60).filter((p) => p.text.length <= 60);
   const sents = sentences(text, 40, 260);
   const used = new Set<string>();
   const questions: Question[] = [];
-  const base = { options: [] as string[], correctIndex: null, correctIndexes: [] as number[], correctBoolean: null, acceptedAnswers: [] as string[] };
+  const blank = { options: [] as string[], correctIndex: null, correctIndexes: [] as number[], correctBoolean: null, acceptedAnswers: [] as string[] };
 
   // chia đều các loại câu theo yêu cầu
   const plan: QType[] = [];
-  const weights: Record<QType, number> = { mcq: 4, true_false: 3, short: 2, multi: 1 };
-  const allowed = types.filter((t) => weights[t]);
+  // tỉ lệ các loại câu: mặc định + điều chỉnh theo đánh giá 👍/👎 đã học được
+  const mul: Record<QType, number> = {
+    mcq: (pref(prefs, 'brain:def-mcq') + pref(prefs, 'brain:cloze-mcq')) / 2,
+    true_false: (pref(prefs, 'brain:tf-true') + pref(prefs, 'brain:tf-false')) / 2,
+    short: pref(prefs, 'brain:cloze-short'),
+    multi: pref(prefs, 'brain:multi'),
+  };
+  const base: Record<QType, number> = { mcq: 4, true_false: 3, short: 2, multi: 1 };
+  const weights = Object.fromEntries((Object.keys(base) as QType[]).map((t) => [t, mul[t] < 0.35 ? 0 : Math.max(1, Math.round(base[t] * mul[t]))])) as Record<QType, number>;
+  let allowed = types.filter((t) => weights[t]);
+  if (!allowed.length) allowed = [...types];
+  allowed.forEach((t) => (weights[t] = weights[t] || 1));
+  const preferDefs = pref(prefs, 'brain:def-mcq') >= pref(prefs, 'brain:cloze-mcq') * 0.7;
   while (plan.length < count * 2 && allowed.length) for (const t of allowed) for (let i = 0; i < weights[t]; i++) plan.push(t);
   const order = shuffle(plan, rnd);
 
@@ -170,11 +193,11 @@ export function makeQuiz(text: string, count = 10, types: readonly QType[] = ['m
     if (type === 'mcq') {
       // ưu tiên định nghĩa: "X là gì?" với 4 lựa chọn là các định nghĩa
       const d = defs.find((x) => !used.has(x.sentence));
-      if (d && defs.length >= 4) {
+      if (d && defs.length >= 4 && preferDefs) {
         used.add(d.sentence);
         const wrong = shuffle(defs.filter((x) => x !== d), rnd).slice(0, 3).map((x) => clip(cap(x.definition), 140));
         const options = shuffle([clip(cap(d.definition), 140), ...wrong], rnd);
-        questions.push({ ...base, type: 'mcq', prompt: d.ask, options, correctIndex: options.indexOf(clip(cap(d.definition), 140)), explanation: d.sentence });
+        questions.push({ ...blank, type: 'mcq', prompt: d.ask, options, correctIndex: options.indexOf(clip(cap(d.definition), 140)), explanation: d.sentence, origin: 'brain:def-mcq' });
         continue;
       }
     }
@@ -193,14 +216,14 @@ export function makeQuiz(text: string, count = 10, types: readonly QType[] = ['m
       const wrong = distractors(p, pool, s, rnd);
       if (wrong.length < 2) continue;
       const options = shuffle([p.text, ...wrong], rnd);
-      questions.push({ ...base, type: 'mcq', prompt: vi ? `Điền vào chỗ trống: ${cloze}` : `Fill in the blank: ${cloze}`, options, correctIndex: options.indexOf(p.text), explanation: s });
+      questions.push({ ...blank, type: 'mcq', prompt: vi ? `Điền vào chỗ trống: ${cloze}` : `Fill in the blank: ${cloze}`, options, correctIndex: options.indexOf(p.text), explanation: s, origin: 'brain:cloze-mcq' });
     } else if (type === 'short') {
-      questions.push({ ...base, type: 'short', prompt: vi ? `Điền từ còn thiếu: ${cloze}` : `Fill in the missing words: ${cloze}`, acceptedAnswers: [p.text], explanation: s });
+      questions.push({ ...blank, type: 'short', prompt: vi ? `Điền từ còn thiếu: ${cloze}` : `Fill in the missing words: ${cloze}`, acceptedAnswers: [p.text], explanation: s, origin: 'brain:cloze-short' });
     } else if (type === 'true_false') {
       const makeFalse = rnd() < 0.5;
       const f = makeFalse ? falsify(s, pool, rnd) : null;
-      if (makeFalse && f) questions.push({ ...base, type: 'true_false', prompt: f, correctBoolean: false, explanation: vi ? `Câu đúng: ${s}` : `Correct statement: ${s}` });
-      else questions.push({ ...base, type: 'true_false', prompt: s, correctBoolean: true, explanation: vi ? 'Phát biểu này đúng theo tài liệu.' : 'This statement is true according to the material.' });
+      if (makeFalse && f) questions.push({ ...blank, type: 'true_false', prompt: f, correctBoolean: false, explanation: vi ? `Câu đúng: ${s}` : `Correct statement: ${s}`, origin: 'brain:tf-false' });
+      else questions.push({ ...blank, type: 'true_false', prompt: s, correctBoolean: true, explanation: vi ? 'Phát biểu này đúng theo tài liệu.' : 'This statement is true according to the material.', origin: 'brain:tf-true' });
     } else if (type === 'multi') {
       // 2–3 phát biểu đúng + 1–2 phát biểu bị đổi khái niệm
       const trues = [s, ...shuffle(sents.filter((x) => !used.has(x) && x.length <= 200 && overlap(new Set(terms(x)), new Set(terms(s))) < 0.5), rnd).slice(0, 2)];
@@ -214,7 +237,8 @@ export function makeQuiz(text: string, count = 10, types: readonly QType[] = ['m
       trues.forEach((t) => used.add(t));
       const all = shuffle([...trues.map((t) => ({ t: clip(t), ok: true })), ...falses.map((t) => ({ t: clip(t), ok: false }))], rnd);
       questions.push({
-        ...base,
+        ...blank,
+        origin: 'brain:multi',
         type: 'multi',
         prompt: vi ? 'Chọn TẤT CẢ các phát biểu đúng theo tài liệu:' : 'Select ALL statements that are true according to the material:',
         options: all.map((x) => x.t),

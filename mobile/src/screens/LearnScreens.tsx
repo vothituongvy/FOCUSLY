@@ -12,6 +12,7 @@ import type { AppStackParams } from '../navigation/types';
 import { Button, Card as Box, Chip, Chips, Empty, H1, H3, Muted, ProgressBar, Row, Screen, s } from '../components/ui';
 import { AppHeader } from '../components/AppHeader';
 import { Icon } from '../components/Icon';
+import { MemoryForecast } from '../components/MemoryForecast';
 import { tr } from '../i18n';
 
 /* ======================================================================
@@ -41,6 +42,8 @@ export function LearnScreen() {
           </Box>
         ))}
       </Row>
+
+      <MemoryForecast />
 
       <Row style={{ flexWrap: 'nowrap' }}>
         <Button title={tr('Ôn câu sai')} small variant="secondary" icon="repeat" style={{ flex: 1 }} onPress={() => nav.navigate('Mistakes')} />

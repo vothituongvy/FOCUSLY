@@ -8,6 +8,10 @@ const messageSchema = new Schema(
     role: { type: String, enum: ['user', 'assistant'], required: true },
     content: { type: String, required: true },
     at: { type: Date, default: Date.now },
+    /** nguồn câu trả lời: data (số liệu người học) · llm · brain */
+    origin: { type: String, default: '' },
+    /** đánh giá của người học: 1 = 👍, -1 = 👎 */
+    vote: { type: Number, default: 0 },
   },
   { _id: false },
 );

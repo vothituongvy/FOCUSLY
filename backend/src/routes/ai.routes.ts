@@ -9,7 +9,7 @@ import { MaterialModel, RecallModel } from '../models/Learn';
 import { FocusSessionModel } from '../models/FocusSession';
 import { SubjectModel, TaskModel } from '../models/Learning';
 import { findOwned } from '../services/entities';
-import { aiEnabled, complete, completeJson, relevantChunks, TRANSLATE_LIMIT_PER_HOUR, TUTOR_SYSTEM, usedLastHour } from '../services/ai';
+import { aiEnabled, complete, completeJson, llmProviders, relevantChunks, TRANSLATE_LIMIT_PER_HOUR, TUTOR_SYSTEM, usedLastHour } from '../services/ai';
 import { computeInsights } from '../services/analytics';
 import { CardModel } from '../models/Learn';
 import { UserModel } from '../models/User';
@@ -55,9 +55,10 @@ router.get(
   ah(async (req, res) => {
     res.json({
       enabled: aiEnabled(),
-      provider: brain.useBrain() ? 'brain' : 'claude',
+      provider: brain.useBrain() ? 'brain' : llmProviders()[0],
+      providers: llmProviders(),
       knowledge: await brain.knowledgeStats().catch(() => null),
-      model: brain.useBrain() ? 'FOCUSLY Brain' : env.ai.model,
+      model: brain.useBrain() ? 'FOCUSLY Brain' : { groq: env.ai.groqModel, gemini: env.ai.geminiModel, claude: env.ai.model }[llmProviders()[0]],
       usedLastHour: await usedLastHour(uid(req)),
       limitPerHour: env.ai.maxRequestsPerHour,
       translateUsedLastHour: await usedLastHour(uid(req), 'translate'),
@@ -116,27 +117,45 @@ router.post(
     }
     const materialId = data.materialId ?? (conv.material ? String(conv.material) : null);
     let reply: string;
-    if (brain.useBrain()) {
-      reply = await brain.answer(userId, data.message, materialId);
-    } else {
-      let system = TUTOR_SYSTEM;
-      if (materialId) {
-        const src = await loadMaterialText(userId, materialId);
-        system += `\n\nTÀI LIỆU THAM KHẢO – "${src!.material.title}":\n${relevantChunks(src!.text, data.message, 12_000)}`;
-      } else if (conv.subject) {
-        const s = await SubjectModel.findById(conv.subject).select('name');
-        if (s) system += `\n\nNgười học đang học môn: ${s.name}.`;
+    let origin = 'brain';
+    // 1) câu hỏi về dữ liệu của chính người học -> Brain trả lời bằng số liệu thật
+    const direct = await brain.directAnswer(userId, data.message);
+    if (direct) {
+      reply = direct;
+      origin = 'data';
+    } else if (!brain.useBrain()) {
+      // 2) LLM (Groq / Gemini / Claude) trả lời, kèm ngữ cảnh từ tài liệu + thư viện FOCUSLY
+      try {
+        let system = TUTOR_SYSTEM;
+        if (!materialId) {
+          const ctx = await brain.contextFor(userId, data.message);
+          if (ctx) system += `\n\nNGỮ CẢNH (ưu tiên dùng khi liên quan, ghi rõ nguồn trong ngoặc vuông):\n${ctx}`;
+        }
+        if (materialId) {
+          const src = await loadMaterialText(userId, materialId);
+          system += `\n\nTÀI LIỆU THAM KHẢO – "${src!.material.title}":\n${relevantChunks(src!.text, data.message, 12_000)}`;
+        } else if (conv.subject) {
+          const s = await SubjectModel.findById(conv.subject).select('name');
+          if (s) system += `\n\nNgười học đang học môn: ${s.name}.`;
+        }
+        const history = (conv.messages as unknown as { role: 'user' | 'assistant'; content: string }[]).slice(-20).map((m) => ({ role: m.role, content: m.content }));
+        reply = await complete({
+          userId,
+          feature: 'chat',
+          system,
+          messages: [...history, { role: 'user', content: data.message }],
+          maxTokens: 1800,
+        });
+        origin = 'llm';
+      } catch (e) {
+        if (!llmDown(e)) throw e;
+        reply = await brain.answer(userId, data.message, materialId);
       }
-      const history = (conv.messages as unknown as { role: 'user' | 'assistant'; content: string }[]).slice(-20).map((m) => ({ role: m.role, content: m.content }));
-      reply = await complete({
-        userId,
-        feature: 'chat',
-        system,
-        messages: [...history, { role: 'user', content: data.message }],
-        maxTokens: 1800,
-      });
+    } else {
+      // 3) không có LLM -> FOCUSLY Brain
+      reply = await brain.answer(userId, data.message, materialId);
     }
-    conv.messages.push({ role: 'user', content: data.message, at: new Date() }, { role: 'assistant', content: reply, at: new Date() });
+    conv.messages.push({ role: 'user', content: data.message, at: new Date() }, { role: 'assistant', content: reply, at: new Date(), origin });
     await conv.save();
     res.json({ conversationId: conv.id, reply, item: conv });
   }),
@@ -148,21 +167,16 @@ router.post(
   ah(async (req, res) => {
     const data = parse(z.object({ materialId: z.string(), length: z.enum(['short', 'detailed']).default('short') }), req.body);
     const src = await loadMaterialText(uid(req), data.materialId);
-    if (brain.useBrain()) {
-      const summary = brain.makeSummary(src!.text, src!.material.title, data.length === 'detailed');
-      src!.material.aiSummary = summary;
-      src!.material.aiSummaryAt = new Date();
-      await src!.material.save();
-      return res.json({ summary, item: src!.material });
-    }
-    const summary = await complete({
-      userId: uid(req),
-      feature: 'summary',
-      system: TUTOR_SYSTEM,
-      messages: [
-        {
-          role: 'user',
-          content: `Tóm tắt tài liệu "${src!.material.title}" ${data.length === 'short' ? 'ngắn gọn (tối đa ~200 từ)' : 'chi tiết theo từng phần'} bằng Markdown:
+    if (!brain.useBrain()) {
+      try {
+        const summary = await complete({
+          userId: uid(req),
+          feature: 'summary',
+          system: TUTOR_SYSTEM,
+          messages: [
+            {
+              role: 'user',
+              content: `Tóm tắt tài liệu "${src!.material.title}" ${data.length === 'short' ? 'ngắn gọn (tối đa ~200 từ)' : 'chi tiết theo từng phần'} bằng Markdown:
 1. Ý chính (gạch đầu dòng)
 2. Khái niệm quan trọng (thuật ngữ: giải thích 1 câu)
 3. Phần dễ nhầm / khó hiểu cần chú ý
@@ -170,14 +184,24 @@ router.post(
 
 NỘI DUNG:
 ${relevantChunks(src!.text, src!.material.title, 16_000)}`,
-        },
-      ],
-      maxTokens: data.length === 'short' ? 900 : 2200,
-    });
+            },
+          ],
+          maxTokens: data.length === 'short' ? 900 : 2200,
+        });
+        src!.material.aiSummary = summary;
+        src!.material.aiSummaryAt = new Date();
+        await src!.material.save();
+        res.json({ summary, item: src!.material });
+        return;
+      } catch (e) {
+        if (!llmDown(e)) throw e; // LLM hết lượt / lỗi -> FOCUSLY Brain trả lời thay
+      }
+    }
+    const summary = brain.makeSummary(src!.text, src!.material.title, data.length === 'detailed');
     src!.material.aiSummary = summary;
     src!.material.aiSummaryAt = new Date();
     await src!.material.save();
-    res.json({ summary, item: src!.material });
+    return res.json({ summary, item: src!.material });
   }),
 );
 
@@ -194,36 +218,41 @@ router.post(
       }),
       req.body,
     );
-    if (brain.useBrain()) {
-      // Người dùng gõ cả câu hỏi ("Tài liệu này nói về gì?") thay vì tên khái niệm -> chuyển sang trợ lý hỏi đáp
-      const isQuestion = data.concept.split(/\s+/).length > 5 || /[?？]$|\b(gì|sao|thế nào|như nào|tại sao|vì sao|what|how|why)\b/iu.test(data.concept);
-      if (isQuestion) return res.json({ explanation: await brain.answer(uid(req), data.concept, data.materialId ?? null) });
-      let text = data.context ?? '';
-      if (data.materialId) text += '\n' + ((await loadMaterialText(uid(req), data.materialId))?.text ?? '');
-      else text += '\n' + (await brain.topicText(uid(req), data.concept)).text;
-      // không thấy câu định nghĩa -> tìm đoạn liên quan trong tài liệu, rồi tới Wikipedia
-      const explanation = brain.explainFromText(data.concept, text) ?? (await brain.answer(uid(req), data.concept, data.materialId ?? null));
-      return res.json({ explanation });
+    if (!brain.useBrain()) {
+      try {
+        let ctx = data.context ?? '';
+        if (data.materialId) {
+          const src = await loadMaterialText(uid(req), data.materialId);
+          ctx += `\n\nTrích tài liệu:\n${relevantChunks(src!.text, data.concept, 6000)}`;
+        }
+        const levelText = { beginner: 'người mới bắt đầu, dùng ví dụ đời thường', intermediate: 'người đã có nền tảng', advanced: 'người học nâng cao, đi sâu bản chất' }[data.level];
+        const explanation = await complete({
+          userId: uid(req),
+          feature: 'explain',
+          system: TUTOR_SYSTEM,
+          messages: [
+            {
+              role: 'user',
+              content: `Giải thích "${data.concept}" cho ${levelText}. Cấu trúc: định nghĩa ngắn → ví dụ → lỗi thường gặp → 1 câu hỏi kiểm tra nhanh (kèm đáp án ẩn ở cuối).${ctx ? `\n\nNgữ cảnh:\n${ctx}` : ''}`,
+            },
+          ],
+          maxTokens: 1500,
+        });
+        res.json({ explanation });
+        return;
+      } catch (e) {
+        if (!llmDown(e)) throw e; // LLM hết lượt / lỗi -> FOCUSLY Brain trả lời thay
+      }
     }
-    let ctx = data.context ?? '';
-    if (data.materialId) {
-      const src = await loadMaterialText(uid(req), data.materialId);
-      ctx += `\n\nTrích tài liệu:\n${relevantChunks(src!.text, data.concept, 6000)}`;
-    }
-    const levelText = { beginner: 'người mới bắt đầu, dùng ví dụ đời thường', intermediate: 'người đã có nền tảng', advanced: 'người học nâng cao, đi sâu bản chất' }[data.level];
-    const explanation = await complete({
-      userId: uid(req),
-      feature: 'explain',
-      system: TUTOR_SYSTEM,
-      messages: [
-        {
-          role: 'user',
-          content: `Giải thích "${data.concept}" cho ${levelText}. Cấu trúc: định nghĩa ngắn → ví dụ → lỗi thường gặp → 1 câu hỏi kiểm tra nhanh (kèm đáp án ẩn ở cuối).${ctx ? `\n\nNgữ cảnh:\n${ctx}` : ''}`,
-        },
-      ],
-      maxTokens: 1500,
-    });
-    res.json({ explanation });
+    // Người dùng gõ cả câu hỏi ("Tài liệu này nói về gì?") thay vì tên khái niệm -> chuyển sang trợ lý hỏi đáp
+    const isQuestion = data.concept.split(/\s+/).length > 5 || /[?？]$|\b(gì|sao|thế nào|như nào|tại sao|vì sao|what|how|why)\b/iu.test(data.concept);
+    if (isQuestion) return res.json({ explanation: await brain.answer(uid(req), data.concept, data.materialId ?? null) });
+    let text = data.context ?? '';
+    if (data.materialId) text += '\n' + ((await loadMaterialText(uid(req), data.materialId))?.text ?? '');
+    else text += '\n' + (await brain.topicText(uid(req), data.concept)).text;
+    // không thấy câu định nghĩa -> tìm đoạn liên quan trong tài liệu, rồi tới Wikipedia
+    const explanation = brain.explainFromText(data.concept, text) ?? (await brain.answer(uid(req), data.concept, data.materialId ?? null));
+    return res.json({ explanation });
   }),
 );
 
@@ -243,68 +272,79 @@ const genQuestion = z.object({
 
 /** AI soạn câu hỏi từ một nguồn (chủ đề, tài liệu, file) rồi loại câu lỗi */
 async function aiQuiz(userId: string, src: { label: string; content: string }, count: number, types: readonly QType[], difficulty: string) {
-  if (brain.useBrain()) {
-    const out = brain.makeQuiz(src.content, count, types, src.label.replace(/^(tài liệu|chủ đề)\s+/, '').replace(/["“”]/g, ''));
-    if (!out.questions.length) throw badRequest('Nội dung quá ngắn để soạn câu hỏi. Hãy dùng tài liệu dài hơn (ít nhất vài đoạn văn).');
-    return out;
-  }
-  const out = await completeJson({
-    userId,
-    feature: 'quiz_generation',
-    system: TUTOR_SYSTEM,
-    schema: z.object({ title: z.string(), questions: z.array(genQuestion).min(1) }),
-    maxTokens: 4000,
-    messages: [
-      {
-        role: 'user',
-        content: `Tạo ${count} câu hỏi kiểm tra (độ khó: ${difficulty}) về ${src.label}, chỉ dùng các loại: ${types.join(', ')}.
+  if (!brain.useBrain()) {
+    try {
+      const out = await completeJson({
+        userId,
+        feature: 'quiz_generation',
+        system: TUTOR_SYSTEM,
+        schema: z.object({ title: z.string(), questions: z.array(genQuestion).min(1) }),
+        maxTokens: 4000,
+        messages: [
+          {
+            role: 'user',
+            content: `Tạo ${count} câu hỏi kiểm tra (độ khó: ${difficulty}) về ${src.label}, chỉ dùng các loại: ${types.join(', ')}.
 Định dạng JSON: {"title": string, "questions": [{"type":"mcq"|"multi"|"true_false"|"short","prompt":string,"options":[4 lựa chọn nếu mcq/multi],"correctIndex":số (mcq – đúng 1 đáp án),"correctIndexes":[các số] (multi – từ 2 đáp án đúng trở lên, ghi rõ "chọn tất cả đáp án đúng" trong prompt),"correctBoolean":bool (true_false),"acceptedAnswers":[các đáp án chấp nhận ngắn gọn] (short),"explanation":string}]}
 Câu hỏi phải kiểm tra HIỂU BÀI (không chỉ học thuộc), đáp án nhiễu hợp lý.
 
 ${src.content}`,
-      },
-    ],
-  });
-  const questions = out.questions
-    .filter((q) => types.includes(q.type))
-    .map((q) => (q.type === 'multi' ? { ...q, correctIndexes: [...new Set(q.correctIndexes)].filter((i) => i >= 0 && i < q.options.length).sort((x, y) => x - y) } : q))
-    .filter((q) =>
-      q.type === 'mcq'
-        ? q.options.length >= 2 && q.correctIndex != null && q.correctIndex < q.options.length
-        : q.type === 'multi'
-          ? q.options.length >= 2 && q.correctIndexes.length > 0
-          : q.type === 'true_false'
-            ? q.correctBoolean != null
-            : q.acceptedAnswers.length > 0,
-    );
-  return { title: out.title, questions };
+          },
+        ],
+      });
+      const questions = out.questions
+        .filter((q) => types.includes(q.type))
+        .map((q) => (q.type === 'multi' ? { ...q, correctIndexes: [...new Set(q.correctIndexes)].filter((i) => i >= 0 && i < q.options.length).sort((x, y) => x - y) } : q))
+        .filter((q) =>
+          q.type === 'mcq'
+            ? q.options.length >= 2 && q.correctIndex != null && q.correctIndex < q.options.length
+            : q.type === 'multi'
+              ? q.options.length >= 2 && q.correctIndexes.length > 0
+              : q.type === 'true_false'
+                ? q.correctBoolean != null
+                : q.acceptedAnswers.length > 0,
+        );
+      return { title: out.title, questions: questions.map((q) => ({ ...q, origin: 'llm' })) };
+    } catch (e) {
+      if (!llmDown(e)) throw e; // LLM hết lượt / lỗi -> FOCUSLY Brain soạn thay
+    }
+  }
+  // LLM lỗi khi soạn theo CHỦ ĐỀ -> lấy nội dung chủ đề từ tài liệu / thư viện / Wikipedia cho Brain
+  if (src.content.startsWith('Chủ đề: ')) src = { ...src, content: (await brain.topicText(userId, src.content.slice(9))).text || src.content };
+  const out = brain.makeQuiz(src.content, count, types, src.label.replace(/^(tài liệu|chủ đề)\s+/, '').replace(/["“”]/g, ''), await brain.prefsFor(userId, 'question').catch(() => undefined));
+  if (!out.questions.length) throw badRequest('Nội dung quá ngắn để soạn câu hỏi. Hãy dùng tài liệu dài hơn (ít nhất vài đoạn văn).');
+  return out;
 }
 
 const cardsSchema = z.object({ title: z.string(), cards: z.array(z.object({ front: z.string().min(1), back: z.string().min(1), hint: z.string().optional() })).min(1) });
 
 async function aiCards(userId: string, src: { label: string; content: string }, count: number) {
-  if (brain.useBrain()) {
-    const out = brain.makeFlashcards(src.content, count, src.label.replace(/^(tài liệu|chủ đề)\s+/, '').replace(/["“”]/g, ''));
-    if (!out.cards.length) throw badRequest('Nội dung quá ngắn để tạo flashcard. Hãy dùng tài liệu dài hơn (ít nhất vài đoạn văn).');
-    return out;
-  }
-  const out = await completeJson({
-    userId,
-    feature: 'flashcard_generation',
-    system: TUTOR_SYSTEM,
-    schema: cardsSchema,
-    maxTokens: 3500,
-    messages: [
-      {
-        role: 'user',
-        content: `Tạo ${count} flashcard về ${src.label}. Mỗi thẻ: mặt trước là câu hỏi/khái niệm ngắn, mặt sau là câu trả lời súc tích (≤ 40 từ), tuân theo nguyên tắc "một ý mỗi thẻ".
+  if (!brain.useBrain()) {
+    try {
+      const out = await completeJson({
+        userId,
+        feature: 'flashcard_generation',
+        system: TUTOR_SYSTEM,
+        schema: cardsSchema,
+        maxTokens: 3500,
+        messages: [
+          {
+            role: 'user',
+            content: `Tạo ${count} flashcard về ${src.label}. Mỗi thẻ: mặt trước là câu hỏi/khái niệm ngắn, mặt sau là câu trả lời súc tích (≤ 40 từ), tuân theo nguyên tắc "một ý mỗi thẻ".
 JSON: {"title": string, "cards": [{"front": string, "back": string, "hint": string}]}
 
 ${src.content}`,
-      },
-    ],
-  });
-  return { title: out.title, cards: out.cards.slice(0, count) };
+          },
+        ],
+      });
+      return { title: out.title, cards: out.cards.slice(0, count).map((c) => ({ ...c, origin: 'llm' })) };
+    } catch (e) {
+      if (!llmDown(e)) throw e; // LLM hết lượt / lỗi -> FOCUSLY Brain soạn thay
+    }
+  }
+  if (src.content.startsWith('Chủ đề: ')) src = { ...src, content: (await brain.topicText(userId, src.content.slice(9))).text || src.content };
+  const out = brain.makeFlashcards(src.content, count, src.label.replace(/^(tài liệu|chủ đề)\s+/, '').replace(/["“”]/g, ''), await brain.prefsFor(userId, 'card').catch(() => undefined));
+  if (!out.cards.length) throw badRequest('Nội dung quá ngắn để tạo flashcard. Hãy dùng tài liệu dài hơn (ít nhất vài đoạn văn).');
+  return out;
 }
 
 router.post(
@@ -427,27 +467,49 @@ router.post(
   ah(async (req, res) => {
     const { text, to } = parse(translateSchema, req.body);
     const short = text.split(/\s+/).length <= 4;
-    if (brain.useBrain()) {
+    if (!brain.useBrain()) {
       try {
-        return res.json({ ...(await brain.translateFree(text, to)), short });
-      } catch {
-        throw new HttpError(503, 'Dịch vụ dịch miễn phí đang bận, thử lại sau ít phút.', 'TRANSLATE_BUSY');
-      }
-    }
-    const result = await completeJson({
-      userId: uid(req),
-      feature: 'translate',
-      maxTokens: short ? 500 : 1500,
-      temperature: 0.2,
-      schema: translateResult,
-      system: `You are a precise English–Vietnamese translator for students.
+        const result = await completeJson({
+          userId: uid(req),
+          feature: 'translate',
+          maxTokens: short ? 500 : 1500,
+          temperature: 0.2,
+          schema: translateResult,
+          system: `You are a precise English–Vietnamese translator for students.
 Detect the source language. Translate English → Vietnamese and Vietnamese → English${to === 'auto' ? '' : `; the target language is forced to "${to}"`}. Other languages → Vietnamese.
 Keep meaning, tone and formatting (line breaks, lists, formulas). Do not add explanations to the translation itself.
 Return JSON: {"from":"vi|en|other","to":"vi|en","translation":"...","phonetic":null,"partOfSpeech":null,"alternatives":[],"example":null}.
 If the input is a single word or short phrase (≤ 4 words), also fill: "phonetic" (IPA, English words only), "partOfSpeech" (in Vietnamese, e.g. "danh từ"), up to 3 "alternatives" (other common meanings in the target language), and one short "example" {"source","target"} sentence pair. Otherwise leave them null/empty.`,
-      messages: [{ role: 'user', content: text }],
-    });
-    res.json({ ...result, short });
+          messages: [{ role: 'user', content: text }],
+        });
+        res.json({ ...result, short });
+        return;
+      } catch (e) {
+        if (!llmDown(e)) throw e; // LLM hết lượt / lỗi -> FOCUSLY Brain trả lời thay
+      }
+    }
+    try {
+      const tr = await brain.translateFree(text, to);
+      // từ tiếng Anh ngắn: thêm phiên âm, từ loại, ví dụ từ từ điển
+      if (short && tr.from === 'en') {
+        const e = await brain.lookupWord(text).catch(() => null);
+        if (e) {
+          const s0 = e.senses.find((x) => x.example) ?? e.senses[0];
+          const exVi = s0?.example ? await brain.translateFree(s0.example, 'vi').catch(() => null) : null;
+          return res.json({
+            ...tr,
+            phonetic: e.phonetic,
+            partOfSpeech: s0?.posVi ?? null,
+            alternatives: [...new Set([...tr.alternatives, ...e.alternatives])].slice(0, 3),
+            example: s0?.example ? { source: s0.example, target: exVi?.translation ?? '' } : null,
+            short,
+          });
+        }
+      }
+      return res.json({ ...tr, short });
+    } catch {
+      throw new HttpError(503, 'Dịch vụ dịch miễn phí đang bận, thử lại sau ít phút.', 'TRANSLATE_BUSY');
+    }
   }),
 );
 
@@ -459,31 +521,36 @@ router.post(
     const recall = await findOwned(RecallModel, uid(req), recallId);
     if (!recall) throw notFound();
     const session = recall.session ? await FocusSessionModel.findById(recall.session).select('goal task') : null;
-    if (brain.useBrain()) {
-      const task = session?.task ? await TaskModel.findById(session.task).select('title description expectedOutcome') : null;
-      const reference = [task?.title, task?.expectedOutcome, task?.description, session?.goal].filter(Boolean).join('. ');
-      const feedback = brain.recallFeedback(recall.content, reference, session?.goal ?? '');
-      recall.aiFeedback = feedback;
-      await recall.save();
-      return res.json({ feedback, item: recall });
-    }
-    const feedback = await complete({
-      userId: uid(req),
-      feature: 'recall_feedback',
-      system: TUTOR_SYSTEM,
-      maxTokens: 900,
-      messages: [
-        {
-          role: 'user',
-          content: `Người học vừa kết thúc phiên học${session?.goal ? ` với mục tiêu "${session.goal}"` : ''} và tự viết lại những gì nhớ được:
+    if (!brain.useBrain()) {
+      try {
+        const feedback = await complete({
+          userId: uid(req),
+          feature: 'recall_feedback',
+          system: TUTOR_SYSTEM,
+          maxTokens: 900,
+          messages: [
+            {
+              role: 'user',
+              content: `Người học vừa kết thúc phiên học${session?.goal ? ` với mục tiêu "${session.goal}"` : ''} và tự viết lại những gì nhớ được:
 """${recall.content}"""
 Hãy phản hồi ngắn gọn: (1) điểm đã nắm tốt, (2) chỗ sai/thiếu quan trọng, (3) 2 câu hỏi để tự kiểm tra tiếp. Giọng điệu khích lệ.`,
-        },
-      ],
-    });
+            },
+          ],
+        });
+        recall.aiFeedback = feedback;
+        await recall.save();
+        res.json({ feedback, item: recall });
+        return;
+      } catch (e) {
+        if (!llmDown(e)) throw e; // LLM hết lượt / lỗi -> FOCUSLY Brain trả lời thay
+      }
+    }
+    const task = session?.task ? await TaskModel.findById(session.task).select('title description expectedOutcome') : null;
+    const reference = [task?.title, task?.expectedOutcome, task?.description, session?.goal].filter(Boolean).join('. ');
+    const feedback = brain.recallFeedback(recall.content, reference, session?.goal ?? '');
     recall.aiFeedback = feedback;
     await recall.save();
-    res.json({ feedback, item: recall });
+    return res.json({ feedback, item: recall });
   }),
 );
 
@@ -503,45 +570,42 @@ router.post(
     ]);
     const subjName = new Map(subjects.map((s) => [String(s._id), s.name]));
     const today = new Date().toISOString().slice(0, 10);
-    if (brain.useBrain()) {
-      const input = await coachInput(userId, insights, analytics, tasks.map((t) => ({ ...t, subjectName: t.subject ? subjName.get(String(t.subject)) ?? null : null })));
-      const out = brain.recommendations(input);
-      return res.json({ ...out, ruleInsights: insights, note: 'Gợi ý từ FOCUSLY Brain – chọn mục muốn thêm vào kế hoạch.' });
-    }
-    const ctx = {
-      today,
-      dailyTargetMinutes: analytics.dailyTargetMinutes,
-      last30Days: analytics.metrics,
-      bestFocusTimes: analytics.bestFocusTimes.map((b) => `${b.hour}:00`),
-      subjects: analytics.bySubject.map((s) => ({ name: s.name, focusMinutes: s.focusMinutes, quizAccuracy: s.quizAccuracy, tasksDone: s.tasksDone, tasksTotal: s.tasksTotal })),
-      openTasks: tasks.map((t) => ({ id: String(t._id), title: t.title, subject: t.subject ? subjName.get(String(t.subject)) : null, deadline: t.deadline, estimatedMinutes: t.estimatedMinutes, priority: t.priority })),
-      ruleInsights: insights.map((i) => i.title),
-    };
-    const out = await completeJson({
-      userId,
-      feature: 'recommendations',
-      system: TUTOR_SYSTEM + '\nBạn là chuyên gia phương pháp học tập, đưa gợi ý thực tế, cụ thể, dựa trên dữ liệu.',
-      schema: z.object({
-        summary: z.string(),
-        recommendations: z.array(z.object({ title: z.string(), reason: z.string() })).max(6),
-        plan: z
-          .array(
-            z.object({
-              date: z.string(),
-              title: z.string(),
-              subject: z.string().nullable().optional(),
-              estimatedMinutes: z.number().int().min(5).max(240),
-              taskId: z.string().nullable().optional(),
-              timeOfDay: z.string().optional(),
-            }),
-          )
-          .max(21),
-      }),
-      maxTokens: 3000,
-      messages: [
-        {
-          role: 'user',
-          content: `Dựa trên dữ liệu học tập (JSON) dưới đây:
+    if (!brain.useBrain()) {
+      try {
+        const ctx = {
+          today,
+          dailyTargetMinutes: analytics.dailyTargetMinutes,
+          last30Days: analytics.metrics,
+          bestFocusTimes: analytics.bestFocusTimes.map((b) => `${b.hour}:00`),
+          subjects: analytics.bySubject.map((s) => ({ name: s.name, focusMinutes: s.focusMinutes, quizAccuracy: s.quizAccuracy, tasksDone: s.tasksDone, tasksTotal: s.tasksTotal })),
+          openTasks: tasks.map((t) => ({ id: String(t._id), title: t.title, subject: t.subject ? subjName.get(String(t.subject)) : null, deadline: t.deadline, estimatedMinutes: t.estimatedMinutes, priority: t.priority })),
+          ruleInsights: insights.map((i) => i.title),
+        };
+        const out = await completeJson({
+          userId,
+          feature: 'recommendations',
+          system: TUTOR_SYSTEM + '\nBạn là chuyên gia phương pháp học tập, đưa gợi ý thực tế, cụ thể, dựa trên dữ liệu.',
+          schema: z.object({
+            summary: z.string(),
+            recommendations: z.array(z.object({ title: z.string(), reason: z.string() })).max(6),
+            plan: z
+              .array(
+                z.object({
+                  date: z.string(),
+                  title: z.string(),
+                  subject: z.string().nullable().optional(),
+                  estimatedMinutes: z.number().int().min(5).max(240),
+                  taskId: z.string().nullable().optional(),
+                  timeOfDay: z.string().optional(),
+                }),
+              )
+              .max(21),
+          }),
+          maxTokens: 3000,
+          messages: [
+            {
+              role: 'user',
+              content: `Dựa trên dữ liệu học tập (JSON) dưới đây:
 1. "summary": nhận xét tổng quan 2-3 câu.
 2. "recommendations": tối đa 5 đề xuất cải thiện phương pháp học (title + reason dựa trên số liệu).
 3. "plan": kế hoạch 7 ngày tới (từ ${today}), mỗi ngày 1-3 mục, tổng thời lượng mỗi ngày gần với mục tiêu ngày, ưu tiên nhiệm vụ gần deadline và môn yếu, xếp vào khung giờ hiệu quả. Nếu mục gắn với nhiệm vụ có sẵn thì điền taskId.
@@ -549,13 +613,21 @@ JSON: {"summary": string, "recommendations":[{"title","reason"}], "plan":[{"date
 
 DỮ LIỆU:
 ${JSON.stringify(ctx)}`,
-        },
-      ],
-    });
-    // map tên môn -> id để client có thể tạo task
-    const byName = new Map(subjects.map((s) => [s.name.toLowerCase(), String(s._id)]));
-    const plan = out.plan.map((p) => ({ ...p, subjectId: p.subject ? (byName.get(p.subject.toLowerCase()) ?? null) : null }));
-    res.json({ ...out, plan, ruleInsights: insights, note: 'Gợi ý từ AI – bạn có thể chọn mục muốn thêm vào kế hoạch.' });
+            },
+          ],
+        });
+        // map tên môn -> id để client có thể tạo task
+        const byName = new Map(subjects.map((s) => [s.name.toLowerCase(), String(s._id)]));
+        const plan = out.plan.map((p) => ({ ...p, subjectId: p.subject ? (byName.get(p.subject.toLowerCase()) ?? null) : null }));
+        res.json({ ...out, plan, ruleInsights: insights, note: 'Gợi ý từ AI – bạn có thể chọn mục muốn thêm vào kế hoạch.' });
+        return;
+      } catch (e) {
+        if (!llmDown(e)) throw e; // LLM hết lượt / lỗi -> FOCUSLY Brain trả lời thay
+      }
+    }
+    const input = await coachInput(userId, insights, analytics, tasks.map((t) => ({ ...t, subjectName: t.subject ? subjName.get(String(t.subject)) ?? null : null })));
+    const out = brain.recommendations(input);
+    return res.json({ ...out, ruleInsights: insights, note: 'Gợi ý từ FOCUSLY Brain – chọn mục muốn thêm vào kế hoạch.' });
   }),
 );
 
@@ -565,24 +637,29 @@ router.post(
   ah(async (req, res) => {
     const { range } = parse(z.object({ range: z.enum(['week', 'month']).default('week') }), req.body ?? {});
     const { insights, analytics } = await computeInsights(uid(req));
-    if (brain.useBrain()) {
-      const input = await coachInput(uid(req), insights, analytics, []);
-      return res.json({ analysis: brain.performanceReport(input, range) });
-    }
-    const text = await complete({
-      userId: uid(req),
-      feature: 'performance',
-      system: TUTOR_SYSTEM,
-      maxTokens: 1200,
-      messages: [
-        {
-          role: 'user',
-          content: `Phân tích kết quả học tập ${range === 'week' ? 'tuần' : 'tháng'} này bằng Markdown: điểm mạnh, điểm cần cải thiện, 3 hành động cụ thể cho tuần tới. Phân biệt rõ thời gian dự kiến, thời gian tập trung thực tế, số lần phân tâm, tỷ lệ hoàn thành và độ chính xác kiểm tra.
+    if (!brain.useBrain()) {
+      try {
+        const text = await complete({
+          userId: uid(req),
+          feature: 'performance',
+          system: TUTOR_SYSTEM,
+          maxTokens: 1200,
+          messages: [
+            {
+              role: 'user',
+              content: `Phân tích kết quả học tập ${range === 'week' ? 'tuần' : 'tháng'} này bằng Markdown: điểm mạnh, điểm cần cải thiện, 3 hành động cụ thể cho tuần tới. Phân biệt rõ thời gian dự kiến, thời gian tập trung thực tế, số lần phân tâm, tỷ lệ hoàn thành và độ chính xác kiểm tra.
 Dữ liệu: ${JSON.stringify({ metrics: analytics.metrics, previous: analytics.previous, bySubject: analytics.bySubject, bestFocusTimes: analytics.bestFocusTimes, insights: insights.map((i) => i.title) })}`,
-        },
-      ],
-    });
-    res.json({ analysis: text });
+            },
+          ],
+        });
+        res.json({ analysis: text });
+        return;
+      } catch (e) {
+        if (!llmDown(e)) throw e; // LLM hết lượt / lỗi -> FOCUSLY Brain trả lời thay
+      }
+    }
+    const input = await coachInput(uid(req), insights, analytics, []);
+    return res.json({ analysis: brain.performanceReport(input, range) });
   }),
 );
 
@@ -631,5 +708,48 @@ router.get(
     res.json(await brain.forecastFor(uid(req), { minutes: q.minutes, strict: q.strict === '1', fresh: q.fresh === '1' }));
   }),
 );
+
+/* ---------------- Học từ đánh giá 👍/👎 ----------------
+ * POST /ai/feedback { items: [{ kind: 'answer'|'question'|'card', origin, vote: 1|-1, text? }], conversationId?, index? }
+ */
+router.post(
+  '/feedback',
+  ah(async (req, res) => {
+    const data = parse(
+      z.object({
+        items: z.array(z.object({ kind: z.enum(['answer', 'question', 'card']), origin: z.string().max(60).default('unknown'), vote: z.union([z.literal(1), z.literal(-1)]), text: z.string().max(500).optional() })).max(100),
+        conversationId: z.string().optional(),
+        index: z.number().int().min(0).optional(),
+      }),
+      req.body,
+    );
+    await brain.recordFeedback(uid(req), data.items);
+    // ghi lại 👍/👎 vào đúng tin nhắn để hiện lại khi mở cuộc trò chuyện
+    if (data.conversationId && data.index != null && data.items[0]) {
+      await ConversationModel.updateOne({ _id: data.conversationId, user: uid(req) }, { $set: { [`messages.${data.index}.vote`]: data.items[0].vote } });
+    }
+    res.json({ ok: true });
+  }),
+);
+
+/* ---------------- Dự báo thẻ sắp quên (Half-Life Regression) ---------------- */
+router.get(
+  '/memory',
+  ah(async (req, res) => {
+    res.json(await brain.memoryForecast(uid(req), 10));
+  }),
+);
+
+router.get(
+  '/feedback/stats',
+  ah(async (req, res) => {
+    res.json({ mine: await brain.feedbackStats(uid(req)), everyone: await brain.feedbackStats() });
+  }),
+);
+
+/** LLM không dùng được (chưa cấu hình, hết lượt, lỗi mạng) -> chuyển sang FOCUSLY Brain */
+function llmDown(e: unknown) {
+  return e instanceof HttpError && ['AI_DISABLED', 'AI_ERROR', 'AI_UNAVAILABLE', 'AI_RATE_LIMIT', 'LLM_DOWN', 'AI_BAD_OUTPUT'].includes(e.code);
+}
 
 export default router;

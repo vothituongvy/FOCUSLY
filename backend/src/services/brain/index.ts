@@ -9,7 +9,7 @@
  *
  * Bật Claude thay cho Brain: đặt AI_PROVIDER=claude và ANTHROPIC_API_KEY.
  */
-import { env } from '../../config/env';
+import { llmReady } from '../ai';
 import { MaterialModel } from '../../models/Learn';
 import { bm25, sentences, type Doc } from './text';
 import { lookup } from './wiki';
@@ -18,12 +18,16 @@ export { searchKnowledge, knowledgeArticle, knowledgeStats } from './knowledge';
 export { answerFromWiki, lookup as wikiLookup } from './wiki';
 
 export { makeFlashcards, makeQuiz, makeSummary, explainFromText } from './generate';
-export { answer, translateFree } from './assistant';
+export { answer, directAnswer, contextFor, translateFree } from './assistant';
+export { lookupWord, formatEntry } from './dictionary';
+export { recordFeedback, prefsFor, feedbackStats } from './feedback';
+export { memoryForecast } from './memory';
 export { forecastFor, clearForecast } from './forecast';
 export { recommendations, performanceReport, recallFeedback, type CoachInput } from './coach';
 
 /** true = dùng FOCUSLY Brain (mặc định); false = dùng Claude */
-export const useBrain = () => env.ai.provider !== 'claude' || !env.ai.apiKey;
+/** true = không có LLM nào dùng được -> chỉ FOCUSLY Brain; false = LLM trả lời trước, lỗi thì Brain thay */
+export const useBrain = () => !llmReady();
 
 /**
  * Chế độ Brain không "biết" kiến thức bên ngoài: với một chủ đề, gom các đoạn liên quan

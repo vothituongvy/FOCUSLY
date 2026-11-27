@@ -14,8 +14,10 @@ import { dayKey, safeTimeZone } from '../../utils/time';
 import { bm25, type Doc, fold, isVietnamese, keyphrases, sentences, seeded, summarize } from './text';
 import { definitions, explainFromText, makeQuiz, makeSummary } from './generate';
 import { forecastFor } from './forecast';
+import { memoryForecast } from './memory';
 import { answerFromWiki, fetchWiki, lookup } from './wiki';
 import { knowledgeArticle, learnArticle, searchKnowledge } from './knowledge';
+import { formatEntry, isEnglishWord, lookupWord } from './dictionary';
 import { notifyChange } from '../realtime';
 
 const has = (q: string, re: RegExp) => re.test(q);
@@ -65,7 +67,15 @@ function conceptOf(msg: string): string | null {
   return m ? m[1].trim() : null;
 }
 
-export async function answer(userId: string, message: string, materialId?: string | null): Promise<string> {
+/**
+ * Câu hỏi về DỮ LIỆU của chính người dùng (thời gian học, nhiệm vụ, thẻ cần ôn, giờ học tốt, phân tâm, "lưu bài…")
+ * -> Brain trả lời chính xác bằng số liệu thật. Câu hỏi khác trả null để LLM (nếu có) đảm nhận.
+ */
+export async function directAnswer(userId: string, message: string): Promise<string | null> {
+  return (await answer(userId, message, null, true)) || null;
+}
+
+export async function answer(userId: string, message: string, materialId?: string | null, intentsOnly = false): Promise<string> {
   const q = fold(message);
   const vi = isVietnamese(message) || !/^[\x00-\x7f]*$/.test(message) || !/\b(what|how|when|why|explain|summar|quiz|today|task)\b/i.test(message);
   const user = await UserModel.findById(userId).select('name profile').lean();
@@ -95,7 +105,7 @@ export async function answer(userId: string, message: string, materialId?: strin
   }
 
   /* ---------- chào hỏi / giới thiệu ---------- */
-  if (has(q, /^(xin chao|chao|hello|hi|hey|alo)\b/) || has(q, /(ban la ai|ban lam duoc gi|giup duoc gi|what can you do)/)) {
+  if (!intentsOnly && (has(q, /^(xin chao|chao|hello|hi|hey|alo)\b/) || has(q, /(ban la ai|ban lam duoc gi|giup duoc gi|what can you do)/))) {
     return [
       `Chào ${name || 'bạn'}! Mình là **FOCUSLY Brain** – trợ lý học tập chạy ngay trong FOCUSLY.`,
       '',
@@ -109,7 +119,7 @@ export async function answer(userId: string, message: string, materialId?: strin
   }
 
   /* ---------- đang hỏi về một tài liệu cụ thể ---------- */
-  if (materialId) {
+  if (materialId && !intentsOnly) {
     const m = await materialText(userId, materialId);
     if (m?.text) {
       if (has(q, /(tom tat|y chinh|summar|main idea)/)) return makeSummary(m.text, m.title);
@@ -152,6 +162,16 @@ export async function answer(userId: string, message: string, materialId?: strin
     }
   }
 
+  /* ---------- từ điển Anh–Việt: "nghĩa của từ X", "X nghĩa là gì", "define X", "dịch từ X" ---------- */
+  const dict =
+    /^(?:nghĩa của từ|nghia cua tu|từ|tra từ|tra tu|dịch từ|dich tu|define|meaning of|what does)\s+["“']?([a-z][a-z' -]{0,40}?)["”']?(?:\s+(?:là gì|la gi|nghĩa là gì|nghia la gi|mean|means))?\s*\??$/iu.exec(message.trim()) ??
+    /^["“']?([a-z][a-z' -]{0,40}?)["”']?\s+(?:nghĩa là gì|nghia la gi|là gì|la gi|có nghĩa là gì|nghĩa tiếng việt là gì|tiếng việt là gì)\s*\??$/iu.exec(message.trim());
+  if (dict && isEnglishWord(dict[1])) {
+    const e = await lookupWord(dict[1]).catch(() => null);
+    // chỉ trả lời kiểu từ điển khi từ điển tiếng Anh thật sự có mục này (tránh nhầm tiếng Việt không dấu)
+    if (e && e.senses.length) return formatEntry(e);
+  }
+
   /* ---------- câu hỏi về dữ liệu học tập của chính người dùng ---------- */
   if (has(q, /(hom nay|today).*(hoc|tap trung|focus|bao lau)|(hoc|tap trung).*(bao lau|duoc bao nhieu)/)) {
     const since = new Date(Date.now() - 36 * 3600_000);
@@ -173,6 +193,19 @@ export async function answer(userId: string, message: string, materialId?: strin
       .lean();
     if (!tasks.length) return 'Bạn không còn nhiệm vụ nào chưa xong. Thêm nhiệm vụ mới ở tab Kế hoạch, hoặc mở "Đề xuất & kế hoạch" để FOCUSLY Brain gợi ý.';
     return ['**Việc nên làm tiếp:**', ...tasks.map((t, i) => `${i + 1}. ${t.title} – ${t.estimatedMinutes ?? 30} phút${t.deadline ? `, hạn ${new Date(t.deadline).toLocaleDateString('vi-VN', { timeZone: tz })}` : ''}`), '', 'Gợi ý: bắt đầu với việc đầu tiên – nó gần hạn nhất.'].join('\n');
+  }
+
+  if (has(q, /(sap quen|de quen|quen mat|forget)/)) {
+    const mf = await memoryForecast(userId, 5);
+    if (!mf.atRisk.length) return 'Bạn chưa ôn flashcard nào nên Brain chưa dự báo được. Ôn vài thẻ ở tab Ôn tập rồi hỏi lại nhé.';
+    return [
+      `Theo **model dự báo trí nhớ** (half-life regression), ${mf.forgettingSoon} thẻ có khả năng nhớ dưới 70% trong 24 giờ tới.`,
+      '',
+      '**Những thẻ dễ quên nhất lúc này:**',
+      ...mf.atRisk.map((c) => `- ${c.front} – còn nhớ khoảng **${Math.round(c.recallNow * 100)}%**`),
+      '',
+      'Ôn ngay những thẻ này ở tab Ôn tập để giữ chúng trong trí nhớ dài hạn.',
+    ].join('\n');
   }
 
   if (has(q, /(the|flashcard|on tap|on bai).*(can on|den han|bao nhieu)|can on gi/)) {
@@ -208,13 +241,14 @@ export async function answer(userId: string, message: string, materialId?: strin
     ].join('\n');
   }
 
-  if (has(q, /(meo|bi quyet|lam sao de|cach (hoc|tap trung)|tip|met|chan|luoi|buon ngu|dong luc|motivat)/)) {
+  if (!intentsOnly && has(q, /(meo|bi quyet|lam sao de|cach (hoc|tap trung)|tip|met|chan|luoi|buon ngu|dong luc|motivat)/)) {
     const rnd = seeded(message + new Date().toDateString());
     const picks = [...TIPS].sort(() => rnd() - 0.5).slice(0, 3);
     return ['**Vài cách giúp bạn học hiệu quả hơn:**', ...picks.map((t) => `- ${t}`)].join('\n');
   }
 
   /* ---------- câu hỏi kiến thức: tìm trong tài liệu của người dùng ---------- */
+  if (intentsOnly) return '';
   // 1) tài liệu, flashcard, ghi chú của chính người dùng  2) không có -> tra Wikipedia
   const docs = await knowledge(userId, materialId);
   const concept = conceptOf(message);
@@ -305,4 +339,18 @@ async function libraryAnswer(message: string, concept: string | null): Promise<s
     '',
     `Gõ **“lưu bài ${best.title}”** để lưu thành tài liệu và tạo flashcard, câu hỏi từ bài này.`,
   ].join('\n');
+}
+
+/**
+ * Ngữ cảnh cho LLM (RAG): các đoạn liên quan trong tài liệu, flashcard, ghi chú của người dùng
+ * và thư viện kiến thức FOCUSLY – để LLM trả lời sát bài học và ghi nguồn.
+ */
+export async function contextFor(userId: string, message: string): Promise<string> {
+  const parts: string[] = [];
+  const docs = await knowledge(userId, null).catch(() => [] as Doc[]);
+  const own = docs.length ? bm25(docs, message).filter((h) => h.score >= 1.2).slice(0, 5) : [];
+  if (own.length) parts.push('TÀI LIỆU CỦA NGƯỜI HỌC:\n' + own.map((h) => `- [${h.doc.source}] ${h.doc.text}`).join('\n'));
+  const lib = (await searchKnowledge(message, 3).catch(() => [])).filter((h) => h.score >= 3);
+  if (lib.length) parts.push('THƯ VIỆN FOCUSLY (Wikipedia):\n' + lib.map((h) => `- [${h.title}] ${h.sentences.join(' ')}`).join('\n'));
+  return parts.join('\n\n').slice(0, 6000);
 }

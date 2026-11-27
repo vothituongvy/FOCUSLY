@@ -11,6 +11,7 @@ import type { AppStackParams } from '../navigation/types';
 import { Button, Card, Chip, Chips, Empty, Field, H3, Muted, Row, Screen, s } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { ImportFileSheet, pickFile, type Picked } from '../components/ImportFileSheet';
+import { Feedback } from '../components/Feedback';
 import { LOCALE, tr } from '../i18n';
 
 const plain = (t: string) => t.replace(/\*\*/g, '').replace(/^#+\s/gm, '').replace(/`/g, '');
@@ -26,6 +27,7 @@ interface CardDraft {
   front: string;
   back: string;
   hint?: string;
+  origin?: string;
 }
 interface QuizDraft {
   title: string;
@@ -423,6 +425,9 @@ export function DeckEditScreen({ route, navigation }: NativeStackScreenProps<App
   const saveDrafts = async () => {
     setBusy('save');
     setError('');
+    // Brain học ngầm: thẻ được giữ = 👍, thẻ bị bỏ chọn = 👎
+    const fb = drafts.filter((d) => d.origin).map((d) => ({ kind: 'card', origin: d.origin, vote: d.keep ? 1 : -1, text: d.front.slice(0, 200) }));
+    if (fb.length) void api('/ai/feedback', { method: 'POST', body: { items: fb } }).catch(() => undefined);
     try {
       const keep = drafts.filter((d) => d.keep);
       if (deckId) {
@@ -804,9 +809,12 @@ export function QuizEditScreen({ route, navigation }: NativeStackScreenProps<App
         ) : (
           <Card key={q.qid ?? `n${i}`} style={{ gap: 4 }}>
             <Row style={{ flexWrap: 'nowrap', alignItems: 'flex-start' }}>
-              <Text style={{ flex: 1, fontWeight: '700', color: colors.text }}>
-                {i + 1}. {q.prompt}
-              </Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontWeight: '700', color: colors.text }}>
+                  {i + 1}. {q.prompt}
+                </Text>
+                {!!q.origin && <Feedback kind="question" origin={q.origin} text={q.prompt} />}
+              </View>
               <Pressable hitSlop={8} accessibilityLabel={tr('Sửa')} onPress={() => setEditIndex(i)} style={{ padding: 4 }}>
                 <Icon name="edit" size={18} color={colors.text2} />
               </Pressable>
