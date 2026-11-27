@@ -62,8 +62,15 @@ function Tabs() {
   // Đang học với Focus Shield: ẩn thanh tab để giảm xao nhãng
   const hideTabs = Boolean(running?.shieldEnabled);
   const insets = useSafeAreaInsets();
+  // Sau khi đổi ngôn ngữ app tự tải lại -> mở lại đúng tab Cá nhân
+  const [initialTab] = useState<keyof TabParams>(() => {
+    const t = prefGet('reopenTab');
+    if (t) prefSet('reopenTab', '');
+    return t === 'Profile' ? 'Profile' : 'Dashboard';
+  });
   return (
     <Tab.Navigator
+      initialRouteName={initialTab}
       tabBar={(props) => (
         <>
           {!hideTabs && props.state.routes[props.state.index]?.name !== 'Focus' && <SessionBar onOpen={() => props.navigation.navigate('Focus')} />}

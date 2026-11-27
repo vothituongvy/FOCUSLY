@@ -1,7 +1,8 @@
 import React from 'react';
 import { Alert, Pressable, View } from 'react-native';
 import { Text } from './AppText';
-import { LANG, setLang, type Lang } from '../i18n';
+import { LANG, prefSet, setLang, type Lang } from '../i18n';
+import { reloadApp } from '../focusLock';
 import { colors } from '../theme';
 
 const OPTIONS: { id: Lang; label: string }[] = [
@@ -24,9 +25,13 @@ export function LangSwitch({ compact = false }: { compact?: boolean }) {
             key={o.id}
             accessibilityRole="radio"
             accessibilityState={{ selected: on }}
-            onPress={() => {
+            onPress={async () => {
               if (on) return;
               setLang(o.id);
+              // Nhiều nhãn (menu, mức bảo vệ, tên tab...) được tạo sẵn lúc mở app -> tải lại giao diện để đổi HẾT một lượt.
+              prefSet('reopenTab', 'Profile');
+              if (await reloadApp()) return;
+              prefSet('reopenTab', '');
               Alert.alert(
                 o.id === 'en' ? 'Language changed' : 'Đã đổi ngôn ngữ',
                 o.id === 'en' ? 'Close and reopen FOCUSLY to switch every label.' : 'Đóng và mở lại FOCUSLY để đổi toàn bộ chữ.',

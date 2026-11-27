@@ -2,6 +2,7 @@ package com.focuslymobile
 
 import android.app.ActivityManager
 import android.content.Context
+import com.facebook.react.ReactApplication
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
@@ -55,6 +56,22 @@ class FocusLockModule(private val ctx: ReactApplicationContext) : ReactContextBa
   fun isLocked(promise: Promise) {
     val am = ctx.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
     promise.resolve(am.lockTaskModeState != ActivityManager.LOCK_TASK_MODE_NONE)
+  }
+
+  /**
+   * Tải lại phần giao diện (JS) của app – dùng khi đổi ngôn ngữ để MỌI nhãn đổi theo ngay,
+   * kể cả các nhãn được tạo sẵn lúc mở app. Dữ liệu và đăng nhập vẫn giữ nguyên.
+   */
+  @ReactMethod
+  fun reload(promise: Promise) {
+    val app = ctx.applicationContext as? ReactApplication
+    val host = app?.reactHost
+    if (host == null) {
+      promise.resolve(false)
+      return
+    }
+    promise.resolve(true)
+    UiThreadUtil.runOnUiThread { host.reload("language changed") }
   }
 
   companion object {
