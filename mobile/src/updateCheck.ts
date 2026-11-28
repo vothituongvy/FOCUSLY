@@ -29,33 +29,41 @@ export function isNewer(remote: string, local: string) {
 }
 
 /** Hỏi máy chủ FOCUSLY trước (có lưu tạm, không bị giới hạn lượt của GitHub), không được thì hỏi thẳng GitHub */
-async function latestRelease(): Promise<{ release: Release | null; reason: string }> {
+/**
+ * Hỏi máy chủ FOCUSLY (có lưu tạm, không bị giới hạn lượt của GitHub) và GitHub,
+ * lấy bản MỚI NHẤT trong các nguồn trả lời được (tránh báo nhầm "đang mới nhất" vì bản lưu tạm cũ).
+ */
+async function latestRelease(fresh: boolean): Promise<{ release: Release | null; reason: string }> {
   const get = async (url: string, headers: Record<string, string> = {}) => {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), 15_000);
     try {
-      return await fetch(url, { headers, signal: ctrl.signal });
+      return await fetch(url, { headers: { 'Cache-Control': 'no-cache', ...headers }, signal: ctrl.signal });
     } finally {
       clearTimeout(t);
     }
   };
-  let reason = '';
-  for (const [url, headers] of [
-    [`${API_URL}/api/app/latest`, {}],
+  const sources: [string, Record<string, string>][] = [
+    [`${API_URL}/api/app/latest${fresh ? `?fresh=1&t=${Date.now()}` : ''}`, {}],
     [`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, { Accept: 'application/vnd.github+json' }],
-  ] as [string, Record<string, string>][]) {
+  ];
+  let reason = '';
+  let best: Release | null = null;
+  for (const [url, headers] of sources) {
     try {
       const res = await get(url, headers);
       if (res.ok) {
         const r = (await res.json()) as Release;
-        return { release: r.draft || r.prerelease ? null : r, reason: '' };
+        if (!r.draft && !r.prerelease && (!best || isNewer(r.tag_name, best.tag_name))) best = r;
+        if (!fresh) break; // tự kiểm tra lúc mở app: 1 nguồn là đủ
+      } else {
+        reason = res.status === 403 || res.status === 429 ? 'rate' : res.status === 404 ? 'notfound' : `http${res.status}`;
       }
-      reason = res.status === 403 || res.status === 429 ? 'rate' : res.status === 404 ? 'notfound' : `http${res.status}`;
     } catch {
       reason = reason || 'network';
     }
   }
-  return { release: null, reason };
+  return { release: best, reason: best ? '' : reason };
 }
 
 /** Link tải thẳng bản APK mới nhất (không cần API) */
@@ -73,7 +81,7 @@ export async function checkForUpdate(manual = false) {
   }
   prefSet('update.lastCheck', String(Date.now()));
 
-  const { release: r, reason } = await latestRelease();
+  const { release: r, reason } = await latestRelease(manual);
   if (!r) {
     if (manual) {
       const msg =
