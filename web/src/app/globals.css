@@ -287,7 +287,7 @@ input[type='range'] { accent-color: var(--ink); padding: 0; }
 .bubble.user { align-self: flex-end; background: var(--ink); color: #fff; border-bottom-right-radius: 3px; white-space: pre-wrap; }
 .bubble.assistant { align-self: flex-start; background: var(--paper); border: 1px solid var(--rule); border-bottom-left-radius: 3px; }
 .viewer { width: 100%; height: 76vh; border: 1px solid var(--rule); border-radius: 10px; background: #fff; }
-.text-reader { white-space: pre-wrap; line-height: 1.8; font-size: 15.5px; max-height: 76vh; overflow: auto; padding: 22px 26px; background: var(--paper); border: 1px solid var(--rule); border-radius: 10px; max-width: 76ch; background-image: repeating-linear-gradient(transparent 0 27px, #eef1f6 27px 28px); }
+.text-reader { white-space: pre-wrap; line-height: 1.8; font-size: 15.5px; max-height: 76vh; overflow: auto; padding: 22px 26px; background: var(--paper); border: 1px solid var(--rule); border-radius: 10px; max-width: none; background-image: repeating-linear-gradient(transparent 0 27px, #eef1f6 27px 28px); }
 .text-reader mark { background: var(--marker); color: var(--ink); border-radius: 2px; }
 .insight { border-left: 3px solid var(--ink); }
 .insight.warning { border-left-color: var(--stop); }

@@ -48,7 +48,9 @@
 }
 .main:focus { outline: none; }
 .page-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 26px; flex-wrap: wrap; }
-.page-header p.muted { margin-top: 6px; max-width: 64ch; }
+.page-header p.muted { margin-top: 6px; max-width: none; }
+.page-header > div:first-child { flex: 1 1 360px; min-width: 0; }
+.page-header > div:first-child:last-child { flex-basis: 100%; }
 
 /* Menu thả xuống (tài khoản, thông báo) */
 .menu-wrap { position: relative; }

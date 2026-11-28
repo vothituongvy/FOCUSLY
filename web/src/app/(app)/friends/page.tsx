@@ -152,7 +152,7 @@ export default function FriendsPage() {
       <section className="card col">
         <div className="card-title">
           <h3>{tr('Bạn bè ({0})', accepted.length)}</h3>
-          <span className="small muted" style={{ maxWidth: 460 }}>
+          <span className="small muted">
             {tr('Bật “Bạn đồng hành”: người đó nhận thông báo khi bạn bỏ dở một phiên học – để họ kéo bạn quay lại.')}
           </span>
         </div>
