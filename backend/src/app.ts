@@ -28,6 +28,7 @@ import libraryRoutes from './routes/library.routes';
 import classRoutes from './routes/classes.routes';
 import adminRoutes from './routes/admin.routes';
 import chatRoutes from './routes/chats.routes';
+import appInfoRoutes from './routes/appinfo.routes';
 import { trackUsage } from './middleware/usage';
 import { aiEnabled } from './services/ai';
 import { pushEnabled } from './services/notifications';
@@ -122,6 +123,7 @@ export function createApp() {
   api.use('/classes', classRoutes);
   api.use('/admin', adminRoutes);
   api.use('/chats', chatRoutes);
+  api.use('/app', appInfoRoutes); // bản app mới nhất (không cần đăng nhập)
   app.use('/api', api);
 
   app.use(notFoundHandler);

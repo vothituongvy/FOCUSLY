@@ -1,5 +1,5 @@
 import { Alert, Linking } from 'react-native';
-import { APP_VERSION, GITHUB_REPO } from './config';
+import { API_URL, APP_VERSION, GITHUB_REPO } from './config';
 import { prefGet, prefSet, tr } from './i18n';
 
 /**
@@ -28,16 +28,38 @@ export function isNewer(remote: string, local: string) {
   return false;
 }
 
-async function latestRelease(): Promise<Release | null> {
-  try {
-    const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, { headers: { Accept: 'application/vnd.github+json' } });
-    if (!res.ok) return null; // repo riêng tư hoặc chưa có Release
-    const r = (await res.json()) as Release;
-    return r.draft || r.prerelease ? null : r;
-  } catch {
-    return null; // mất mạng: thử lại lần sau
+/** Hỏi máy chủ FOCUSLY trước (có lưu tạm, không bị giới hạn lượt của GitHub), không được thì hỏi thẳng GitHub */
+async function latestRelease(): Promise<{ release: Release | null; reason: string }> {
+  const get = async (url: string, headers: Record<string, string> = {}) => {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 15_000);
+    try {
+      return await fetch(url, { headers, signal: ctrl.signal });
+    } finally {
+      clearTimeout(t);
+    }
+  };
+  let reason = '';
+  for (const [url, headers] of [
+    [`${API_URL}/api/app/latest`, {}],
+    [`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, { Accept: 'application/vnd.github+json' }],
+  ] as [string, Record<string, string>][]) {
+    try {
+      const res = await get(url, headers);
+      if (res.ok) {
+        const r = (await res.json()) as Release;
+        return { release: r.draft || r.prerelease ? null : r, reason: '' };
+      }
+      reason = res.status === 403 || res.status === 429 ? 'rate' : res.status === 404 ? 'notfound' : `http${res.status}`;
+    } catch {
+      reason = reason || 'network';
+    }
   }
+  return { release: null, reason };
 }
+
+/** Link tải thẳng bản APK mới nhất (không cần API) */
+const DIRECT_APK = `https://github.com/${GITHUB_REPO}/releases/latest/download/app-release.apk`;
 
 /**
  * Kiểm tra bản mới.
@@ -51,9 +73,17 @@ export async function checkForUpdate(manual = false) {
   }
   prefSet('update.lastCheck', String(Date.now()));
 
-  const r = await latestRelease();
+  const { release: r, reason } = await latestRelease();
   if (!r) {
-    if (manual) Alert.alert(tr('Kiểm tra cập nhật'), tr('Chưa kiểm tra được. Hãy thử lại khi có mạng.'));
+    if (manual) {
+      const msg =
+        reason === 'network'
+          ? tr('Không kết nối được máy chủ kiểm tra cập nhật. Kiểm tra mạng rồi thử lại, hoặc tải thẳng bản mới nhất.')
+          : reason === 'rate'
+            ? tr('GitHub đang giới hạn lượt kiểm tra từ mạng của bạn. Bạn vẫn tải thẳng bản mới nhất được.')
+            : tr('Chưa đọc được thông tin bản mới ({0}). Bạn vẫn tải thẳng bản mới nhất được.', reason || '?');
+      Alert.alert(tr('Kiểm tra cập nhật'), msg, [{ text: tr('Đóng'), style: 'cancel' }, { text: tr('Tải bản mới nhất'), onPress: () => void Linking.openURL(DIRECT_APK) }]);
+    }
     return;
   }
   const version = r.tag_name.replace(/^v/i, '');
@@ -71,7 +101,7 @@ export async function checkForUpdate(manual = false) {
     [
       { text: tr('Bỏ qua bản này'), style: 'cancel', onPress: () => prefSet('update.skipped', version) },
       { text: tr('Để sau') },
-      { text: tr('Tải về'), onPress: () => void Linking.openURL(apk?.browser_download_url ?? r.html_url) },
+      { text: tr('Tải về'), onPress: () => void Linking.openURL(apk?.browser_download_url ?? DIRECT_APK) },
     ],
   );
 }

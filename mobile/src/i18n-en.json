@@ -1546,5 +1546,9 @@
  "Máy {0}: gửi lỗi ({1})": "Device {0}: send failed ({1})",
  "Kiểm tra thông báo đẩy": "Check push notifications",
  "Không thấy thông báo ngoài app? Bấm để kiểm tra từng bước và gửi một thông báo thử tới máy này.": "No notifications outside the app? Tap to check each step and send a test to this phone.",
- "Kiểm tra ngay": "Check now"
+ "Kiểm tra ngay": "Check now",
+ "Không kết nối được máy chủ kiểm tra cập nhật. Kiểm tra mạng rồi thử lại, hoặc tải thẳng bản mới nhất.": "Couldn't reach the update server. Check your connection and try again, or download the latest version directly.",
+ "GitHub đang giới hạn lượt kiểm tra từ mạng của bạn. Bạn vẫn tải thẳng bản mới nhất được.": "GitHub is rate-limiting checks from your network. You can still download the latest version directly.",
+ "Chưa đọc được thông tin bản mới ({0}). Bạn vẫn tải thẳng bản mới nhất được.": "Couldn't read the latest version info ({0}). You can still download it directly.",
+ "Tải bản mới nhất": "Download latest version"
 }
