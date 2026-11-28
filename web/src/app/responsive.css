@@ -14,9 +14,7 @@ img, svg, video, iframe { max-width: 100%; }
 .page-header > .row, .page-header > div:last-child { flex-wrap: wrap; }
 
 /* Màn hình lớn: giới hạn bề ngang để dòng chữ không quá dài */
-@media (min-width: 1600px) {
-  .main > * { max-width: 1400px; margin-left: auto; margin-right: auto; }
-}
+/* (bỏ giới hạn 1400px: các trang dùng hết bề ngang màn hình) */
 
 /* Laptop nhỏ / máy tính bảng ngang */
 @media (max-width: 1200px) {
@@ -154,3 +152,18 @@ img, svg, video, iframe { max-width: 100%; }
   .msg-shell:not(.has-thread) .msg-thread { display: none; }
   .msg-back { display: inline-flex; }
 }
+.table th { white-space: nowrap; }
+
+/* Tin nhắn: ảnh + biểu tượng cảm xúc */
+.msg-image { align-self: flex-start; display: block; max-width: min(320px, 70%); border-radius: 14px; overflow: hidden; border: 1px solid var(--rule); background: var(--surface-2); }
+.msg-image.mine { align-self: flex-end; }
+.msg-image.pending { opacity: .6; }
+.msg-image img { display: block; width: 100%; height: auto; max-height: 360px; object-fit: cover; }
+.bubble.emoji-only { background: none !important; border: 0; font-size: 34px; line-height: 1.15; padding: 0 2px; }
+.msg-tool { flex: none; width: 40px; height: 44px; }
+.emoji-wrap { position: relative; flex: none; display: inline-flex; }
+.emoji-backdrop { position: fixed; inset: 0; z-index: 40; }
+.emoji-pop { position: absolute; bottom: calc(100% + 8px); left: 0; z-index: 41; width: 300px; display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; padding: 8px; background: var(--paper); border: 1px solid var(--ink); border-radius: 12px; box-shadow: 4px 4px 0 rgba(22, 32, 58, .14); }
+.emoji-pop button { font-size: 20px; line-height: 1; padding: 6px 0; border: 0; background: none; border-radius: 8px; cursor: pointer; }
+.emoji-pop button:hover, .emoji-pop button:focus-visible { background: var(--marker-soft); }
+@media (max-width: 420px) { .emoji-pop { width: calc(100vw - 32px); } }

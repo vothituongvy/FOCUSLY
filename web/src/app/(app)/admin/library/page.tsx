@@ -5,7 +5,6 @@ import { errorMessage, post } from '@/lib/api';
 import { useResource } from '@/lib/hooks';
 import { tr } from '@/lib/i18n';
 import { Empty, Spinner } from '@/components/ui';
-import { AdminTabs } from '@/components/AdminTabs';
 
 type Kind = 'deck' | 'quiz' | 'material';
 interface Item {
@@ -42,7 +41,6 @@ export default function AdminLibraryPage() {
           <p className="muted">{tr('Các mục đang chia sẻ công khai. Gỡ khỏi thư viện thì bản của người chia sẻ vẫn còn, chỉ không công khai nữa.')}</p>
         </div>
       </div>
-      <AdminTabs />
       <div className="chips">
         {(
           [

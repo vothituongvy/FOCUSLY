@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { errorMessage, post } from '@/lib/api';
 import { tr } from '@/lib/i18n';
-import { AdminTabs } from '@/components/AdminTabs';
 
 /** Gửi thông báo tới mọi người dùng (trong app + điện thoại): ra mắt tính năng, bảo trì, sự kiện… */
 export default function AdminBroadcastPage() {
@@ -39,8 +38,7 @@ export default function AdminBroadcastPage() {
           <p className="muted">{tr('Thông báo hiện trong mục Thông báo và đẩy tới điện thoại. Bản app mới được máy chủ tự báo, không cần gửi tay.')}</p>
         </div>
       </div>
-      <AdminTabs />
-      <section className="card col" style={{ maxWidth: 720 }}>
+      <section className="card col">
         <label className="field">
           {tr('Tiêu đề')}
           <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} placeholder={tr('VD: Ra mắt Phòng học chung 🎉')} />

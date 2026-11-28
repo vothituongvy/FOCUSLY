@@ -33,6 +33,10 @@ interface Msg {
   id: string;
   sender: string | null;
   text: string;
+  image?: { url: string; width: number | null; height: number | null } | null;
+  /** ảnh đang gửi (xem trước trên máy) */
+  localUrl?: string;
+  file?: File;
   at: string;
   clientId?: string;
   pending?: boolean;
@@ -44,6 +48,8 @@ interface Friend {
   avatarUrl: string | null;
   status: string;
 }
+
+const EMOJIS = ['😀', '😂', '🤣', '😊', '😍', '🥰', '😘', '😎', '🤔', '😅', '😭', '😡', '😴', '🥳', '🤯', '😱', '🙏', '👍', '👎', '👏', '💪', '🙌', '👋', '🤝', '❤️', '💔', '🔥', '✨', '🎉', '💯', '✅', '❌', '📚', '📝', '⏰', '☕', '🍀', '🌟', '🚀', '🎯'];
 
 const timeLabel = (iso: string) => {
   const d = new Date(iso);
@@ -165,7 +171,10 @@ function Thread({ chatId, onBack, onChanged }: { chatId: string; onBack: () => v
   const [text, setText] = useState('');
   const [error, setError] = useState('');
   const [settings, setSettings] = useState(false);
+  const [emojiOpen, setEmojiOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
+  const input = useRef<HTMLTextAreaElement>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
   const stick = useRef(true); // đang ở cuối -> tự cuộn khi có tin mới
 
   const markRead = useCallback(() => {
@@ -236,6 +245,40 @@ function Thread({ chatId, onBack, onChanged }: { chatId: string; onBack: () => v
     }
   };
 
+  /** Gửi ảnh (kèm chữ nếu có). Hiện ngay bản xem trước, lỗi thì bấm để gửi lại */
+  const sendImage = async (file: File, retry?: Msg) => {
+    if (!/^image\/(jpeg|png|webp|gif)$/.test(file.type)) return setError(tr('Chỉ gửi được ảnh JPG, PNG, WEBP hoặc GIF'));
+    if (file.size > 8 * 1024 * 1024) return setError(tr('Ảnh tối đa 8 MB'));
+    setError('');
+    const clientId = retry?.clientId ?? `w_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+    const localUrl = retry?.localUrl ?? URL.createObjectURL(file);
+    const temp: Msg = { id: clientId, clientId, sender: me ?? null, text: '', localUrl, file, at: new Date().toISOString(), pending: true };
+    stick.current = true;
+    setMsgs((cur) => (retry ? cur.map((m) => (m.clientId === clientId ? temp : m)) : [...cur, temp]));
+    try {
+      const fd = new FormData();
+      fd.append('image', file);
+      fd.append('clientId', clientId);
+      const r = await api<{ item: Msg }>(`/chats/${chatId}/images`, { method: 'POST', body: fd });
+      setMsgs((cur) => (cur.some((m) => m.id === r.item.id) ? cur.filter((m) => m.clientId !== clientId || m.id === r.item.id) : cur.map((m) => (m.clientId === clientId ? r.item : m))));
+      onChanged();
+    } catch (e) {
+      setMsgs((cur) => cur.map((m) => (m.clientId === clientId ? { ...m, pending: false, failed: true } : m)));
+      setError(errorMessage(e));
+    }
+  };
+
+  const addEmoji = (e: string) => {
+    const el = input.current;
+    const at = el?.selectionStart ?? text.length;
+    const next = text.slice(0, at) + e + text.slice(el?.selectionEnd ?? at);
+    setText(next);
+    requestAnimationFrame(() => {
+      el?.focus();
+      el?.setSelectionRange(at + e.length, at + e.length);
+    });
+  };
+
   if (!chat) return error ? <p className="error-text">{error}</p> : <Spinner />;
   const others = chat.members.filter((m) => m.id !== me);
   const byId = new Map(chat.members.map((m) => [m.id, m]));
@@ -275,11 +318,18 @@ function Thread({ chatId, onBack, onChanged }: { chatId: string; onBack: () => v
             <div key={m.id} className="col" style={{ gap: 2 }}>
               {gap && <div className="msg-time">{new Date(m.at).toLocaleString([], { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric' })}</div>}
               {showName && <span className="small muted" style={{ marginLeft: 6 }}>{byId.get(m.sender)?.name ?? '?'}</span>}
-              <div className={`bubble ${mine ? 'user' : 'assistant'} ${m.pending ? 'pending' : ''}`} title={new Date(m.at).toLocaleString()}>
-                {m.text}
-              </div>
+              {(m.image || m.localUrl) && (
+                <a href={m.image?.url ?? m.localUrl} target="_blank" rel="noreferrer" className={`msg-image ${mine ? 'mine' : ''} ${m.pending ? 'pending' : ''}`} title={new Date(m.at).toLocaleString()}>
+                  <img src={m.image?.url ?? m.localUrl} alt={tr('Ảnh')} loading="lazy" width={m.image?.width ?? undefined} height={m.image?.height ?? undefined} />
+                </a>
+              )}
+              {!!m.text && (
+                <div className={`bubble ${mine ? 'user' : 'assistant'} ${m.pending ? 'pending' : ''} ${/^\p{Extended_Pictographic}{1,3}$/u.test(m.text.trim()) ? 'emoji-only' : ''}`} title={new Date(m.at).toLocaleString()}>
+                  {m.text}
+                </div>
+              )}
               {m.failed && (
-                <button className="small error-text" style={{ alignSelf: 'flex-end', background: 'none', border: 0, cursor: 'pointer' }} onClick={() => send(m.text, m)}>
+                <button className="small error-text" style={{ alignSelf: 'flex-end', background: 'none', border: 0, cursor: 'pointer' }} onClick={() => (m.file ? sendImage(m.file, m) : send(m.text, m))}>
                   {tr('Chưa gửi được – bấm để gửi lại')}
                 </button>
               )}
@@ -300,7 +350,46 @@ function Thread({ chatId, onBack, onChanged }: { chatId: string; onBack: () => v
           void send();
         }}
       >
+        <input
+          ref={fileInput}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          multiple
+          hidden
+          onChange={(e) => {
+            Array.from(e.target.files ?? []).slice(0, 6).forEach((f) => void sendImage(f));
+            e.target.value = '';
+          }}
+        />
+        <button type="button" className="icon-btn msg-tool" onClick={() => fileInput.current?.click()} title={tr('Gửi ảnh')} aria-label={tr('Gửi ảnh')}>
+          <Icon name="image" size={18} />
+        </button>
+        <span className="emoji-wrap">
+          <button type="button" className="icon-btn msg-tool" onClick={() => setEmojiOpen((o) => !o)} title={tr('Biểu tượng cảm xúc')} aria-label={tr('Biểu tượng cảm xúc')} aria-expanded={emojiOpen}>
+            <span style={{ fontSize: 18, lineHeight: 1 }}>😊</span>
+          </button>
+          {emojiOpen && (
+            <>
+              <div className="emoji-backdrop" onClick={() => setEmojiOpen(false)} />
+              <div className="emoji-pop" role="dialog" aria-label={tr('Biểu tượng cảm xúc')}>
+                {EMOJIS.map((e) => (
+                  <button type="button" key={e} onClick={() => addEmoji(e)} aria-label={e}>
+                    {e}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </span>
         <textarea
+          ref={input}
+          onPaste={(e) => {
+            const files = Array.from(e.clipboardData.files).filter((f) => f.type.startsWith('image/'));
+            if (files.length) {
+              e.preventDefault();
+              files.slice(0, 6).forEach((f) => void sendImage(f));
+            }
+          }}
           value={text}
           rows={1}
           maxLength={2000}

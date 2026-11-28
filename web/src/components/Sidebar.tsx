@@ -33,6 +33,15 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
       .catch(() => setAdmin(false));
   }, []);
 
+  // số góp ý mới chưa xem (hiện cạnh mục Góp ý & báo lỗi)
+  const [newFb, setNewFb] = useState(0);
+  useEffect(() => {
+    if (!admin) return;
+    get<{ newFeedback: number }>('/admin/summary')
+      .then((r) => setNewFb(r.newFeedback))
+      .catch(() => undefined);
+  }, [admin, pathname]);
+
   const active = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   return (
@@ -69,6 +78,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
                 <Link key={href} href={href} className={`nav-link ${pathname === href ? 'active' : ''}`} aria-current={pathname === href ? 'page' : undefined}>
                   <Icon name={icon} />
                   <span className="nav-label">{tr(label)}</span>
+                  {href === '/admin/feedback' && newFb > 0 && <span className="nav-badge">{newFb > 99 ? '99+' : newFb}</span>}
                 </Link>
               ))}
             </div>

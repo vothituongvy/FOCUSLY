@@ -159,7 +159,9 @@ const chatMessageSchema = new Schema(
   {
     chat: { type: Schema.Types.ObjectId, ref: 'Chat', required: true },
     sender: { type: Schema.Types.ObjectId, ref: 'User', default: null }, // null = tin hệ thống
-    text: { type: String, required: true, maxlength: 2000 },
+    text: { type: String, default: '', maxlength: 2000 },
+    /** ảnh gửi kèm (Cloudinary hoặc /uploads/chat) */
+    image: { type: new Schema({ url: String, publicId: String, width: Number, height: Number }, { _id: false }), default: null },
     /** id do máy gửi sinh ra – gửi lại khi mạng chập chờn không bị trùng */
     clientId: { type: String, default: undefined },
     deletedAt: { type: Date, default: null },

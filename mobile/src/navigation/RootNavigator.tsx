@@ -231,7 +231,7 @@ export function RootNavigator() {
           <AuthStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         </AuthStack.Navigator>
       )}
-      {status === 'authed' && <ChatHead route={route} onOpen={(chatId) => navRef.isReady() && navRef.navigate('ChatThread', { chatId })} />}
+      {status === 'authed' && <ChatHead route={route} onOpen={(chatId) => navRef.isReady() && navRef.navigate('ChatThread', { chatId })} onOpenAI={() => navRef.isReady() && navRef.navigate('AIChat')} />}
     </NavigationContainer>
   );
 }

@@ -71,6 +71,26 @@ export async function storeMaterialFile(buffer: Buffer, mime: string, userId: st
   return { url: `${env.publicApiUrl}/uploads/materials/${userId}/${encodeURIComponent(name)}`, publicId: `localmat:${userId}/${name}` };
 }
 
+/** Ảnh gửi trong tin nhắn: thu nhỏ tối đa 1600px để tải nhanh */
+export async function storeChatImage(buffer: Buffer, mime: string, chatId: string): Promise<StoredFile & { width?: number; height?: number }> {
+  if (useCloudinary) {
+    const result = await new Promise<{ secure_url: string; public_id: string; width?: number; height?: number }>((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { folder: `focusly/chat/${chatId}`, resource_type: 'image', transformation: [{ width: 1600, height: 1600, crop: 'limit', quality: 'auto' }] },
+        (err, res) => (err || !res ? reject(err) : resolve(res)),
+      );
+      stream.end(buffer);
+    });
+    return { url: result.secure_url, publicId: `cloudinary-image:${result.public_id}`, width: result.width, height: result.height };
+  }
+  const ext = mime === 'image/png' ? 'png' : mime === 'image/webp' ? 'webp' : mime === 'image/gif' ? 'gif' : 'jpg';
+  const dir = path.join(UPLOAD_DIR, 'chat', chatId);
+  await fs.mkdir(dir, { recursive: true });
+  const name = `${Date.now()}-${crypto.randomBytes(5).toString('hex')}.${ext}`;
+  await fs.writeFile(path.join(dir, name), buffer);
+  return { url: `${env.publicApiUrl}/uploads/chat/${chatId}/${name}`, publicId: `localchat:${chatId}/${name}` };
+}
+
 export async function removeStored(publicId?: string | null): Promise<void> {
   if (!publicId) return;
   try {

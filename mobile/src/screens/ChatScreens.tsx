@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, AppState, FlatList, Modal, Pressable, ScrollView, Switch, View } from 'react-native';
+import { ActivityIndicator, Alert, AppState, FlatList, Image, Linking, Modal, Pressable, ScrollView, Switch, View } from 'react-native';
+import { pickFile } from '../components/ImportFileSheet';
 import { Text, TextInput } from '../components/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -39,11 +40,22 @@ interface Msg {
   id: string;
   sender: string | null;
   text: string;
+  image?: { url: string; width: number | null; height: number | null } | null;
+  /** ảnh đang gửi: đường dẫn trên máy để xem trước / gửi lại */
+  local?: { uri: string; name: string; type: string } | null;
   at: string;
   clientId?: string;
   pending?: boolean;
   failed?: boolean;
 }
+
+const EMOJIS = ['😀', '😂', '🤣', '😊', '😍', '🥰', '😘', '😎', '🤔', '😅', '😭', '😡', '😴', '🥳', '🤯', '😱', '🙏', '👍', '👎', '👏', '💪', '🙌', '👋', '🤝', '❤️', '💔', '🔥', '✨', '🎉', '💯', '✅', '❌', '📚', '📝', '⏰', '☕', '🍀', '🌟', '🚀', '🎯'];
+/** Tin chỉ gồm 1–3 biểu tượng cảm xúc -> hiện to (không dùng \\p{…} vì Hermes cũ không hỗ trợ) */
+const isEmojiOnly = (t: string) => {
+  const x = t.trim();
+  if (!x || x.length > 12 || /[A-Za-z0-9À-ỹ\s.,!?'"()-]/.test(x)) return false;
+  return Array.from(x).every((ch) => (ch.codePointAt(0) ?? 0) >= 0x2190 || ch === '\uFE0F' || ch === '\u200D');
+};
 interface Friend {
   id: string;
   name: string;
@@ -237,6 +249,7 @@ export function ChatThreadScreen({ route, navigation }: NativeStackScreenProps<A
   const [text, setText] = useState('');
   const [error, setError] = useState('');
   const [settings, setSettings] = useState(false);
+  const [emojiOpen, setEmojiOpen] = useState(false);
   const listRef = useRef<FlatList<Msg>>(null);
 
   const markRead = useCallback(() => {
@@ -324,6 +337,35 @@ export function ChatThreadScreen({ route, navigation }: NativeStackScreenProps<A
     }
   };
 
+  /** Gửi ảnh: hiện xem trước ngay, lỗi thì chạm để gửi lại */
+  const sendImage = async (file: { uri: string; name: string; type: string }, retry?: Msg) => {
+    setError('');
+    const clientId = retry?.clientId ?? `m_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+    const temp: Msg = { id: clientId, clientId, sender: me ?? null, text: '', local: file, at: new Date().toISOString(), pending: true };
+    setMsgs((cur) => (retry ? cur.map((m) => (m.clientId === clientId ? temp : m)) : [...cur, temp]));
+    try {
+      const fd = new FormData();
+      fd.append('image', { uri: file.uri, name: file.name, type: file.type } as unknown as Blob);
+      fd.append('clientId', clientId);
+      const r = await api<{ item: Msg }>(`/chats/${chatId}/images`, { method: 'POST', body: fd, timeoutMs: 90000 });
+      setMsgs((cur) => (cur.some((m) => m.id === r.item.id) ? cur.filter((m) => m.clientId !== clientId || m.id === r.item.id) : cur.map((m) => (m.clientId === clientId ? r.item : m))));
+    } catch (e) {
+      setMsgs((cur) => cur.map((m) => (m.clientId === clientId ? { ...m, pending: false, failed: true } : m)));
+      setError(errorMessage(e));
+    }
+  };
+  const pickImage = async () => {
+    try {
+      const f = await pickFile(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+      if (!f) return;
+      if (!/^image\/(jpeg|png|webp|gif)$/.test(f.type)) return setError(tr('Chỉ gửi được ảnh JPG, PNG, WEBP hoặc GIF'));
+      if (f.size > 8 * 1024 * 1024) return setError(tr('Ảnh tối đa 8 MB'));
+      void sendImage({ uri: f.uri, name: f.name || 'photo.jpg', type: f.type });
+    } catch (e) {
+      setError(errorMessage(e));
+    }
+  };
+
   if (!chat) return error ? <View style={{ padding: 16 }}><Text style={s.error}>{error}</Text></View> : <Loading />;
   const others = chat.members.filter((m) => m.id !== me);
   const byId = new Map(chat.members.map((m) => [m.id, m]));
@@ -364,6 +406,30 @@ export function ChatThreadScreen({ route, navigation }: NativeStackScreenProps<A
               <View style={{ gap: 2 }}>
                 {gap && <Muted style={{ alignSelf: 'center', fontSize: 11.5, marginVertical: 4 }}>{new Date(m.at).toLocaleString([], { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric' })}</Muted>}
                 {showName && <Muted style={{ marginLeft: 6, fontSize: 12 }}>{byId.get(m.sender)?.name ?? '?'}</Muted>}
+                {(m.image || m.local) && (
+                  <Pressable
+                    onPress={() => m.image && void Linking.openURL(m.image.url)}
+                    onLongPress={() =>
+                      mine && !m.pending
+                        ? Alert.alert(tr('Xoá ảnh này?'), '', [
+                            { text: tr('Huỷ'), style: 'cancel' },
+                            { text: tr('Xoá'), style: 'destructive', onPress: () => void api(`/chats/${chatId}/messages/${m.id}`, { method: 'DELETE' }).catch(() => undefined) },
+                          ])
+                        : undefined
+                    }
+                    accessibilityLabel={tr('Ảnh')}
+                    style={{ alignSelf: mine ? 'flex-end' : 'flex-start', opacity: m.pending ? 0.55 : 1 }}
+                  >
+                    <Image
+                      source={{ uri: m.image?.url ?? m.local?.uri }}
+                      style={{ width: 220, height: m.image?.width && m.image.height ? Math.min(300, (220 * m.image.height) / m.image.width) : 220, borderRadius: 14, backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border }}
+                      resizeMode="cover"
+                    />
+                  </Pressable>
+                )}
+                {!!m.text && isEmojiOnly(m.text) ? (
+                  <Text style={{ alignSelf: mine ? 'flex-end' : 'flex-start', fontSize: 38, lineHeight: 46, opacity: m.pending ? 0.55 : 1 }}>{m.text}</Text>
+                ) : !!m.text && (
                 <Pressable
                   onLongPress={() =>
                     mine && !m.pending
@@ -391,8 +457,9 @@ export function ChatThreadScreen({ route, navigation }: NativeStackScreenProps<A
                     {m.text}
                   </Text>
                 </Pressable>
+                )}
                 {m.failed && (
-                  <Text onPress={() => send(m.text, m)} style={{ alignSelf: 'flex-end', color: colors.danger, fontSize: 12 }}>
+                  <Text onPress={() => (m.local ? sendImage(m.local, m) : send(m.text, m))} style={{ alignSelf: 'flex-end', color: colors.danger, fontSize: 12 }}>
                     {tr('Chưa gửi được – chạm để gửi lại')}
                   </Text>
                 )}
@@ -405,8 +472,24 @@ export function ChatThreadScreen({ route, navigation }: NativeStackScreenProps<A
         />
         )}
         {!!error && <Text style={[s.error, { paddingHorizontal: 12 }]}>{error}</Text>}
-        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, padding: 10, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface }}>
-          <TextInput value={text} onChangeText={setText} placeholder={tr('Nhập tin nhắn…')} placeholderTextColor="#a0a5c0" multiline maxLength={2000} style={[s.input, { flex: 1, maxHeight: 120, paddingVertical: 10 }]} />
+        {emojiOpen && (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface }}>
+            {EMOJIS.map((e) => (
+              <Pressable key={e} onPress={() => setText((t) => t + e)} onLongPress={() => void send(e)} accessibilityLabel={e} style={({ pressed }) => ({ width: '12.5%', alignItems: 'center', paddingVertical: 7, borderRadius: 8, backgroundColor: pressed ? colors.markerSoft : 'transparent' })}>
+                <Text style={{ fontSize: 24 }}>{e}</Text>
+              </Pressable>
+            ))}
+            <Muted style={{ width: '100%', textAlign: 'center', fontSize: 11.5, paddingBottom: 4 }}>{tr('Chạm để thêm vào tin · giữ để gửi ngay')}</Muted>
+          </View>
+        )}
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 6, padding: 10, borderTopWidth: emojiOpen ? 0 : 1, borderTopColor: colors.border, backgroundColor: colors.surface }}>
+          <Pressable onPress={pickImage} hitSlop={6} accessibilityRole="button" accessibilityLabel={tr('Gửi ảnh')} style={{ width: 38, height: 46, alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="image" size={24} color={colors.text} />
+          </Pressable>
+          <Pressable onPress={() => setEmojiOpen((o) => !o)} hitSlop={6} accessibilityRole="button" accessibilityLabel={tr('Biểu tượng cảm xúc')} style={{ width: 38, height: 46, alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="smile" size={24} color={emojiOpen ? colors.primary : colors.text} />
+          </Pressable>
+          <TextInput onFocus={() => setEmojiOpen(false)} value={text} onChangeText={setText} placeholder={tr('Nhập tin nhắn…')} placeholderTextColor="#a0a5c0" multiline maxLength={2000} style={[s.input, { flex: 1, maxHeight: 120, paddingVertical: 10 }]} />
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={tr('Gửi')}

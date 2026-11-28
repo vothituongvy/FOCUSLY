@@ -17,7 +17,7 @@ const APK = 'https://github.com/vothituongvy/FOCUSLY/releases/latest/download/ap
 export default function UpdatePage() {
   const r = useResource<Release>('/app/latest').data;
   return (
-    <div className="col" style={{ gap: 20, maxWidth: 760 }}>
+    <div className="col" style={{ gap: 20 }}>
       <div className="page-header">
         <div>
           <h1>{tr('Cập nhật FOCUSLY')}</h1>

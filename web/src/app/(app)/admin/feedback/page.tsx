@@ -5,7 +5,6 @@ import { errorMessage, patch } from '@/lib/api';
 import { useResource } from '@/lib/hooks';
 import { tr } from '@/lib/i18n';
 import { Empty, Modal, Spinner } from '@/components/ui';
-import { AdminTabs } from '@/components/AdminTabs';
 import { FB_STATUS, FB_TYPE, type FbStatus, type FbType } from '@/lib/feedback';
 
 interface Fb {
@@ -51,7 +50,6 @@ export default function AdminFeedbackPage() {
           <p className="muted">{tr('Phản hồi người dùng gửi từ web và app. Đánh dấu đã sửa, trả lời và báo cho người gửi nếu muốn.')}</p>
         </div>
       </div>
-      <AdminTabs />
       {res.error && <p className="error-text">{res.error}</p>}
       <div className="row wrap">
         {(
@@ -87,7 +85,7 @@ export default function AdminFeedbackPage() {
             <table className="table">
               <thead>
                 <tr>
-                  <th style={{ width: 36 }}>{tr('Xong')}</th>
+                  <th style={{ width: 64, whiteSpace: 'nowrap' }}>{tr('Xong')}</th>
                   <th>{tr('Nội dung')}</th>
                   <th>{tr('Người gửi')}</th>
                   <th>{tr('Nền tảng')}</th>

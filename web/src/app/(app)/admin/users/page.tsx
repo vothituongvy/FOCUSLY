@@ -5,7 +5,6 @@ import { errorMessage, get, patch } from '@/lib/api';
 import { useResource } from '@/lib/hooks';
 import { tr } from '@/lib/i18n';
 import { Avatar, Empty, Modal, Spinner } from '@/components/ui';
-import { AdminTabs } from '@/components/AdminTabs';
 
 interface U {
   id: string;
@@ -54,7 +53,6 @@ export default function AdminUsersPage() {
           <p className="muted">{tr('{0} tài khoản', total)}</p>
         </div>
       </div>
-      <AdminTabs />
       <div className="row wrap">
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr('Tìm theo tên hoặc email…')} style={{ flex: '1 1 260px' }} />
         <button className={`chip ${status === 'all' ? 'active' : ''}`} onClick={() => (setStatus('all'), setPage(1))}>

@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import multer from 'multer';
+import { storeChatImage } from '../services/storage';
 import { Types } from 'mongoose';
 import { z } from 'zod';
 import { requireAuth, uid } from '../middleware/auth';
@@ -57,10 +59,11 @@ async function view(c: ChatDoc, me: string, withUnread = true) {
   };
 }
 
-const msgView = (m: { _id: unknown; sender?: unknown; text: string; createdAt?: Date; clientId?: string | null }) => ({
+const msgView = (m: { _id: unknown; sender?: unknown; text?: string | null; image?: { url?: string | null; width?: number | null; height?: number | null } | null; createdAt?: Date; clientId?: string | null }) => ({
   id: String(m._id),
   sender: m.sender ? String(m.sender) : null,
-  text: m.text,
+  text: m.text ?? '',
+  image: m.image?.url ? { url: m.image.url, width: m.image.width ?? null, height: m.image.height ?? null } : null,
   at: m.createdAt,
   clientId: m.clientId ?? undefined,
 });
@@ -220,51 +223,82 @@ router.get(
   }),
 );
 
+const imageUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 8 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.mimetype)) cb(null, true);
+    else cb(badRequest('Chỉ gửi được ảnh JPG, PNG, WEBP hoặc GIF'));
+  },
+});
+
+/** Tạo tin, cập nhật tin cuối, phát realtime và gửi thông báo đẩy */
+async function deliver(c: ChatDoc, me: string, text: string, image: { url: string; publicId: string; width?: number; height?: number } | null, clientId?: string) {
+  if (c.type === 'direct') {
+    const other = c.members.find((m) => String(m.user) !== me);
+    if (other && !(await areFriends(me, String(other.user)))) throw forbidden('Hai bạn không còn là bạn bè');
+  }
+  let m;
+  try {
+    m = await ChatMessageModel.create({ chat: c._id, sender: me, text, image, clientId });
+  } catch (e) {
+    if ((e as { code?: number }).code !== 11000) throw e;
+    m = await ChatMessageModel.findOne({ chat: c._id, clientId }); // gửi lại -> trả tin cũ
+    return { message: msgView(m!.toObject()), duplicate: true };
+  }
+  const at = m.get('createdAt') as Date;
+  const preview = text || (image ? '📷 Ảnh' : '');
+  c.lastMessage = { text: preview.slice(0, 200), sender: me, at } as never;
+  const meMember = c.members.find((x) => String(x.user) === me)!;
+  meMember.lastReadAt = at;
+  await c.save();
+  const message = msgView(m.toObject());
+  broadcast(c, 'chat:message', { chatId: c.id, message });
+
+  // Thông báo đẩy cho người nhận (trừ khi tắt / đang tập trung)
+  const sender = await UserModel.findById(me).select('name').lean();
+  const recipients = c.members.filter((x) => String(x.user) !== me && !x.muted).map((x) => String(x.user));
+  if (recipients.length) {
+    const [users, focusing] = await Promise.all([
+      UserModel.find({ _id: { $in: recipients } }).select('notificationSettings').lean(),
+      FocusSessionModel.find({ user: { $in: recipients }, status: { $in: ['active', 'paused'] }, deletedAt: null }).select('user').lean(),
+    ]);
+    const busy = new Set(focusing.map((f) => String(f.user)));
+    const title = c.type === 'group' ? c.name || 'Nhóm' : (sender?.name ?? 'Tin nhắn mới');
+    const body = c.type === 'group' ? `${sender?.name ?? ''}: ${preview}` : preview;
+    for (const u of users) {
+      const ns = u.notificationSettings as { chatMessages?: boolean; chatDuringFocus?: boolean } | undefined;
+      if (ns?.chatMessages === false) continue;
+      if (busy.has(String(u._id)) && !ns?.chatDuringFocus) continue; // đang học -> không làm phiền
+      void pushOnly(String(u._id), title, body.slice(0, 180), { type: 'chat', link: `/messages?chat=${c.id}`, chatId: c.id }, `chat-${c.id}`, 'focusly-chat');
+    }
+  }
+  return { message, duplicate: false };
+}
+
 router.post(
   '/:id/messages',
   ah(async (req, res) => {
     const me = uid(req);
     const c = await loadChat(req.params.id, me);
     const data = parse(z.object({ text: z.string().trim().min(1).max(2000), clientId: z.string().max(64).optional() }), req.body);
-    if (c.type === 'direct') {
-      const other = c.members.find((m) => String(m.user) !== me);
-      if (other && !(await areFriends(me, String(other.user)))) throw forbidden('Hai bạn không còn là bạn bè');
-    }
-    let m;
-    try {
-      m = await ChatMessageModel.create({ chat: c._id, sender: me, text: data.text, clientId: data.clientId });
-    } catch (e) {
-      if ((e as { code?: number }).code !== 11000) throw e;
-      m = await ChatMessageModel.findOne({ chat: c._id, clientId: data.clientId }); // gửi lại -> trả tin cũ
-      return res.json({ item: msgView(m!.toObject()) });
-    }
-    const at = m.get('createdAt') as Date;
-    c.lastMessage = { text: data.text.slice(0, 200), sender: me, at } as never;
-    const meMember = c.members.find((x) => String(x.user) === me)!;
-    meMember.lastReadAt = at;
-    await c.save();
-    const message = msgView(m.toObject());
-    broadcast(c, 'chat:message', { chatId: c.id, message });
+    const r = await deliver(c, me, data.text, null, data.clientId);
+    res.status(r.duplicate ? 200 : 201).json({ item: r.message });
+  }),
+);
 
-    // Thông báo đẩy cho người nhận (trừ khi tắt / đang tập trung)
-    const sender = await UserModel.findById(me).select('name').lean();
-    const recipients = c.members.filter((x) => String(x.user) !== me && !x.muted).map((x) => String(x.user));
-    if (recipients.length) {
-      const [users, focusing] = await Promise.all([
-        UserModel.find({ _id: { $in: recipients } }).select('notificationSettings').lean(),
-        FocusSessionModel.find({ user: { $in: recipients }, status: { $in: ['active', 'paused'] }, deletedAt: null }).select('user').lean(),
-      ]);
-      const busy = new Set(focusing.map((f) => String(f.user)));
-      const title = c.type === 'group' ? c.name || 'Nhóm' : (sender?.name ?? 'Tin nhắn mới');
-      const body = c.type === 'group' ? `${sender?.name ?? ''}: ${data.text}` : data.text;
-      for (const u of users) {
-        const ns = u.notificationSettings as { chatMessages?: boolean; chatDuringFocus?: boolean } | undefined;
-        if (ns?.chatMessages === false) continue;
-        if (busy.has(String(u._id)) && !ns?.chatDuringFocus) continue; // đang học -> không làm phiền
-        void pushOnly(String(u._id), title, body.slice(0, 180), { type: 'chat', link: `/messages?chat=${c.id}`, chatId: c.id }, `chat-${c.id}`, 'focusly-chat');
-      }
-    }
-    res.status(201).json({ item: message });
+/** Gửi ảnh (multipart: image + text tuỳ chọn) */
+router.post(
+  '/:id/images',
+  imageUpload.single('image'),
+  ah(async (req, res) => {
+    const me = uid(req);
+    const c = await loadChat(req.params.id, me);
+    if (!req.file) throw badRequest('Chưa chọn ảnh');
+    const data = parse(z.object({ text: z.string().trim().max(2000).default(''), clientId: z.string().max(64).optional() }), req.body ?? {});
+    const stored = await storeChatImage(req.file.buffer, req.file.mimetype, c.id);
+    const r = await deliver(c, me, data.text, stored, data.clientId);
+    res.status(r.duplicate ? 200 : 201).json({ item: r.message });
   }),
 );
 
