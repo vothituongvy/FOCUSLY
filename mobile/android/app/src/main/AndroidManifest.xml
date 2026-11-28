@@ -25,6 +25,11 @@
         </intent-filter>
       </activity>
 
+      <!-- Thông báo đẩy (Firebase) mặc định vào kênh mức cao để hiện banner như Messenger -->
+      <meta-data
+        android:name="com.google.firebase.messaging.default_notification_channel_id"
+        android:value="focusly-default" />
+
       <!-- Widget màn hình chính: phút học hôm nay, thẻ cần ôn, bắt đầu phiên 25 phút -->
       <receiver
         android:name=".FocuslyWidget"

@@ -89,7 +89,7 @@ export async function notify(userId: string, input: NotifyInput) {
       tokens: tokens.map((t) => t.token),
       notification: { title: input.title, body: input.body ?? '' },
       data,
-      android: { priority: 'high', notification: { channelId: 'focusly-default' } },
+      android: { priority: 'high', notification: { channelId: 'focusly-default', sound: 'default' } },
     });
     // Xoá token không còn hợp lệ
     const dead = res.responses
@@ -108,7 +108,7 @@ export async function notify(userId: string, input: NotifyInput) {
  * Chỉ đẩy thông báo tới điện thoại (không lưu vào hộp thông báo trong app) – dùng cho tin nhắn.
  * Tôn trọng: tắt push, giờ yên lặng.
  */
-export async function pushOnly(userId: string, title: string, body: string, data: Record<string, string> = {}, tag?: string) {
+export async function pushOnly(userId: string, title: string, body: string, data: Record<string, string> = {}, tag?: string, channelId = 'focusly-default') {
   const fcm = getMessaging();
   if (!fcm) return;
   const user = await UserModel.findById(userId).select('profile.timezone notificationSettings').lean();
@@ -123,7 +123,7 @@ export async function pushOnly(userId: string, title: string, body: string, data
       notification: { title, body },
       data,
       // tag: tin mới cùng cuộc trò chuyện thay thế thông báo cũ thay vì xếp chồng
-      android: { priority: 'high', notification: { channelId: 'focusly-default', ...(tag ? { tag } : {}) } },
+      android: { priority: 'high', notification: { channelId, sound: 'default', ...(tag ? { tag } : {}) } },
     });
     const dead = res.responses
       .map((r, i) => (!r.success && /registration-token-not-registered|invalid-argument/.test(r.error?.code ?? '') ? tokens[i].token : null))

@@ -261,7 +261,7 @@ router.post(
         const ns = u.notificationSettings as { chatMessages?: boolean; chatDuringFocus?: boolean } | undefined;
         if (ns?.chatMessages === false) continue;
         if (busy.has(String(u._id)) && !ns?.chatDuringFocus) continue; // đang học -> không làm phiền
-        void pushOnly(String(u._id), title, body.slice(0, 180), { type: 'chat', link: `/messages?chat=${c.id}`, chatId: c.id }, `chat-${c.id}`);
+        void pushOnly(String(u._id), title, body.slice(0, 180), { type: 'chat', link: `/messages?chat=${c.id}`, chatId: c.id }, `chat-${c.id}`, 'focusly-chat');
       }
     }
     res.status(201).json({ item: message });

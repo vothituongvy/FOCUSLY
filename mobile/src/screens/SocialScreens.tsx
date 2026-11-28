@@ -121,12 +121,18 @@ export function FriendsScreen() {
         <Card>
           <H3>{tr('Lời mời kết bạn')}</H3>
           {incoming.map((f) => (
-            <Row key={f.id}>
-              <Avatar name={f.name} url={f.avatarUrl} />
-              <Text style={{ flex: 1, color: colors.text, fontWeight: '600' }}>{f.name}</Text>
-              <Button small title={tr('Đồng ý')} onPress={() => run(() => api(`/social/friends/${f.id}/accept`, { method: 'POST', body: {} }))} />
-              <Button small variant="ghost" title={tr('Bỏ qua')} onPress={() => run(() => api(`/social/friends/${f.id}`, { method: 'DELETE' }))} />
-            </Row>
+            <View key={f.id} style={{ gap: 8, paddingVertical: 6 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <Avatar name={f.name} url={f.avatarUrl} />
+                <Text style={{ flex: 1, color: colors.text, fontWeight: '600' }} numberOfLines={2}>
+                  {f.name}
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <Button small title={tr('Đồng ý')} onPress={() => run(() => api(`/social/friends/${f.id}/accept`, { method: 'POST', body: {} }))} style={{ flex: 1 }} />
+                <Button small variant="secondary" title={tr('Bỏ qua')} onPress={() => run(() => api(`/social/friends/${f.id}`, { method: 'DELETE' }))} style={{ flex: 1 }} />
+              </View>
+            </View>
           ))}
         </Card>
       )}
@@ -137,9 +143,9 @@ export function FriendsScreen() {
         {accepted.length === 0 && outgoing.length === 0 && <Empty text={tr('Chưa có bạn bè. Gửi mã của bạn để bắt đầu.')} />}
         {accepted.map((f) => (
           <View key={f.id} style={{ gap: 8, paddingVertical: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
-            <Row>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               <Avatar name={f.name} url={f.avatarUrl} />
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={{ color: colors.text, fontWeight: '700' }} numberOfLines={1}>
                   {f.name}
                 </Text>
@@ -157,13 +163,15 @@ export function FriendsScreen() {
               >
                 <Icon name="x" size={18} color={colors.muted} />
               </Pressable>
-            </Row>
-            <Row>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Text style={{ color: colors.text2, flex: 1 }}>{tr('Bạn đồng hành')}</Text>
               <Switch value={f.buddy} onValueChange={(v) => run(() => api(`/social/friends/${f.id}`, { method: 'PATCH', body: { buddy: v } }))} trackColor={{ true: colors.marker, false: colors.track }} thumbColor={colors.text} />
-              <Button small icon="chat" title={tr('Nhắn tin')} onPress={() => run(() => api<{ item: { id: string } }>('/chats/direct', { method: 'POST', body: { friendId: f.id } }).then((r) => nav.navigate('ChatThread', { chatId: r.item.id })))} />
-              <Button small variant="secondary" title={tr('Động viên')} onPress={() => setCheerFor(cheerFor === f.id ? null : f.id)} />
-            </Row>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <Button small icon="chat" title={tr('Nhắn tin')} onPress={() => run(() => api<{ item: { id: string } }>('/chats/direct', { method: 'POST', body: { friendId: f.id } }).then((r) => nav.navigate('ChatThread', { chatId: r.item.id })))} style={{ flex: 1 }} />
+              <Button small variant="secondary" title={tr('Động viên')} onPress={() => setCheerFor(cheerFor === f.id ? null : f.id)} style={{ flex: 1 }} />
+            </View>
             {cheerFor === f.id && (
               <Chips wrap>
                 {CHEERS.map((c) => (
@@ -174,7 +182,7 @@ export function FriendsScreen() {
           </View>
         ))}
         {outgoing.map((f) => (
-          <Row key={f.id} style={{ paddingVertical: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
+          <Row key={f.id} style={{ flexWrap: "nowrap", paddingVertical: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
             <Avatar name={f.name} url={f.avatarUrl} />
             <Text style={{ flex: 1, color: colors.text }}>{f.name}</Text>
             <Muted>{tr('đã gửi lời mời')}</Muted>
@@ -347,7 +355,7 @@ export function RoomScreen({ route, navigation }: NativeStackScreenProps<AppStac
       <Card>
         <H3>{tr('Thành viên ({0})', room.members.length)}</H3>
         {room.members.map((m) => (
-          <Row key={m.id}>
+          <Row key={m.id} style={{ flexWrap: "nowrap" }}>
             <View>
               <Avatar name={m.name} url={m.avatarUrl} size={32} />
               <View style={{ position: 'absolute', right: -1, bottom: -1, width: 11, height: 11, borderRadius: 6, borderWidth: 2, borderColor: colors.card, backgroundColor: m.online ? colors.success : colors.borderStrong }} />

@@ -127,7 +127,7 @@ export function ExamDetailScreen({ route, navigation }: NativeStackScreenProps<A
         {e.subjectName ? ` · ${e.subjectName}` : ''}
       </Muted>
       <Card>
-        <Row>
+        <Row style={{ flexWrap: "nowrap" }}>
           <View style={{ flex: 1 }}>
             <Muted>{tr('Còn lại')}</Muted>
             <Text style={{ fontSize: 22, fontWeight: '800', color: colors.text }}>{p.daysLeft < 0 ? '—' : tr('{0} ngày', p.daysLeft)}</Text>

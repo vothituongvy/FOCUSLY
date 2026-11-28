@@ -323,6 +323,12 @@ export function ChatThreadScreen({ route, navigation }: NativeStackScreenProps<A
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['bottom']}>
       <KeyboardView>
+        {data.length === 0 ? (
+          // danh sách đảo ngược làm lật ngược chữ của phần "trống" trên Android -> hiện riêng bên ngoài
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end', padding: 24 }}>
+            <Muted style={{ textAlign: 'center' }}>{tr('Gửi lời chào đầu tiên 👋')}</Muted>
+          </View>
+        ) : (
         <FlatList
           ref={listRef}
           data={data}
@@ -333,7 +339,6 @@ export function ChatThreadScreen({ route, navigation }: NativeStackScreenProps<A
           keyboardDismissMode="on-drag"
           onEndReached={older}
           onEndReachedThreshold={0.2}
-          ListEmptyComponent={<Muted style={{ textAlign: 'center', transform: [{ scaleY: -1 }] }}>{tr('Gửi lời chào đầu tiên 👋')}</Muted>}
           renderItem={({ item: m, index }) => {
             if (!m.sender)
               return (
@@ -386,6 +391,7 @@ export function ChatThreadScreen({ route, navigation }: NativeStackScreenProps<A
             );
           }}
         />
+        )}
         {!!error && <Text style={[s.error, { paddingHorizontal: 12 }]}>{error}</Text>}
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, padding: 10, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface }}>
           <TextInput value={text} onChangeText={setText} placeholder={tr('Nhập tin nhắn…')} placeholderTextColor="#a0a5c0" multiline maxLength={2000} style={[s.input, { flex: 1, maxHeight: 120, paddingVertical: 10 }]} />
