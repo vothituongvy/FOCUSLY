@@ -91,3 +91,23 @@ export async function unregisterPush() {
   await api('/notifications/push-token', { method: 'DELETE', body: { token: lastToken } }).catch(() => undefined);
   lastToken = null;
 }
+
+/** Lấy lại mã thiết bị (FCM token) và gửi lên máy chủ – dùng khi kiểm tra thông báo. Trả về lỗi nếu có. */
+export async function refreshPushToken(): Promise<{ ok: boolean; error?: string; permission: boolean }> {
+  let permission = true;
+  if (Platform.OS === 'android' && Number(Platform.Version) >= 33) {
+    const { PermissionsAndroid } = require('react-native');
+    permission = await PermissionsAndroid.check('android.permission.POST_NOTIFICATIONS');
+    if (!permission) permission = (await PermissionsAndroid.request('android.permission.POST_NOTIFICATIONS')) === 'granted';
+  }
+  const messaging = loadMessaging();
+  if (!messaging) return { ok: false, permission, error: 'Bản app này chưa có Firebase.' };
+  try {
+    const token = await messaging().getToken();
+    lastToken = token;
+    await api('/notifications/push-token', { method: 'POST', body: { token, platform: Platform.OS === 'ios' ? 'ios' : 'android' } });
+    return { ok: true, permission };
+  } catch (e) {
+    return { ok: false, permission, error: (e as Error).message };
+  }
+}

@@ -5,7 +5,7 @@ import { ah, notFound, parse } from '../utils/http';
 import { NotificationModel, PushTokenModel } from '../models/Notification';
 import { UserModel } from '../models/User';
 import { emitToUser } from '../services/realtime';
-import { notify, pushEnabled } from '../services/notifications';
+import { notify, pushEnabled, diagnosePush } from '../services/notifications';
 
 /** Phase 2 – Notification (in-app + FCM push) */
 const router = Router();
@@ -124,6 +124,14 @@ router.delete(
     const { token } = parse(z.object({ token: z.string() }), req.body);
     await PushTokenModel.deleteOne({ token, user: uid(req) });
     res.json({ ok: true });
+  }),
+);
+
+/* POST /notifications/push-check — chẩn đoán thông báo đẩy tới điện thoại */
+router.post(
+  '/push-check',
+  ah(async (req, res) => {
+    res.json(await diagnosePush(uid(req)));
   }),
 );
 

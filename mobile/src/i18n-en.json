@@ -1531,5 +1531,20 @@
  "Bạn chưa có tài liệu nào. Thêm ở mục Tài liệu trước nhé.": "You don't have any materials yet. Add some in Materials first.",
  "Bật công tắc để đưa lên Thư viện cộng đồng (bộ thẻ/câu hỏi cần ít nhất 3 thẻ/câu). Người khác chỉ sao chép được, không sửa được bản của bạn. Tắt lúc nào cũng được.": "Turn the switch on to put it in the community library (decks/quizzes need at least 3 cards/questions). Others can only copy it – they can't edit yours. Turn it off any time.",
  "Chia sẻ tài liệu": "Share material",
- "Tôi xác nhận": "I confirm"
+ "Tôi xác nhận": "I confirm",
+ "Điện thoại cho phép FOCUSLY hiện thông báo": "This phone allows FOCUSLY notifications",
+ "Điện thoại đang CHẶN thông báo của FOCUSLY – vào Cài đặt Android → Ứng dụng → FOCUSLY → Thông báo → Bật": "This phone is BLOCKING FOCUSLY notifications – go to Android Settings → Apps → FOCUSLY → Notifications → On",
+ "Đã đăng ký máy này với máy chủ": "This device is registered with the server",
+ "Không lấy được mã thiết bị: {0}": "Couldn't get the device token: {0}",
+ "Máy chủ đã bật thông báo đẩy (Firebase)": "Server push (Firebase) is on",
+ "Máy chủ chưa cấu hình Firebase (FIREBASE_SERVICE_ACCOUNT_BASE64)": "Server has no Firebase key (FIREBASE_SERVICE_ACCOUNT_BASE64)",
+ "Bạn đang tắt “Gửi thông báo đẩy đến điện thoại” ở trên": "“Send push notifications to phone” is turned off above",
+ "Đang trong giờ yên lặng ({0}–{1}): nhắc học sẽ không đẩy tới máy": "Quiet hours now ({0}–{1}): reminders won't be pushed",
+ "Máy chủ chưa có máy nào của bạn": "The server has no devices for you yet",
+ "Đã gửi thử tới máy {0} – xem thanh thông báo": "Test sent to device {0} – check the notification shade",
+ "Máy {0}: khoá Firebase trên máy chủ KHÁC project với app (google-services.json). Tạo lại khoá ở đúng project.": "Device {0}: the server's Firebase key is from a DIFFERENT project than the app (google-services.json). Create the key in the right project.",
+ "Máy {0}: gửi lỗi ({1})": "Device {0}: send failed ({1})",
+ "Kiểm tra thông báo đẩy": "Check push notifications",
+ "Không thấy thông báo ngoài app? Bấm để kiểm tra từng bước và gửi một thông báo thử tới máy này.": "No notifications outside the app? Tap to check each step and send a test to this phone.",
+ "Kiểm tra ngay": "Check now"
 }

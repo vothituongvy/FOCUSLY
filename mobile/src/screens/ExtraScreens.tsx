@@ -12,6 +12,7 @@ import type { AppStackParams } from '../navigation/types';
 import { Button, Card, Chip, Chips, Empty, Field, H3, Muted, Row, Screen, s } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { LANG, LOCALE, tr } from '../i18n';
+import { refreshPushToken } from '../push';
 import { GUIDE } from '../guide';
 
 type Nav = NativeStackNavigationProp<AppStackParams>;
@@ -503,16 +504,7 @@ export function NotificationSettingsScreen() {
         <Button title={tr('Lưu')} onPress={saveFields} />
       </Card>
       <SaveLine msg={msg} error={error} />
-      <Button
-        title={tr('Gửi thông báo thử')}
-        variant="secondary"
-        icon="bell"
-        onPress={() =>
-          api('/notifications/test', { method: 'POST', body: {} })
-            .then(() => setMsg(tr('Đã gửi thông báo thử')))
-            .catch((e) => setError(errorMessage(e)))
-        }
-      />
+      <PushCheck />
     </Screen>
   );
 }
@@ -611,5 +603,64 @@ export function SecurityScreen() {
         />
       </Card>
     </Screen>
+  );
+}
+
+/* ---------- Kiểm tra thông báo đẩy: chỉ ra chính xác chỗ hỏng ---------- */
+interface PushDiag {
+  serverReady: boolean;
+  pushSetting: boolean;
+  quietHours: boolean;
+  quietStart?: string;
+  quietEnd?: string;
+  devices: number;
+  results: { platform: string; ok: boolean; error?: string }[];
+}
+function PushCheck() {
+  const [busy, setBusy] = useState(false);
+  const [lines, setLines] = useState<{ ok: boolean; text: string }[]>([]);
+  const run = async () => {
+    setBusy(true);
+    const out: { ok: boolean; text: string }[] = [];
+    try {
+      const local = await refreshPushToken();
+      out.push(local.permission ? { ok: true, text: tr('Điện thoại cho phép FOCUSLY hiện thông báo') } : { ok: false, text: tr('Điện thoại đang CHẶN thông báo của FOCUSLY – vào Cài đặt Android → Ứng dụng → FOCUSLY → Thông báo → Bật') });
+      out.push(local.ok ? { ok: true, text: tr('Đã đăng ký máy này với máy chủ') } : { ok: false, text: tr('Không lấy được mã thiết bị: {0}', local.error ?? '') });
+      const d = await api<PushDiag>('/notifications/push-check', { method: 'POST', body: {} });
+      out.push(d.serverReady ? { ok: true, text: tr('Máy chủ đã bật thông báo đẩy (Firebase)') } : { ok: false, text: tr('Máy chủ chưa cấu hình Firebase (FIREBASE_SERVICE_ACCOUNT_BASE64)') });
+      if (!d.pushSetting) out.push({ ok: false, text: tr('Bạn đang tắt “Gửi thông báo đẩy đến điện thoại” ở trên') });
+      if (d.quietHours) out.push({ ok: false, text: tr('Đang trong giờ yên lặng ({0}–{1}): nhắc học sẽ không đẩy tới máy', d.quietStart ?? '', d.quietEnd ?? '') });
+      if (!d.devices) out.push({ ok: false, text: tr('Máy chủ chưa có máy nào của bạn') });
+      d.results.forEach((r, i) =>
+        out.push(
+          r.ok
+            ? { ok: true, text: tr('Đã gửi thử tới máy {0} – xem thanh thông báo', i + 1) }
+            : {
+                ok: false,
+                text: /mismatched-credential|sender-id|third-party-auth/i.test(r.error ?? '')
+                  ? tr('Máy {0}: khoá Firebase trên máy chủ KHÁC project với app (google-services.json). Tạo lại khoá ở đúng project.', i + 1)
+                  : tr('Máy {0}: gửi lỗi ({1})', i + 1, r.error ?? '?'),
+              },
+        ),
+      );
+    } catch (e) {
+      out.push({ ok: false, text: errorMessage(e) });
+    } finally {
+      setLines(out);
+      setBusy(false);
+    }
+  };
+  return (
+    <Card>
+      <H3>{tr('Kiểm tra thông báo đẩy')}</H3>
+      <Muted>{tr('Không thấy thông báo ngoài app? Bấm để kiểm tra từng bước và gửi một thông báo thử tới máy này.')}</Muted>
+      <Button title={tr('Kiểm tra ngay')} variant="secondary" icon="bell" loading={busy} onPress={run} />
+      {lines.map((l, i) => (
+        <Text key={i} style={{ color: l.ok ? colors.success : colors.danger, fontSize: 13.5 }}>
+          {l.ok ? '✓ ' : '✕ '}
+          {l.text}
+        </Text>
+      ))}
+    </Card>
   );
 }

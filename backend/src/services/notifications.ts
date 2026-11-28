@@ -133,3 +133,27 @@ export async function pushOnly(userId: string, title: string, body: string, data
     console.warn('[push] Gửi tin nhắn thất bại:', (e as Error).message);
   }
 }
+
+/**
+ * Chẩn đoán thông báo đẩy: gửi thẳng 1 thông báo tới từng máy đã đăng ký của user
+ * và trả về kết quả từng máy (mã lỗi của Firebase nếu có) để biết hỏng ở đâu.
+ */
+export async function diagnosePush(userId: string) {
+  const fcm = getMessaging();
+  const user = await UserModel.findById(userId).select('profile.timezone notificationSettings').lean();
+  const ns = user?.notificationSettings;
+  const quiet = inQuietHours(new Date(), safeTimeZone(user?.profile?.timezone), ns?.quietStart, ns?.quietEnd);
+  const tokens = await PushTokenModel.find({ user: userId }).select('token platform lastSeenAt').lean();
+  const base = { serverReady: Boolean(fcm), pushSetting: ns?.push !== false, quietHours: quiet, quietStart: ns?.quietStart, quietEnd: ns?.quietEnd, devices: tokens.length };
+  if (!fcm || !tokens.length) return { ...base, results: [] as { platform: string; lastSeenAt: Date | null; ok: boolean; error?: string }[] };
+  const res = await fcm.sendEachForMulticast({
+    tokens: tokens.map((t) => t.token),
+    notification: { title: 'FOCUSLY – kiểm tra thông báo 🔔', body: 'Nếu bạn thấy thông báo này trên thanh thông báo thì mọi thứ đã hoạt động.' },
+    data: { type: 'system', link: '/notifications' },
+    android: { priority: 'high', notification: { channelId: 'focusly-default', sound: 'default' } },
+  });
+  const results = res.responses.map((r, i) => ({ platform: tokens[i].platform ?? 'android', lastSeenAt: (tokens[i] as { lastSeenAt?: Date }).lastSeenAt ?? null, ok: r.success, error: r.error?.code }));
+  const dead = results.map((r, i) => (!r.ok && /registration-token-not-registered|invalid-argument/.test(r.error ?? '') ? tokens[i].token : null)).filter(Boolean);
+  if (dead.length) await PushTokenModel.deleteMany({ token: { $in: dead } });
+  return { ...base, results };
+}
