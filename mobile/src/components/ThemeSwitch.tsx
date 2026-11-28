@@ -35,7 +35,7 @@ export function ThemeSwitch() {
             }}
             style={{ flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 9, backgroundColor: on ? colors.marker : 'transparent' }}
           >
-            <Text style={{ fontSize: 14, fontWeight: on ? '800' : '500', color: on ? colors.onMarker : colors.text2 }}>
+            <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: on ? '800' : '500', color: on ? colors.onMarker : colors.text2 }}>
               {icon} {label}
             </Text>
           </Pressable>

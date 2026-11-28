@@ -37,8 +37,7 @@ async function render() {
   $<HTMLButtonElement>('manual-start').hidden = s.manualOn;
   $<HTMLButtonElement>('manual-stop').hidden = !s.manualOn;
   $('manual-info').textContent = s.manualOn ? `Chặn thủ công đến ${new Date(s.manualUntil).toLocaleTimeString('vi-VN')}` : '';
-  const open = $<HTMLAnchorElement>('open-web');
-  open.href = s.webUrl ?? 'http://localhost:3000';
+  // open-web removed
 }
 
 $('manual-start').addEventListener('click', async () => {
