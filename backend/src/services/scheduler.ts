@@ -8,6 +8,7 @@ import { notify } from './notifications';
 import { computeFocusSeconds } from './sessions';
 import { dayKey, minutesOfDay, parseHm, safeTimeZone, weekdayIn, wideRange } from '../utils/time';
 import { sendWeeklyReport } from './social/report';
+import { checkNewRelease } from './releaseWatch';
 
 /**
  * Bộ nhắc chạy mỗi phút (trong cùng process API).
@@ -158,7 +159,7 @@ export async function tick(now = new Date()) {
   if (running) return;
   running = true;
   try {
-    await Promise.all([userReminders(now), taskReminders(now), scheduledReminders(now), breakReminders(now)]);
+    await Promise.all([userReminders(now), taskReminders(now), scheduledReminders(now), breakReminders(now), checkNewRelease(now.getTime()).catch(() => undefined)]);
   } catch (e) {
     console.error('[scheduler]', e);
   } finally {

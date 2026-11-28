@@ -64,6 +64,9 @@ export function UserMenu() {
           <Link href="/guide" role="menuitem" className="menu-item" onClick={close}>
             <Icon name="help" size={17} /> {tr('Hướng dẫn sử dụng')}
           </Link>
+          <Link href="/feedback" role="menuitem" className="menu-item" onClick={close}>
+            <Icon name="chat" size={17} /> {tr('Góp ý & báo lỗi')}
+          </Link>
           {admin && (
             <Link href="/admin" role="menuitem" className="menu-item" onClick={close}>
               <Icon name="analytics" size={17} /> {tr('Thống kê hệ thống')}

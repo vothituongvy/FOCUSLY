@@ -3,12 +3,17 @@ const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
-  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+  // micro: cho phép chính FOCUSLY dùng (luyện phát âm)
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(self), geolocation=()' },
   { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
 ];
 
+/** Mã bản build – trình duyệt so với bản đang chạy trên máy chủ để báo "có bản web mới" */
+const BUILD_ID = process.env.VERCEL_GIT_COMMIT_SHA || process.env.BUILD_ID || String(Date.now());
+
 const nextConfig = {
   reactStrictMode: true,
+  env: { NEXT_PUBLIC_BUILD_ID: BUILD_ID },
   poweredByHeader: false,
   // Hiện tên file/dòng thật trong Console khi có lỗi trên bản deploy
   productionBrowserSourceMaps: true,

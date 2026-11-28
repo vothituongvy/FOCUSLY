@@ -3,7 +3,8 @@ import jwt, { SignOptions } from 'jsonwebtoken';
 import { Request } from 'express';
 import { env } from '../config/env';
 import { AuthSessionModel } from '../models/AuthSession';
-import { unauthorized } from '../utils/http';
+import { HttpError, unauthorized } from '../utils/http';
+import { UserModel } from '../models/User';
 
 export interface AccessPayload {
   sub: string; // user id
@@ -57,7 +58,14 @@ export interface TokenPair {
 }
 
 /** Tạo AuthSession mới + cặp token */
+/** Tài khoản bị quản trị viên khoá thì không cấp / làm mới phiên */
+async function assertActive(userId: string) {
+  const u = await UserModel.findById(userId).select('disabledAt disabledReason').lean();
+  if (u?.disabledAt) throw new HttpError(403, `Tài khoản đã bị khoá${u.disabledReason ? `: ${u.disabledReason}` : ''}. Liên hệ hỗ trợ nếu đây là nhầm lẫn.`, 'ACCOUNT_DISABLED');
+}
+
 export async function issueTokens(userId: string, req: Request): Promise<TokenPair> {
+  await assertActive(userId);
   const refreshToken = randomToken();
   const platform = detectPlatform(req);
   const session = await AuthSessionModel.create({
@@ -81,6 +89,7 @@ export async function rotateRefreshToken(refreshToken: string): Promise<TokenPai
   if (!session || session.revokedAt || session.expiresAt < new Date()) {
     throw unauthorized('Refresh token không hợp lệ');
   }
+  await assertActive(String(session.user));
   const next = randomToken();
   session.tokenHash = sha256(next);
   session.lastUsedAt = new Date();

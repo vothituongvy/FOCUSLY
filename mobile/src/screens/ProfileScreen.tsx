@@ -18,39 +18,20 @@ import { LangSwitch } from '../components/LangSwitch';
 import { checkForUpdate } from '../updateCheck';
 import { APP_VERSION } from '../config';
 import { useUnreadChats } from './ChatScreens';
+import { useIsAdmin } from './AdminScreens';
 
 type MenuItem = { screen: keyof AppStackParams; label: string; icon: IconName };
 /** Các mục giống thanh bên của bản Web, chia nhóm */
 const MENU: { title: string; items: MenuItem[] }[] = [
   {
-    title: tr('Học'),
+    title: tr('Học tập của tôi'),
     items: [
       { screen: 'Goals', label: tr('Mục tiêu học tập'), icon: 'flame' },
-      { screen: 'Materials', label: tr('Tài liệu'), icon: 'materials' },
-      { screen: 'AIChat', label: tr('Trợ lý AI'), icon: 'ai' },
       { screen: 'AICoach', label: tr('Đề xuất & kế hoạch'), icon: 'zap' },
-      { screen: 'Exams', label: tr('Ôn thi'), icon: 'target' },
-      { screen: 'Library', label: tr('Thư viện cộng đồng'), icon: 'library' },
-    ],
-  },
-  {
-    title: tr('Cùng nhau'),
-    items: [
-      { screen: 'Chats', label: tr('Tin nhắn'), icon: 'chat' },
-      { screen: 'Friends', label: tr('Bạn bè & xếp hạng'), icon: 'users' },
-      { screen: 'Rooms', label: tr('Phòng học chung'), icon: 'room' },
-      { screen: 'Classes', label: tr('Lớp học'), icon: 'school' },
-    ],
-  },
-  {
-    title: tr('Nhìn lại'),
-    items: [
       { screen: 'Analytics', label: tr('Phân tích học tập'), icon: 'analytics' },
       { screen: 'WeeklyReport', label: tr('Báo cáo tuần'), icon: 'trophy' },
       { screen: 'History', label: tr('Lịch sử phiên học'), icon: 'history' },
       { screen: 'Journal', label: tr('Nhật ký phân tâm'), icon: 'journal' },
-      { screen: 'Mistakes', label: tr('Ôn câu sai'), icon: 'repeat' },
-      { screen: 'LearnProgress', label: tr('Tiến độ ghi nhớ'), icon: 'cards' },
     ],
   },
   {
@@ -60,7 +41,13 @@ const MENU: { title: string; items: MenuItem[] }[] = [
       { screen: 'ShieldSettings', label: 'Focus Shield', icon: 'shield' },
       { screen: 'NotificationSettings', label: tr('Thông báo'), icon: 'bell' },
       { screen: 'Security', label: tr('Bảo mật'), icon: 'lock' },
-      { screen: 'Guide', label: tr('Hướng dẫn sử dụng'), icon: 'play' },
+    ],
+  },
+  {
+    title: tr('Hỗ trợ'),
+    items: [
+      { screen: 'Feedback', label: tr('Góp ý & báo lỗi'), icon: 'chat' },
+      { screen: 'Guide', label: tr('Hướng dẫn sử dụng'), icon: 'help' },
     ],
   },
 ];
@@ -71,7 +58,11 @@ export function ProfileScreen() {
   const { user, setUser, logout } = useAuth();
   const { online, pending, lastSyncAt, sync, syncing } = useData();
   const unreadChats = useUnreadChats();
+  const isAdmin = useIsAdmin();
   if (!user) return null;
+  const groups = isAdmin
+    ? [...MENU, { title: tr('Quản trị'), items: [{ screen: 'AdminHome', label: tr('Quản trị hệ thống'), icon: 'analytics' } as MenuItem, { screen: 'AdminFeedback', label: tr('Góp ý & báo lỗi của người dùng'), icon: 'chat' } as MenuItem] }]
+    : MENU;
 
   return (
     <Screen header={<AppHeader title={tr('Cá nhân')} />}>
@@ -89,7 +80,7 @@ export function ProfileScreen() {
         </View>
       </Card>
 
-      {MENU.map((g) => (
+      {groups.map((g) => (
         <View key={g.title} style={{ gap: 6 }}>
           <Muted style={{ paddingHorizontal: 4, fontWeight: '700' }}>{g.title}</Muted>
           <Card style={{ padding: 0, gap: 0 }}>

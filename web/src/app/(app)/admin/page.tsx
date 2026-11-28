@@ -5,6 +5,7 @@ import { useResource } from '@/lib/hooks';
 import { tr } from '@/lib/i18n';
 import { Spinner } from '@/components/ui';
 import { TrendChart } from '@/components/TrendChart';
+import { AdminTabs } from '@/components/AdminTabs';
 
 type MetricKey = 'dau' | 'signups' | 'focusMinutes' | 'sessions' | 'reviews' | 'quizzes' | 'messages' | 'ai';
 interface Metrics {
@@ -59,6 +60,7 @@ export default function AdminPage() {
           </p>
         </div>
       </div>
+      <AdminTabs />
 
       <section className="metrics">
         <div>

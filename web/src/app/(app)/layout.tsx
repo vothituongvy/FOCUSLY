@@ -8,6 +8,7 @@ import { ChangeEvent, getSocket, useSocketEvent } from '@/lib/socket';
 import type { User } from '@/lib/types';
 import { Sidebar } from '@/components/Sidebar';
 import { Topbar } from '@/components/Topbar';
+import { UpdateBanner } from '@/components/UpdateBanner';
 import { ShieldBridge } from '@/components/ShieldBridge';
 import { Spinner } from '@/components/ui';
 import { tr } from '@/lib/i18n';
@@ -45,6 +46,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <Sidebar open={drawer} onClose={closeDrawer} />
       <div className="app-col">
         <Topbar onMenu={() => setDrawer(true)} />
+        <UpdateBanner />
         <main id="main" className="main" tabIndex={-1}>
           {children}
         </main>

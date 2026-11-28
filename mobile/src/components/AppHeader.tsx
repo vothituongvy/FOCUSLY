@@ -10,6 +10,7 @@ import { colors, fonts } from '../theme';
 import type { AppStackParams } from '../navigation/types';
 import { IconButton } from './ui';
 import { tr } from '../i18n';
+import { useUnreadChats } from '../screens/ChatScreens';
 
 /**
  * Thanh tiêu đề trên cùng của mỗi tab: tên màn hình + thông báo + ảnh đại diện.
@@ -20,6 +21,7 @@ export function AppHeader({ title, subtitle, right }: { title: string; subtitle?
   const [unread, setUnread] = useState(0);
   const [avatarBroken, setAvatarBroken] = useState(false);
   const insets = useSafeAreaInsets();
+  const unreadChats = useUnreadChats();
 
   useFocusEffect(
     useCallback(() => {
@@ -67,6 +69,7 @@ export function AppHeader({ title, subtitle, right }: { title: string; subtitle?
         )}
       </View>
       {right}
+      <IconButton name="chat" color={colors.boardText} label={tr('Tin nhắn')} badge={unreadChats} onPress={() => nav.navigate('Chats')} />
       <IconButton name="bell" color={colors.boardText} label={tr('Thông báo')} badge={unread} onPress={() => nav.navigate('Notifications')} />
       <Pressable
         onPress={() => nav.navigate('Tabs', { screen: 'Profile' } as never)}

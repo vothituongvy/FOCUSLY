@@ -24,7 +24,7 @@ interface Member {
   admin: boolean;
   lastReadAt: string;
 }
-interface ChatItem {
+export interface ChatItem {
   id: string;
   type: 'direct' | 'group';
   name: string;
@@ -56,7 +56,7 @@ const timeLabel = (iso: string) => {
   return d.toDateString() === new Date().toDateString() ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : d.toLocaleDateString([], { day: 'numeric', month: 'numeric' });
 };
 
-function ChatAvatar({ chat, size = 44 }: { chat: ChatItem; size?: number }) {
+export function ChatAvatar({ chat, size = 44 }: { chat: ChatItem; size?: number }) {
   if (chat.type === 'direct') return <Avatar name={chat.name} url={chat.avatarUrl} size={size} />;
   return (
     <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: colors.marker, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.text }}>
@@ -77,6 +77,38 @@ export function useUnreadChats() {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return res.data?.count ?? 0;
+}
+
+/** Một dòng cuộc trò chuyện (dùng ở màn Tin nhắn và tab Cùng nhau) */
+export function ChatRow({ c, onPress }: { c: ChatItem; onPress: () => void }) {
+  return (
+          <Pressable
+            onPress={onPress}
+            style={({ pressed }) => ({ flexDirection: 'row', gap: 12, alignItems: 'center', padding: 10, borderRadius: 12, backgroundColor: pressed ? colors.surface2 : 'transparent' })}
+          >
+            <ChatAvatar chat={c} />
+            <View style={{ flex: 1, gap: 3, minWidth: 0 }}>
+              <Row style={{ flexWrap: 'nowrap', gap: 6 }}>
+                <Text numberOfLines={1} style={{ flex: 1, fontWeight: '700', color: colors.text, fontSize: 15 }}>
+                  {c.name}
+                </Text>
+                {c.lastMessage && <Muted>{timeLabel(c.lastMessage.at)}</Muted>}
+              </Row>
+              <Row style={{ flexWrap: 'nowrap', gap: 6 }}>
+                <Text numberOfLines={1} style={{ flex: 1, color: c.unread ? colors.text : colors.muted, fontWeight: c.unread ? '700' : '400', fontSize: 13.5 }}>
+                  {c.lastMessage ? `${c.lastMessage.mine ? tr('Bạn: ') : c.type === 'group' && c.lastMessage.senderName ? `${c.lastMessage.senderName.split(' ').pop()}: ` : ''}${c.lastMessage.text}` : tr('Chưa có tin nhắn')}
+                </Text>
+                {c.muted ? (
+                  <Text>🔕</Text>
+                ) : c.unread > 0 ? (
+                  <View style={{ minWidth: 20, height: 20, borderRadius: 10, backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 }}>
+                    <Text style={{ color: '#fff', fontSize: 11, fontWeight: '800' }}>{c.unread > 99 ? '99+' : c.unread}</Text>
+                  </View>
+                ) : null}
+              </Row>
+            </View>
+          </Pressable>
+  );
 }
 
 /* ======================= Danh sách cuộc trò chuyện ======================= */
@@ -107,34 +139,7 @@ export function ChatsScreen() {
           </View>
         }
         ListEmptyComponent={list.data ? <Empty text={tr('Chưa có cuộc trò chuyện nào.')} /> : <ActivityIndicator color={colors.text} />}
-        renderItem={({ item: c }) => (
-          <Pressable
-            onPress={() => nav.navigate('ChatThread', { chatId: c.id })}
-            style={({ pressed }) => ({ flexDirection: 'row', gap: 12, alignItems: 'center', padding: 10, borderRadius: 12, backgroundColor: pressed ? colors.surface2 : 'transparent' })}
-          >
-            <ChatAvatar chat={c} />
-            <View style={{ flex: 1, gap: 3, minWidth: 0 }}>
-              <Row style={{ flexWrap: 'nowrap', gap: 6 }}>
-                <Text numberOfLines={1} style={{ flex: 1, fontWeight: '700', color: colors.text, fontSize: 15 }}>
-                  {c.name}
-                </Text>
-                {c.lastMessage && <Muted>{timeLabel(c.lastMessage.at)}</Muted>}
-              </Row>
-              <Row style={{ flexWrap: 'nowrap', gap: 6 }}>
-                <Text numberOfLines={1} style={{ flex: 1, color: c.unread ? colors.text : colors.muted, fontWeight: c.unread ? '700' : '400', fontSize: 13.5 }}>
-                  {c.lastMessage ? `${c.lastMessage.mine ? tr('Bạn: ') : c.type === 'group' && c.lastMessage.senderName ? `${c.lastMessage.senderName.split(' ').pop()}: ` : ''}${c.lastMessage.text}` : tr('Chưa có tin nhắn')}
-                </Text>
-                {c.muted ? (
-                  <Text>🔕</Text>
-                ) : c.unread > 0 ? (
-                  <View style={{ minWidth: 20, height: 20, borderRadius: 10, backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 }}>
-                    <Text style={{ color: '#fff', fontSize: 11, fontWeight: '800' }}>{c.unread > 99 ? '99+' : c.unread}</Text>
-                  </View>
-                ) : null}
-              </Row>
-            </View>
-          </Pressable>
-        )}
+        renderItem={({ item: c }) => <ChatRow c={c} onPress={() => nav.navigate('ChatThread', { chatId: c.id })} />}
       />
       <NewChatSheet
         mode={newMode}
@@ -149,7 +154,7 @@ export function ChatsScreen() {
   );
 }
 
-function NewChatSheet({ mode, onClose, onCreated }: { mode: '' | 'direct' | 'group'; onClose: () => void; onCreated: (id: string) => void }) {
+export function NewChatSheet({ mode, onClose, onCreated }: { mode: '' | 'direct' | 'group'; onClose: () => void; onCreated: (id: string) => void }) {
   const friends = useApi<{ items: Friend[] }>(mode ? '/social/friends' : null);
   const [picked, setPicked] = useState<string[]>([]);
   const [name, setName] = useState('');

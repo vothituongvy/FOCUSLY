@@ -73,6 +73,9 @@ const userSchema = new Schema(
       quietEnd: { type: String, default: '06:30' },
     },
     passwordChangedAt: { type: Date, default: null },
+    /** quản trị viên khoá tài khoản (không đăng nhập / làm mới phiên được) */
+    disabledAt: { type: Date, default: null },
+    disabledReason: { type: String, default: '' },
     resetPasswordTokenHash: { type: String, select: false },
     resetPasswordExpires: { type: Date, select: false },
   },

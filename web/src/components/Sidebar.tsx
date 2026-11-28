@@ -57,10 +57,20 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
           {admin && (
             <div className="nav-section">
               <div className="nav-group">{tr('Quản trị')}</div>
-              <Link href="/admin" className={`nav-link ${active('/admin') ? 'active' : ''}`} aria-current={active('/admin') ? 'page' : undefined}>
-                <Icon name="analytics" />
-                <span className="nav-label">{tr('Thống kê hệ thống')}</span>
-              </Link>
+              {(
+                [
+                  ['/admin', 'analytics', 'Thống kê hệ thống'],
+                  ['/admin/feedback', 'chat', 'Góp ý & báo lỗi'],
+                  ['/admin/users', 'users', 'Người dùng'],
+                  ['/admin/library', 'library', 'Kiểm duyệt Thư viện'],
+                  ['/admin/broadcast', 'bell', 'Gửi thông báo'],
+                ] as const
+              ).map(([href, icon, label]) => (
+                <Link key={href} href={href} className={`nav-link ${pathname === href ? 'active' : ''}`} aria-current={pathname === href ? 'page' : undefined}>
+                  <Icon name={icon} />
+                  <span className="nav-label">{tr(label)}</span>
+                </Link>
+              ))}
             </div>
           )}
         </nav>

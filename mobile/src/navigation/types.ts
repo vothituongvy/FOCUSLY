@@ -9,6 +9,7 @@ export type TabParams = {
   Plan: undefined;
   Focus: { taskId?: string; quickStart?: number } | undefined;
   Learn: undefined;
+  Community: undefined;
   Profile: undefined;
 };
 
@@ -51,5 +52,11 @@ export type AppStackParams = {
   Classes: undefined;
   ClassDetail: { classId: string };
   Chats: undefined;
+  Feedback: undefined;
+  AdminHome: undefined;
+  AdminFeedback: undefined;
+  AdminUsers: undefined;
+  AdminLibrary: undefined;
+  AdminBroadcast: undefined;
   ChatThread: { chatId: string };
 };

@@ -25,6 +25,7 @@ let openChatId: string | null = null;
 export const setOpenChat = (id: string | null) => {
   openChatId = id;
 };
+export const getOpenChat = () => openChatId;
 
 /** Người dùng chạm vào thông báo đẩy -> mở đúng màn hình (đường dẫn kiểu web, VD /messages?chat=…) */
 let openHandler: ((link: string) => void) | null = null;

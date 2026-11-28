@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, View } from 'react-native';
-import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, createNavigationContainerRef } from '@react-navigation/native';
+import { ChatHead } from '../components/ChatHead';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { BottomTabBar, createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -30,7 +31,9 @@ import { useNavigation } from '@react-navigation/native';
 import { consumeNotifyLink, consumeWidgetAction } from '../native';
 import { onPushOpen } from '../push';
 import { openLink } from './links';
-import { ChatsScreen, ChatThreadScreen } from '../screens/ChatScreens';
+import { ChatsScreen, ChatThreadScreen, useUnreadChats } from '../screens/ChatScreens';
+import { CommunityScreen } from '../screens/HubScreens';
+import { AdminBroadcastScreen, AdminFeedbackScreen, AdminHomeScreen, AdminLibraryScreen, AdminUsersScreen, FeedbackScreen } from '../screens/AdminScreens';
 import { FriendsScreen, RoomScreen, RoomsScreen, WeeklyReportScreen } from '../screens/SocialScreens';
 import { ExamDetailScreen, ExamEditScreen, ExamsScreen } from '../screens/ExamScreens';
 import { ClassDetailScreen, ClassesScreen, LibraryScreen } from '../screens/CommunityScreens';
@@ -104,6 +107,7 @@ function Tabs() {
   // Đang học với Focus Shield: ẩn thanh tab để giảm xao nhãng
   const hideTabs = Boolean(running?.shieldEnabled);
   const insets = useSafeAreaInsets();
+  const unreadChats = useUnreadChats();
   // Sau khi đổi ngôn ngữ app tự tải lại -> mở lại đúng tab Cá nhân
   const [initialTab] = useState<keyof TabParams>(() => {
     const t = prefGet('reopenTab');
@@ -135,14 +139,19 @@ function Tabs() {
       <Tab.Screen name="Dashboard" component={DashboardWithBridge} options={{ title: tr('Hôm nay'), tabBarIcon: icon('home') }} />
       <Tab.Screen name="Plan" component={PlanScreen} options={{ title: tr('Kế hoạch'), tabBarIcon: icon('plan') }} />
       <Tab.Screen name="Focus" component={FocusScreen} options={{ title: tr('Tập trung'), tabBarIcon: icon('focus') }} />
-      <Tab.Screen name="Learn" component={LearnScreen} options={{ title: tr('Ôn tập'), tabBarIcon: icon('cards') }} />
-      <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: tr('Cá nhân'), tabBarIcon: icon('settings') }} />
+      <Tab.Screen name="Learn" component={LearnScreen} options={{ title: tr('Học'), tabBarIcon: icon('cards') }} />
+      <Tab.Screen name="Community" component={CommunityScreen} options={{ title: tr('Cùng nhau'), tabBarIcon: icon('users'), tabBarBadge: unreadChats ? (unreadChats > 99 ? '99+' : unreadChats) : undefined }} />
+      {/* Cá nhân: mở từ ảnh đại diện góc trên – ẩn khỏi thanh tab cho gọn */}
+      <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: tr('Cá nhân'), tabBarIcon: icon('settings'), tabBarButton: () => null, tabBarItemStyle: { display: 'none' } }} />
     </Tab.Navigator>
   );
 }
 
+const navRef = createNavigationContainerRef<any>(); // eslint-disable-line @typescript-eslint/no-explicit-any
+
 export function RootNavigator() {
   const status = useAuth((s) => s.status);
+  const [route, setRoute] = useState('');
   const [onboarded, setOnboarded] = useState(() => prefGet('onboarded') === '1');
   if (status === 'loading') return <SplashScreen />;
   if (status !== 'authed' && !onboarded)
@@ -155,7 +164,12 @@ export function RootNavigator() {
       />
     );
   return (
-    <NavigationContainer theme={{ ...DefaultTheme, colors: { ...DefaultTheme.colors, background: colors.bg, primary: colors.primary } }}>
+    <NavigationContainer
+      ref={navRef}
+      onReady={() => setRoute(navRef.getCurrentRoute()?.name ?? '')}
+      onStateChange={() => setRoute(navRef.getCurrentRoute()?.name ?? '')}
+      theme={{ ...DefaultTheme, colors: { ...DefaultTheme.colors, background: colors.bg, primary: colors.primary } }}
+    >
       {status === 'authed' ? (
         <AppStack.Navigator
           screenOptions={{
@@ -192,6 +206,12 @@ export function RootNavigator() {
           <AppStack.Screen name="LearnProgress" component={LearnProgressScreen} options={{ title: tr('Tiến độ ghi nhớ') }} />
           <AppStack.Screen name="Goals" component={GoalsScreen} options={{ title: tr('Mục tiêu học tập') }} />
           <AppStack.Screen name="Chats" component={ChatsScreen} options={{ title: tr('Tin nhắn') }} />
+          <AppStack.Screen name="Feedback" component={FeedbackScreen} options={{ title: tr('Góp ý & báo lỗi') }} />
+          <AppStack.Screen name="AdminHome" component={AdminHomeScreen} options={{ title: tr('Quản trị') }} />
+          <AppStack.Screen name="AdminFeedback" component={AdminFeedbackScreen} options={{ title: tr('Góp ý & báo lỗi') }} />
+          <AppStack.Screen name="AdminUsers" component={AdminUsersScreen} options={{ title: tr('Người dùng') }} />
+          <AppStack.Screen name="AdminLibrary" component={AdminLibraryScreen} options={{ title: tr('Kiểm duyệt Thư viện') }} />
+          <AppStack.Screen name="AdminBroadcast" component={AdminBroadcastScreen} options={{ title: tr('Gửi thông báo') }} />
           <AppStack.Screen name="ChatThread" component={ChatThreadScreen} options={{ title: tr('Trò chuyện') }} />
           <AppStack.Screen name="Friends" component={FriendsScreen} options={{ title: tr('Bạn bè & xếp hạng') }} />
           <AppStack.Screen name="Rooms" component={RoomsScreen} options={{ title: tr('Phòng học chung') }} />
@@ -211,6 +231,7 @@ export function RootNavigator() {
           <AuthStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         </AuthStack.Navigator>
       )}
+      {status === 'authed' && <ChatHead route={route} onOpen={(chatId) => navRef.isReady() && navRef.navigate('ChatThread', { chatId })} />}
     </NavigationContainer>
   );
 }

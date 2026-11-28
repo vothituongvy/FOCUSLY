@@ -16,6 +16,7 @@ import { MemoryForecast } from '../components/MemoryForecast';
 import { prefGet, prefSet, tr } from '../i18n';
 import { PronounceButton, SpeakButton } from '../components/Speech';
 import { isEnglish, speak } from '../native';
+import { HubTiles } from '../components/HubTiles';
 
 /* ======================================================================
  * PHASE 2 trên Mobile: Flashcard (Spaced Repetition) & Quiz – chạy được OFFLINE
@@ -30,7 +31,15 @@ export function LearnScreen() {
   const due = cards.filter((c) => isDue(c, now));
 
   return (
-    <Screen header={<AppHeader title={tr('Ôn tập')} subtitle={due.length ? tr('{0} thẻ đến hạn hôm nay', due.length) : tr('Không có thẻ đến hạn')} />}>
+    <Screen header={<AppHeader title={tr('Học')} subtitle={due.length ? tr('{0} thẻ đến hạn hôm nay', due.length) : tr('Không có thẻ đến hạn')} />}>
+      <HubTiles
+        items={[
+          { icon: 'materials', label: tr('Tài liệu'), onPress: () => nav.navigate('Materials') },
+          { icon: 'ai', label: tr('Trợ lý AI'), onPress: () => nav.navigate('AIChat', {}) },
+          { icon: 'target', label: tr('Ôn thi'), onPress: () => nav.navigate('Exams') },
+          { icon: 'library', label: tr('Thư viện cộng đồng'), onPress: () => nav.navigate('Library') },
+        ]}
+      />
       <Button title={due.length ? tr('Ôn {0} thẻ ngay', due.length) : tr('Đã ôn xong hôm nay')} icon="cards" variant={due.length ? 'marker' : 'secondary'} disabled={!due.length} onPress={() => nav.navigate('Review', {})} />
       <Row>
         {[

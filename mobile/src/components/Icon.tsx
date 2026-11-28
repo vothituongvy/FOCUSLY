@@ -37,6 +37,7 @@ const PATHS = {
   upload: 'M12 16V4M7 9l5-5 5 5M4 20h16',
   clip: 'M21 11.5l-8.5 8.5a5 5 0 0 1-7-7L14 4.5a3.3 3.3 0 0 1 4.7 4.7L10.2 17.7a1.7 1.7 0 0 1-2.4-2.4L15.5 7.6',
   chat: 'M21 12a8 8 0 0 1-11.6 7.1L4 20l1.1-4.6A8 8 0 1 1 21 12zM8.5 11h.01M12 11h.01M15.5 11h.01',
+  help: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01',
   users: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8',
   trophy: 'M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3',
   room: 'M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M14 12h.01',
@@ -84,7 +85,7 @@ const FALLBACK: Partial<Record<string, string>> = {
   home: '⌂', plan: '☰', focus: '◎', cards: '▤', learn: '▤', settings: '⚙', bell: '♪', plus: '+', x: '×', check: '✓',
   play: '▶', pause: 'Ⅱ', stop: '■', search: '⌕', chevronRight: '›', chevronLeft: '‹', arrowLeft: '←', star: '★',
   trash: '⌫', edit: '✎', shield: '◈', lock: '⊠', eye: '◉', eyeOff: '◌', sync: '↻', repeat: '↻', calendar: '▦', analytics: '▥', ai: '✦',
-  materials: '▭', journal: '▯', history: '↺', coffee: '◡', wind: '≈', zap: 'ϟ', flame: '▲', translate: 'A', clip: '⌇', users: '☺', chat: '✉', trophy: '★', room: '▣', school: '▲', library: '▤', target: '◎', volume: '♪', mic: '●',
+  materials: '▭', journal: '▯', history: '↺', coffee: '◡', wind: '≈', zap: 'ϟ', flame: '▲', translate: 'A', clip: '⌇', users: '☺', chat: '✉', help: '?', trophy: '★', room: '▣', school: '▲', library: '▤', target: '◎', volume: '♪', mic: '●',
 };
 
 export function Icon({ name, size = 20, color = '#16203a', strokeWidth = 1.75 }: { name: IconName; size?: number; color?: string; strokeWidth?: number }) {

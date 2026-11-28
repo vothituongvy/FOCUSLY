@@ -169,3 +169,32 @@ const chatMessageSchema = new Schema(
 chatMessageSchema.index({ chat: 1, createdAt: -1 });
 chatMessageSchema.index({ chat: 1, clientId: 1 }, { unique: true, partialFilterExpression: { clientId: { $type: 'string' } } });
 export const ChatMessageModel = model('ChatMessage', chatMessageSchema);
+
+/* ================= Góp ý & báo lỗi từ người dùng ================= */
+export const FEEDBACK_STATUSES = ['new', 'in_progress', 'fixed', 'wontfix'] as const;
+const feedbackSchema = new Schema(
+  {
+    user: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    type: { type: String, enum: ['bug', 'idea', 'other'], default: 'bug' },
+    message: { type: String, required: true, maxlength: 4000 },
+    /** trang / màn hình đang dùng khi gửi */
+    page: { type: String, default: '', maxlength: 200 },
+    platform: { type: String, default: 'web', maxlength: 20 },
+    appVersion: { type: String, default: '', maxlength: 30 },
+    device: { type: String, default: '', maxlength: 200 },
+    status: { type: String, enum: FEEDBACK_STATUSES, default: 'new', index: true },
+    /** trả lời của admin (người dùng xem được) */
+    reply: { type: String, default: '', maxlength: 2000 },
+    /** ghi chú nội bộ của admin */
+    adminNote: { type: String, default: '', maxlength: 2000 },
+    resolvedAt: { type: Date, default: null },
+    notifiedAt: { type: Date, default: null },
+  },
+  jsonOptions,
+);
+feedbackSchema.index({ status: 1, createdAt: -1 });
+export const FeedbackModel = model('Feedback', feedbackSchema);
+
+/* ================= Giá trị hệ thống (VD: bản app đã báo gần nhất) ================= */
+const appMetaSchema = new Schema({ key: { type: String, required: true, unique: true }, value: { type: Schema.Types.Mixed } }, { timestamps: true, versionKey: false });
+export const AppMetaModel = model('AppMeta', appMetaSchema);
