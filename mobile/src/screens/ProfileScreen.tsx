@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Image, Pressable, View } from 'react-native';
+import { Image, Pressable, View } from 'react-native';
 import { Text } from '../components/AppText';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -15,10 +15,12 @@ import { AppHeader } from '../components/AppHeader';
 import { Icon, type IconName } from '../components/Icon';
 import { LOCALE, tr } from '../i18n';
 import { LangSwitch } from '../components/LangSwitch';
+import { ThemeSwitch } from '../components/ThemeSwitch';
 import { checkForUpdate } from '../updateCheck';
 import { APP_VERSION } from '../config';
 import { useUnreadChats } from './ChatScreens';
 import { useIsAdmin } from './AdminScreens';
+import { showAlert } from '../components/Dialog';
 
 type MenuItem = { screen: keyof AppStackParams; label: string; icon: IconName };
 /** Các mục giống thanh bên của bản Web, chia nhóm */
@@ -71,7 +73,7 @@ export function ProfileScreen() {
           <Image onError={() => setAvatarBroken(true)} source={{ uri: user.avatarUrl }} style={{ width: 64, height: 64, borderRadius: 32 }} />
         ) : (
           <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.marker, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontSize: 24, fontWeight: '800', color: colors.text }}>{user.name[0]?.toUpperCase()}</Text>
+            <Text style={{ fontSize: 24, fontWeight: '800', color: colors.onMarker }}>{user.name[0]?.toUpperCase()}</Text>
           </View>
         )}
         <View style={{ flex: 1 }}>
@@ -116,6 +118,11 @@ export function ProfileScreen() {
       </Card>
 
       <Card>
+        <H3>{tr('Giao diện')}</H3>
+        <ThemeSwitch />
+      </Card>
+
+      <Card>
         <H3>{tr('Ngôn ngữ')}</H3>
         <LangSwitch />
       </Card>
@@ -136,9 +143,9 @@ export function ProfileScreen() {
           onPress={async () => {
             try {
               const r = await api<{ revoked: number }>('/users/me/sessions', { method: 'DELETE' });
-              Alert.alert(tr('Xong'), tr('Đã đăng xuất {0} thiết bị.', r.revoked));
+              showAlert(tr('Xong'), tr('Đã đăng xuất {0} thiết bị.', r.revoked));
             } catch (e) {
-              Alert.alert(tr('Lỗi'), errorMessage(e));
+              showAlert(tr('Lỗi'), errorMessage(e));
             }
           }}
         />
@@ -146,7 +153,7 @@ export function ProfileScreen() {
           title={tr('Đăng xuất')}
           variant="danger"
           onPress={() =>
-            Alert.alert(tr('Đăng xuất?'), pending ? tr('Còn {0} thay đổi chưa đồng bộ sẽ bị mất.', pending) : tr('Bạn chắc chắn muốn đăng xuất?'), [
+            showAlert(tr('Đăng xuất?'), pending ? tr('Còn {0} thay đổi chưa đồng bộ sẽ bị mất.', pending) : tr('Bạn chắc chắn muốn đăng xuất?'), [
               { text: tr('Huỷ'), style: 'cancel' },
               { text: tr('Đăng xuất'), style: 'destructive', onPress: () => void unregisterPush().finally(() => void logout()) },
             ])

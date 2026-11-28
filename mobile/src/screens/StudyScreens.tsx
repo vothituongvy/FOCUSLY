@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, Pressable, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, View } from 'react-native';
 import { Text, TextInput } from '../components/AppText';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { api, errorMessage } from '../api/client';
@@ -14,6 +14,7 @@ import { ImportFileSheet, pickFile, type Picked } from '../components/ImportFile
 import { Feedback } from '../components/Feedback';
 import { LOCALE, tr } from '../i18n';
 import { ShareToLibrary } from './CommunityScreens';
+import { showAlert } from '../components/Dialog';
 
 const plain = (t: string) => t.replace(/\*\*/g, '').replace(/^#+\s/gm, '').replace(/`/g, '');
 /** Word / Excel / PowerPoint: mở bằng trình xem Office Online để thấy đủ hình ảnh, bảng, định dạng */
@@ -261,7 +262,7 @@ export function MaterialDetailScreen({ route, navigation }: NativeStackScreenPro
         title={tr('Xoá tài liệu')}
         variant="danger"
         onPress={() =>
-          Alert.alert(tr('Xoá tài liệu?'), m.title, [
+          showAlert(tr('Xoá tài liệu?'), m.title, [
             { text: tr('Huỷ'), style: 'cancel' },
             {
               text: tr('Xoá'),
@@ -481,7 +482,7 @@ export function DeckEditScreen({ route, navigation }: NativeStackScreenProps<App
             {drafts.map((d, i) => (
               <Pressable key={i} onPress={() => setDrafts(drafts.map((x, j) => (j === i ? { ...x, keep: !x.keep } : x)))} style={{ flexDirection: 'row', gap: 10, paddingVertical: 8, borderTopWidth: 1, borderTopColor: colors.border, opacity: d.keep ? 1 : 0.45 }}>
                 <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: d.keep ? colors.text : colors.borderStrong, backgroundColor: d.keep ? colors.marker : colors.surface, alignItems: 'center', justifyContent: 'center', marginTop: 2 }}>
-                  {d.keep && <Icon name="check" size={13} color={colors.text} />}
+                  {d.keep && <Icon name="check" size={13} color={colors.onMarker} />}
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontWeight: '700', color: colors.text }}>{d.front}</Text>
@@ -529,7 +530,7 @@ export function DeckEditScreen({ route, navigation }: NativeStackScreenProps<App
           title={tr('Xoá bộ thẻ')}
           variant="danger"
           onPress={() =>
-            Alert.alert(tr('Xoá bộ thẻ?'), tr('Toàn bộ {0} thẻ trong bộ cũng bị xoá.', list.length), [
+            showAlert(tr('Xoá bộ thẻ?'), tr('Toàn bộ {0} thẻ trong bộ cũng bị xoá.', list.length), [
               { text: tr('Huỷ'), style: 'cancel' },
               {
                 text: tr('Xoá'),
@@ -847,7 +848,7 @@ export function QuizEditScreen({ route, navigation }: NativeStackScreenProps<App
           title={tr('Xoá bộ câu hỏi')}
           variant="danger"
           onPress={() =>
-            Alert.alert(tr('Xoá bộ câu hỏi?'), quiz.title, [
+            showAlert(tr('Xoá bộ câu hỏi?'), quiz.title, [
               { text: tr('Huỷ'), style: 'cancel' },
               {
                 text: tr('Xoá'),

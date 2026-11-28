@@ -9,6 +9,7 @@ import { useSocketEvent } from '@/lib/socket';
 import { tr } from '@/lib/i18n';
 import { Avatar, Modal, Spinner } from '@/components/ui';
 import { Icon } from '@/components/Icon';
+import { uiConfirm } from '@/lib/dialog';
 
 interface Room {
   id: string;
@@ -122,7 +123,7 @@ export default function RoomPage() {
           <button className="btn secondary" onClick={() => setInviteOpen(true)}>
             <Icon name="users" size={16} /> {tr('Mời bạn bè')}
           </button>
-          <button className="btn ghost" onClick={() => confirm(tr('Rời phòng này?')) && post(`/social/rooms/${id}/leave`).then(() => router.push('/rooms'))}>
+          <button className="btn ghost" onClick={async () => (await uiConfirm(tr('Rời phòng này?'))) && post(`/social/rooms/${id}/leave`).then(() => router.push('/rooms'))}>
             {tr('Rời phòng')}
           </button>
         </div>

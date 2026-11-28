@@ -12,6 +12,7 @@ import { AppHeader } from '../components/AppHeader';
 import { HubTiles } from '../components/HubTiles';
 import { tr } from '../i18n';
 import { ChatRow, NewChatSheet, type ChatItem } from './ChatScreens';
+import { chatHeadNative, useChatHeadStatus } from '../chatHead';
 
 /**
  * Tab "Cùng nhau": lối tắt Bạn bè, Phòng học chung, Lớp học + danh sách tin nhắn ngay trên tab
@@ -23,6 +24,7 @@ export function CommunityScreen() {
   const friends = useApi<{ items: { status: string }[] }>('/social/friends');
   const [newMode, setNewMode] = useState<'' | 'direct' | 'group'>('');
   const [refreshing, setRefreshing] = useState(false);
+  const [bubble] = useChatHeadStatus();
   useEffect(() => {
     const offs = ['chat:message', 'chat:changed', 'chat:read'].map((e) => onSocket(e, () => void chats.reload()));
     const off2 = onSocket('friends:changed', () => void friends.reload());
@@ -58,6 +60,12 @@ export function CommunityScreen() {
             { icon: 'library', label: tr('Thư viện cộng đồng'), onPress: () => nav.navigate('Library') },
           ]}
         />
+        {bubble?.enabled && !bubble.permission && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 12, backgroundColor: colors.markerSoft, borderWidth: 1, borderColor: colors.marker }}>
+            <Text style={{ flex: 1, color: colors.text, fontSize: 13.5 }}>{tr('Bật bong bóng chat để thấy tin nhắn nổi trên màn hình cả khi đang dùng app khác.')}</Text>
+            <Button small title={tr('Bật')} onPress={() => chatHeadNative?.openPermission()} />
+          </View>
+        )}
         <Row style={{ flexWrap: 'nowrap', marginTop: 4 }}>
           <View style={{ flex: 1 }}>
             <H3>{tr('Tin nhắn')}</H3>

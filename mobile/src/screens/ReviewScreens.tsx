@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, View } from 'react-native';
 import { Text } from '../components/AppText';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -12,6 +12,7 @@ import { Button, Card, Chip, Chips, Empty, Field, H3, Muted, Row, Screen, s } fr
 import { Icon } from '../components/Icon';
 import { MonthCalendar, dayKey, keyToDate } from '../components/MonthCalendar';
 import { LOCALE, tr } from '../i18n';
+import { showAlert } from '../components/Dialog';
 
 type Nav = NativeStackNavigationProp<AppStackParams>;
 const pct = (v: number | null | undefined) => (v == null ? '—' : `${Math.round(v * 100)}%`);
@@ -80,7 +81,7 @@ export function MistakesScreen() {
           <Pressable key={x.key} onPress={() => setSelected((st) => (st.has(x.key) ? new Set([...st].filter((k) => k !== x.key)) : new Set([...st, x.key])))}>
             <Card style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start', borderColor: on ? colors.text : colors.cardBorder }}>
               <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: on ? colors.text : colors.borderStrong, backgroundColor: on ? colors.marker : colors.surface, alignItems: 'center', justifyContent: 'center', marginTop: 2 }}>
-                {on && <Icon name="check" size={13} color={colors.text} />}
+                {on && <Icon name="check" size={13} color={colors.onMarker} />}
               </View>
               <View style={{ flex: 1, gap: 3 }}>
                 <Text style={{ fontWeight: '700', color: colors.text }}>{x.prompt}</Text>
@@ -210,7 +211,7 @@ export function GoalsScreen() {
         onDelete={
           edit && edit !== 'new'
             ? () =>
-                Alert.alert(tr('Xoá mục tiêu?'), edit.title, [
+                showAlert(tr('Xoá mục tiêu?'), edit.title, [
                   { text: tr('Huỷ'), style: 'cancel' },
                   {
                     text: tr('Xoá'),

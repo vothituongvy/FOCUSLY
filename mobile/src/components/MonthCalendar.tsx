@@ -99,7 +99,7 @@ export function MonthCalendar({
                     borderWidth: isToday && !on ? 0 : 0,
                   }}
                 >
-                  <Text style={{ fontWeight: on || isToday ? '800' : '600', color: on ? '#ffffff' : other ? colors.borderStrong : colors.text }}>{d.getDate()}</Text>
+                  <Text style={{ fontWeight: on || isToday ? '800' : '600', color: on ? colors.onText : isToday ? colors.onMarker : other ? colors.borderStrong : colors.text }}>{d.getDate()}</Text>
                 </View>
                 {!compact && (
                   <View style={{ flexDirection: 'row', gap: 2, height: 6 }}>

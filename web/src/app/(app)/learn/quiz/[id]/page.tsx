@@ -14,6 +14,7 @@ import { tr } from '@/lib/i18n';
 import { ImportFromFile } from '@/components/ImportFromFile';
 import { Feedback } from '@/components/Feedback';
 import { ShareToLibrary } from '@/components/ShareToLibrary';
+import { uiConfirm } from '@/lib/dialog';
 
 const TYPE_LABEL: Record<QuestionType, string> = { mcq: tr('Trắc nghiệm'), multi: tr('Nhiều đáp án đúng'), true_false: tr('Đúng / Sai'), short: tr('Trả lời ngắn') };
 const blank = (type: QuestionType = 'mcq'): Question => ({
@@ -234,7 +235,7 @@ function QuizTaker({ quiz, onFinished }: { quiz: Quiz; onFinished: (a: QuizAttem
   const answered = quiz.questions.filter((q) => { const a = answers[q.qid!]; return a !== undefined && a !== '' && !(Array.isArray(a) && a.length === 0); }).length;
 
   const submit = async () => {
-    if (answered < quiz.questions.length && !confirm(tr('Bạn mới trả lời {0}/{1} câu. Nộp bài?', answered, quiz.questions.length))) return;
+    if (answered < quiz.questions.length && !(await uiConfirm(tr('Bạn mới trả lời {0}/{1} câu. Nộp bài?', answered, quiz.questions.length)))) return;
     setBusy(true);
     try {
       const r = await post<{ item: QuizAttempt }>(`/learn/quizzes/${quiz.id}/attempts`, {
@@ -430,7 +431,7 @@ function QuizInner() {
               className="btn ghost"
               style={{ color: 'var(--danger)' }}
               onClick={async () => {
-                if (!confirm(tr('Xoá bộ câu hỏi?'))) return;
+                if (!(await uiConfirm(tr('Xoá bộ câu hỏi?')))) return;
                 await del(`/quizzes/${id}`);
                 router.push('/learn?tab=quiz');
               }}

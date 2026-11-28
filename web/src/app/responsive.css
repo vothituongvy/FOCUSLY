@@ -123,7 +123,7 @@ img, svg, video, iframe { max-width: 100%; }
 .attach-pending { display: flex; flex-wrap: wrap; gap: 6px; flex: none; }
 .attach-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
 .attach-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 240px; padding: 4px 6px 4px 10px; border: 1px solid var(--rule-strong); border-radius: 999px; font-size: 13px; background: var(--paper); color: var(--ink); }
-.bubble.user .attach-chip { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.3); color: #fff; padding-right: 10px; }
+.bubble.user .attach-chip { background: transparent; border-color: currentColor; color: var(--on-ink); padding-right: 10px; }
 .attach-chip .icon-btn { padding: 2px 6px; }
 .attach-mini { width: 26px; height: 26px; object-fit: cover; border-radius: 6px; }
 .attach-thumb { max-width: 220px; max-height: 180px; border-radius: 8px; object-fit: cover; display: block; }
@@ -141,7 +141,7 @@ img, svg, video, iframe { max-width: 100%; }
 .msg-system { align-self: center; font-size: 12.5px; color: var(--muted); background: var(--surface-2); padding: 3px 10px; border-radius: 999px; text-align: center; }
 .msg-time { align-self: center; font-size: 11.5px; color: var(--muted); margin: 8px 0 2px; }
 .bubble.pending { opacity: .55; }
-.group-avatar { width: 36px; height: 36px; flex: none; border-radius: 50%; background: var(--marker); display: grid; place-items: center; color: var(--ink); border: 1px solid var(--ink); }
+.group-avatar { width: 36px; height: 36px; flex: none; border-radius: 50%; background: var(--marker); display: grid; place-items: center; color: var(--on-marker); border: 1px solid var(--ink); }
 .msg-pick { width: 100%; border: 0; background: none; font: inherit; color: inherit; cursor: pointer; text-align: left; }
 .msg-pick:hover { background: var(--surface-2); }
 @media (max-width: 1000px) {
@@ -167,3 +167,41 @@ img, svg, video, iframe { max-width: 100%; }
 .emoji-pop button { font-size: 20px; line-height: 1; padding: 6px 0; border: 0; background: none; border-radius: 8px; cursor: pointer; }
 .emoji-pop button:hover, .emoji-pop button:focus-visible { background: var(--marker-soft); }
 @media (max-width: 420px) { .emoji-pop { width: calc(100vw - 32px); } }
+
+/* Hộp thoại FOCUSLY (thay confirm/prompt của trình duyệt) */
+.ui-dialog-backdrop { z-index: 200; backdrop-filter: blur(2px); }
+.ui-dialog { position: relative; width: 100%; max-width: 420px; background: var(--paper); color: var(--ink); border: 1px solid var(--ink); border-radius: 18px; padding: 28px 24px 20px; box-shadow: 6px 6px 0 rgba(22, 32, 58, .18); display: flex; flex-direction: column; gap: 12px; animation: dlg-pop .16s ease-out; }
+.ui-dialog-icon { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 20px; background: var(--marker); color: var(--on-marker); border: 1.5px solid var(--ink); }
+.ui-dialog.danger .ui-dialog-icon { background: var(--stop-soft); color: var(--stop); border-color: var(--stop); }
+.ui-dialog-title { font-size: 19px; margin: 0; }
+.ui-dialog-msg { margin: 0; font-size: 15.5px; line-height: 1.55; white-space: pre-wrap; color: var(--ink); }
+.ui-dialog textarea { width: 100%; resize: vertical; }
+.ui-dialog-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px; flex-wrap: wrap; }
+.ui-dialog-actions .btn { min-width: 96px; }
+@keyframes dlg-pop { from { transform: translateY(6px) scale(.97); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (max-width: 640px) {
+  .ui-dialog-backdrop { align-items: end; padding: 0; }
+  .ui-dialog { max-width: none; border-radius: 18px 18px 0 0; padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
+  .ui-dialog-actions .btn { flex: 1; }
+}
+@media (prefers-reduced-motion: reduce) { .ui-dialog { animation: none; } }
+
+/* Tin nhắn: nút ⋯ (chuyển tiếp, lưu ảnh, chia sẻ, xoá, thu hồi) */
+.msg-line { display: flex; align-items: center; gap: 4px; align-self: flex-start; max-width: 100%; }
+.msg-line.mine { align-self: flex-end; flex-direction: row-reverse; }
+.msg-content { gap: 2px; min-width: 0; align-items: flex-start; }
+.msg-line.mine .msg-content { align-items: flex-end; }
+.msg-content .bubble, .msg-content .msg-image { align-self: auto; max-width: 100%; }
+.msg-actions { position: relative; flex: none; opacity: 0; transition: opacity .12s; }
+.msg-line:hover .msg-actions, .msg-line.menu-open .msg-actions, .msg-actions:focus-within { opacity: 1; }
+@media (hover: none) { .msg-actions { opacity: .7; } }
+.msg-actions .icon-btn { width: 30px; height: 30px; font-size: 18px; color: var(--muted); }
+.msg-menu { position: absolute; z-index: 41; bottom: calc(100% + 4px); min-width: 210px; display: flex; flex-direction: column; padding: 6px; background: var(--paper); border: 1px solid var(--ink); border-radius: 12px; box-shadow: 4px 4px 0 rgba(22, 32, 58, .14); }
+.msg-menu.left { right: 0; }
+.msg-menu.right { left: 0; }
+.msg-menu button { text-align: left; font: inherit; font-size: 14px; padding: 8px 10px; border: 0; background: none; border-radius: 8px; color: var(--ink); cursor: pointer; white-space: nowrap; }
+.msg-menu button:hover, .msg-menu button:focus-visible { background: var(--marker-soft); }
+.msg-menu button.danger { color: var(--stop); }
+.msg-fwd { font-size: 12px; color: var(--muted); font-style: italic; }
+.bubble.recalled { background: transparent !important; color: var(--muted) !important; border: 1px dashed var(--rule-strong); font-style: italic; }
+.msg-blocked { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 14px; border-radius: 12px; background: var(--surface-2); color: var(--ink-2); font-size: 14px; }

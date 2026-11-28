@@ -5,7 +5,7 @@ import { Types } from 'mongoose';
 import { z } from 'zod';
 import { requireAuth, uid } from '../middleware/auth';
 import { ah, badRequest, forbidden, notFound, parse } from '../utils/http';
-import { ChatMessageModel, ChatModel, FriendModel } from '../models/Social';
+import { ChatMessageModel, ChatModel, FriendModel, BlockModel, blockedBetween } from '../models/Social';
 import { UserModel } from '../models/User';
 import { FocusSessionModel } from '../models/FocusSession';
 import { emitToUser } from '../services/realtime';
@@ -41,9 +41,17 @@ async function view(c: ChatDoc, me: string, withUnread = true) {
   const meMember = c.members.find((m) => String(m.user) === me);
   const others = c.members.filter((m) => String(m.user) !== me);
   const other = c.type === 'direct' ? byId.get(String(others[0]?.user)) : null;
-  const unread = withUnread && meMember ? await ChatMessageModel.countDocuments({ chat: c._id, deletedAt: null, sender: { $ne: me }, createdAt: { $gt: meMember.lastReadAt } }) : 0;
+  const unread = withUnread && meMember ? await ChatMessageModel.countDocuments({ chat: c._id, deletedAt: null, recalled: { $ne: true }, hiddenFor: { $ne: me }, sender: { $ne: me }, createdAt: { $gt: meMember.lastReadAt } }) : 0;
   const lastSender = c.lastMessage?.sender ? byId.get(String(c.lastMessage.sender)) : null;
+  // trò chuyện 1-1: ai đã chặn ai (để ẩn ô nhập và hiện nút bỏ chặn)
+  let blocked: 'me' | 'them' | null = null;
+  if (c.type === 'direct' && others[0]) {
+    const b = await BlockModel.findOne({ $or: [{ user: me, blocked: others[0].user }, { user: others[0].user, blocked: me }] }).lean();
+    if (b) blocked = String(b.user) === me ? 'me' : 'them';
+  }
   return {
+    blocked,
+    otherId: c.type === 'direct' && others[0] ? String(others[0].user) : null,
     id: c.id,
     type: c.type,
     name: c.type === 'group' ? c.name || users.map((u) => u.name.split(' ').pop()).join(', ') : (other?.name ?? 'Người dùng'),
@@ -59,11 +67,13 @@ async function view(c: ChatDoc, me: string, withUnread = true) {
   };
 }
 
-const msgView = (m: { _id: unknown; sender?: unknown; text?: string | null; image?: { url?: string | null; width?: number | null; height?: number | null } | null; createdAt?: Date; clientId?: string | null }) => ({
+const msgView = (m: { _id: unknown; sender?: unknown; text?: string | null; image?: { url?: string | null; width?: number | null; height?: number | null } | null; recalled?: boolean; forwarded?: boolean; createdAt?: Date; clientId?: string | null }) => ({
   id: String(m._id),
   sender: m.sender ? String(m.sender) : null,
-  text: m.text ?? '',
-  image: m.image?.url ? { url: m.image.url, width: m.image.width ?? null, height: m.image.height ?? null } : null,
+  text: m.recalled ? '' : (m.text ?? ''),
+  image: !m.recalled && m.image?.url ? { url: m.image.url, width: m.image.width ?? null, height: m.image.height ?? null } : null,
+  recalled: Boolean(m.recalled),
+  forwarded: Boolean(m.forwarded),
   at: m.createdAt,
   clientId: m.clientId ?? undefined,
 });
@@ -215,7 +225,7 @@ router.get(
     const me = uid(req);
     const c = await loadChat(req.params.id, me);
     const q = parse(z.object({ before: z.string().datetime().optional(), limit: z.coerce.number().int().min(1).max(100).default(40) }), req.query);
-    const items = await ChatMessageModel.find({ chat: c._id, deletedAt: null, ...(q.before ? { createdAt: { $lt: new Date(q.before) } } : {}) })
+    const items = await ChatMessageModel.find({ chat: c._id, deletedAt: null, hiddenFor: { $ne: me }, ...(q.before ? { createdAt: { $lt: new Date(q.before) } } : {}) })
       .sort({ createdAt: -1 })
       .limit(q.limit)
       .lean();
@@ -233,14 +243,15 @@ const imageUpload = multer({
 });
 
 /** Tạo tin, cập nhật tin cuối, phát realtime và gửi thông báo đẩy */
-async function deliver(c: ChatDoc, me: string, text: string, image: { url: string; publicId: string; width?: number; height?: number } | null, clientId?: string) {
+async function deliver(c: ChatDoc, me: string, text: string, image: { url: string; publicId: string; width?: number; height?: number } | null, clientId?: string, forwarded = false) {
   if (c.type === 'direct') {
     const other = c.members.find((m) => String(m.user) !== me);
+    if (other && (await blockedBetween(me, String(other.user)))) throw forbidden('Không thể gửi tin nhắn trong cuộc trò chuyện này');
     if (other && !(await areFriends(me, String(other.user)))) throw forbidden('Hai bạn không còn là bạn bè');
   }
   let m;
   try {
-    m = await ChatMessageModel.create({ chat: c._id, sender: me, text, image, clientId });
+    m = await ChatMessageModel.create({ chat: c._id, sender: me, text, image, clientId, forwarded });
   } catch (e) {
     if ((e as { code?: number }).code !== 11000) throw e;
     m = await ChatMessageModel.findOne({ chat: c._id, clientId }); // gửi lại -> trả tin cũ
@@ -256,7 +267,7 @@ async function deliver(c: ChatDoc, me: string, text: string, image: { url: strin
   broadcast(c, 'chat:message', { chatId: c.id, message });
 
   // Thông báo đẩy cho người nhận (trừ khi tắt / đang tập trung)
-  const sender = await UserModel.findById(me).select('name').lean();
+  const sender = await UserModel.findById(me).select('name avatarUrl').lean();
   const recipients = c.members.filter((x) => String(x.user) !== me && !x.muted).map((x) => String(x.user));
   if (recipients.length) {
     const [users, focusing] = await Promise.all([
@@ -270,7 +281,7 @@ async function deliver(c: ChatDoc, me: string, text: string, image: { url: strin
       const ns = u.notificationSettings as { chatMessages?: boolean; chatDuringFocus?: boolean } | undefined;
       if (ns?.chatMessages === false) continue;
       if (busy.has(String(u._id)) && !ns?.chatDuringFocus) continue; // đang học -> không làm phiền
-      void pushOnly(String(u._id), title, body.slice(0, 180), { type: 'chat', link: `/messages?chat=${c.id}`, chatId: c.id }, `chat-${c.id}`, 'focusly-chat');
+      void pushOnly(String(u._id), title, body.slice(0, 180), { type: 'chat', link: `/messages?chat=${c.id}`, chatId: c.id, name: title, avatar: c.type === 'direct' ? (sender?.avatarUrl ?? '') : '' }, `chat-${c.id}`, 'focusly-chat');
     }
   }
   return { message, duplicate: false };
@@ -316,16 +327,63 @@ router.post(
   }),
 );
 
-/** Xoá tin của mình */
+/**
+ * Xoá tin nhắn.
+ * - ?for=me (mặc định với tin của người khác): chỉ ẩn ở phía mình.
+ * - ?for=all (chỉ người gửi): thu hồi ở cả hai phía – người kia thấy "Tin nhắn đã được thu hồi".
+ */
 router.delete(
   '/:id/messages/:mid',
   ah(async (req, res) => {
     const me = uid(req);
     const c = await loadChat(req.params.id, me);
-    const r = await ChatMessageModel.updateOne({ _id: req.params.mid, chat: c._id, sender: me }, { deletedAt: new Date() });
-    if (!r.matchedCount) throw notFound();
-    broadcast(c, 'chat:deleted', { chatId: c.id, messageId: req.params.mid });
-    res.json({ ok: true });
+    if (!Types.ObjectId.isValid(req.params.mid)) throw notFound();
+    const m = await ChatMessageModel.findOne({ _id: req.params.mid, chat: c._id, deletedAt: null });
+    if (!m) throw notFound('Tin nhắn không còn');
+    const mine = String(m.sender) === me;
+    const scope = req.query.for === 'me' ? 'me' : req.query.for === 'all' ? 'all' : mine ? 'all' : 'me';
+    if (scope === 'me') {
+      await ChatMessageModel.updateOne({ _id: m._id }, { $addToSet: { hiddenFor: me } });
+      emitToUser(me, 'chat:deleted', { chatId: c.id, messageId: m.id });
+      return res.json({ ok: true, scope });
+    }
+    if (!mine) throw forbidden('Chỉ thu hồi được tin của chính bạn');
+    m.recalled = true;
+    m.text = '';
+    await m.save();
+    // tin cuối bị thu hồi -> cập nhật dòng xem trước trong danh sách
+    if (c.lastMessage?.at && (m.get('createdAt') as Date).getTime() === new Date(c.lastMessage.at).getTime()) {
+      c.lastMessage = { ...c.lastMessage, text: 'Tin nhắn đã được thu hồi' } as never;
+      await c.save();
+    }
+    broadcast(c, 'chat:recalled', { chatId: c.id, message: msgView(m.toObject()) });
+    res.json({ ok: true, scope });
+  }),
+);
+
+/** Chuyển tiếp một tin (chữ hoặc ảnh) sang các cuộc trò chuyện khác của mình */
+router.post(
+  '/forward',
+  ah(async (req, res) => {
+    const me = uid(req);
+    const data = parse(z.object({ fromChatId: z.string(), messageId: z.string(), toChatIds: z.array(z.string()).min(1).max(10) }), req.body);
+    const from = await loadChat(data.fromChatId, me);
+    if (!Types.ObjectId.isValid(data.messageId)) throw notFound();
+    const src = await ChatMessageModel.findOne({ _id: data.messageId, chat: from._id, deletedAt: null, recalled: { $ne: true }, hiddenFor: { $ne: me } }).lean();
+    if (!src || !src.sender) throw notFound('Tin nhắn không còn');
+    const image = src.image?.url ? { url: src.image.url, publicId: '', width: src.image.width ?? undefined, height: src.image.height ?? undefined } : null;
+    const sent: string[] = [];
+    const failed: { chatId: string; error: string }[] = [];
+    for (const id of [...new Set(data.toChatIds)]) {
+      try {
+        const c = await loadChat(id, me);
+        await deliver(c, me, src.text ?? '', image, undefined, true);
+        sent.push(id);
+      } catch (e) {
+        failed.push({ chatId: id, error: (e as Error).message });
+      }
+    }
+    res.json({ sent, failed });
   }),
 );
 

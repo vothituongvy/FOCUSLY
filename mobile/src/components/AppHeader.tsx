@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { api } from '../api/client';
 import { useAuth } from '../store/auth';
-import { colors, fonts } from '../theme';
+import { colors, fonts, isDark } from '../theme';
 import type { AppStackParams } from '../navigation/types';
 import { IconButton } from './ui';
 import { tr } from '../i18n';
@@ -44,7 +44,7 @@ export function AppHeader({ title, subtitle, right }: { title: string; subtitle?
 
   return (
     <>
-    <StatusBar barStyle="dark-content" />
+    <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
     <View
       style={{
         flexDirection: 'row',
@@ -82,7 +82,7 @@ export function AppHeader({ title, subtitle, right }: { title: string; subtitle?
           <Image onError={() => setAvatarBroken(true)} source={{ uri: user.avatarUrl }} style={{ width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: colors.border }} />
         ) : (
           <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.marker, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontWeight: '800', color: colors.text, fontSize: 13 }}>{initials}</Text>
+            <Text style={{ fontWeight: '800', color: colors.onMarker, fontSize: 13 }}>{initials}</Text>
           </View>
         )}
       </Pressable>

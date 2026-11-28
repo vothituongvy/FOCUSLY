@@ -1,4 +1,5 @@
 import React from 'react';
+import { colors } from '../theme';
 import { View } from 'react-native';
 import { Text } from './AppText';
 
@@ -59,6 +60,8 @@ const PATHS = {
   globe: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z',
   swap: 'M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7',
   copy: 'M9 9h11v11H9zM5 15H4V4h11v1',
+  share: 'M15 5l5 5-5 5M20 10H10a6 6 0 0 0-6 6v3',
+  undo: 'M9 14 4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3',
   calendar: 'M4 6h16v15H4zM4 10h16M8 3v4M16 3v4',
   arrowLeft: 'M19 12H5M11 18l-6-6 6-6',
   chevronRight: 'M9 6l6 6-6 6',
@@ -90,7 +93,7 @@ const FALLBACK: Partial<Record<string, string>> = {
   materials: '▭', journal: '▯', history: '↺', coffee: '◡', wind: '≈', zap: 'ϟ', flame: '▲', translate: 'A', clip: '⌇', users: '☺', chat: '✉', help: '?', trophy: '★', room: '▣', school: '▲', library: '▤', target: '◎', volume: '♪', mic: '●',
 };
 
-export function Icon({ name, size = 20, color = '#16203a', strokeWidth = 1.75 }: { name: IconName; size?: number; color?: string; strokeWidth?: number }) {
+export function Icon({ name, size = 20, color = colors.text, strokeWidth = 1.75 }: { name: IconName; size?: number; color?: string; strokeWidth?: number }) {
   if (!Svg) {
     // Chưa cài/chưa build react-native-svg: hiện ký hiệu tạm để không bị ô trống
     return (

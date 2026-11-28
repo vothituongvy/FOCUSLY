@@ -14,6 +14,12 @@ class MainActivity : ReactActivity() {
    */
   override fun getMainComponentName(): String = "FocuslyMobile"
 
+  /** Vào app -> ẩn bong bóng chat nổi (giống Messenger) */
+  override fun onResume() {
+    super.onResume()
+    ChatHeads.hide(this)
+  }
+
   /** App đang mở mà người dùng bấm widget: giữ intent mới để JS đọc hành động */
   override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)

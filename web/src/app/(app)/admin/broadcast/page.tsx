@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { errorMessage, post } from '@/lib/api';
 import { tr } from '@/lib/i18n';
+import { uiConfirm } from '@/lib/dialog';
 
 /** Gửi thông báo tới mọi người dùng (trong app + điện thoại): ra mắt tính năng, bảo trì, sự kiện… */
 export default function AdminBroadcastPage() {
@@ -14,7 +15,7 @@ export default function AdminBroadcastPage() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const send = async () => {
-    if (!confirm(tr('Gửi thông báo này tới {0}?', audience === 'all' ? tr('tất cả người dùng') : tr('người dùng hoạt động 30 ngày qua')))) return;
+    if (!(await uiConfirm(tr('Gửi thông báo này tới {0}?', audience === 'all' ? tr('tất cả người dùng') : tr('người dùng hoạt động 30 ngày qua'))))) return;
     setBusy(true);
     setError('');
     setMsg('');

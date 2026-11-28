@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, Share, Switch, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Share, Switch, View } from 'react-native';
 import { Text, TextInput } from '../components/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -12,6 +12,7 @@ import { colors } from '../theme';
 import { Button, Card, Chip, Chips, Empty, Field, H1, H3, Loading, Muted, ProgressBar, Row, Screen, s } from '../components/ui';
 import { tr } from '../i18n';
 import { Avatar } from './SocialScreens';
+import { showAlert } from '../components/Dialog';
 
 type Nav = NativeStackNavigationProp<AppStackParams>;
 
@@ -196,7 +197,7 @@ export function ShareToLibrary({ kind, id }: { kind: Kind; id?: string }) {
             };
             // tài liệu: xác nhận có quyền chia sẻ trước khi công khai
             if (v && kind === 'material')
-              Alert.alert(tr('Chia sẻ tài liệu'), tr('Bạn xác nhận tài liệu này do bạn tự soạn hoặc được tác giả cho phép chia sẻ công khai? Không đăng sách, đề thi hay tài liệu có bản quyền của người khác.'), [
+              showAlert(tr('Chia sẻ tài liệu'), tr('Bạn xác nhận tài liệu này do bạn tự soạn hoặc được tác giả cho phép chia sẻ công khai? Không đăng sách, đề thi hay tài liệu có bản quyền của người khác.'), [
                 { text: tr('Huỷ'), style: 'cancel' },
                 { text: tr('Tôi xác nhận'), onPress: () => void go() },
               ]);
@@ -307,7 +308,7 @@ export function ClassDetailScreen({ route, navigation }: NativeStackScreenProps<
     }
   };
   const leave = () =>
-    Alert.alert(c.isTeacher ? tr('Xoá lớp này?') : tr('Rời lớp này?'), '', [
+    showAlert(c.isTeacher ? tr('Xoá lớp này?') : tr('Rời lớp này?'), '', [
       { text: tr('Huỷ'), style: 'cancel' },
       { text: c.isTeacher ? tr('Xoá lớp') : tr('Rời lớp'), style: 'destructive', onPress: () => void api(`/classes/${id}`, { method: 'DELETE' }).then(() => navigation.goBack()) },
     ]);

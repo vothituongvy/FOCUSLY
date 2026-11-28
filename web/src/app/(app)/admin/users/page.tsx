@@ -5,6 +5,7 @@ import { errorMessage, get, patch } from '@/lib/api';
 import { useResource } from '@/lib/hooks';
 import { tr } from '@/lib/i18n';
 import { Avatar, Empty, Modal, Spinner } from '@/components/ui';
+import { uiConfirm } from '@/lib/dialog';
 
 interface U {
   id: string;
@@ -135,7 +136,7 @@ function UserDetail({ d, onClose, onChanged }: { d: Detail; onClose: () => void;
   const [error, setError] = useState('');
   const u = d.item;
   const toggle = async () => {
-    if (!u.disabled && !confirm(tr('Khoá tài khoản {0}? Người này sẽ bị đăng xuất khỏi mọi thiết bị.', u.name))) return;
+    if (!u.disabled && !(await uiConfirm(tr('Khoá tài khoản {0}? Người này sẽ bị đăng xuất khỏi mọi thiết bị.', u.name)))) return;
     setError('');
     try {
       await patch(`/admin/users/${u.id}`, { disabled: !u.disabled, reason });

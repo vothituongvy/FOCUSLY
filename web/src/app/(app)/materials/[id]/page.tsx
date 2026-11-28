@@ -13,6 +13,7 @@ import { Empty, Modal, Progress, Spinner } from '@/components/ui';
 import { Icon } from '@/components/Icon';
 import { tr } from '@/lib/i18n';
 import { ShareToLibrary } from '@/components/ShareToLibrary';
+import { uiConfirm } from '@/lib/dialog';
 
 type Tab = 'notes' | 'ai';
 
@@ -100,7 +101,7 @@ export default function MaterialDetailPage() {
             className="btn ghost sm"
             style={{ color: 'var(--danger)' }}
             onClick={async () => {
-              if (!confirm(tr('Xoá tài liệu này cùng ghi chú?'))) return;
+              if (!(await uiConfirm(tr('Xoá tài liệu này cùng ghi chú?')))) return;
               await del(`/materials/${id}`);
               router.push('/materials');
             }}

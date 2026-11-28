@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Alert, FlatList, Pressable, ScrollView, Switch, View } from 'react-native';
+import { FlatList, Pressable, ScrollView, Switch, View } from 'react-native';
 import { Text } from '../components/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -13,6 +13,7 @@ import { AppHeader } from '../components/AppHeader';
 import { MonthCalendar, dayKey, keyToDate, type DayMark } from '../components/MonthCalendar';
 import { Icon } from '../components/Icon';
 import { LOCALE, tr } from '../i18n';
+import { showAlert } from '../components/Dialog';
 
 const PRIORITY_COLOR: Record<Priority, string> = { low: '#3f7a45', medium: '#4a48c4', high: '#b45309', urgent: '#b91c1c' };
 
@@ -354,7 +355,7 @@ export function TaskEditScreen({ route, navigation }: NativeStackScreenProps<App
           title={tr('Xoá nhiệm vụ')}
           variant="ghost"
           onPress={() =>
-            Alert.alert(tr('Xoá nhiệm vụ?'), task.title, [
+            showAlert(tr('Xoá nhiệm vụ?'), task.title, [
               { text: tr('Huỷ'), style: 'cancel' },
               {
                 text: tr('Xoá'),
@@ -417,7 +418,7 @@ export function SubjectEditScreen({ route, navigation }: NativeStackScreenProps<
           title={tr('Xoá môn học')}
           variant="ghost"
           onPress={() =>
-            Alert.alert(tr('Xoá môn học?'), tr('Nhiệm vụ thuộc môn sẽ được giữ lại.'), [
+            showAlert(tr('Xoá môn học?'), tr('Nhiệm vụ thuộc môn sẽ được giữ lại.'), [
               { text: tr('Huỷ'), style: 'cancel' },
               {
                 text: tr('Xoá'),

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { requireAuth, uid } from '../middleware/auth';
 import { ah, badRequest, forbidden, notFound, parse } from '../utils/http';
-import { FriendModel, RoomModel } from '../models/Social';
+import { BlockModel, ChatModel, FriendModel, RoomModel, blockedBetween } from '../models/Social';
 import { UserModel } from '../models/User';
 import { emitToUser } from '../services/realtime';
 import { notify } from '../services/notifications';
@@ -57,6 +57,8 @@ router.post(
     if (!other) throw notFound('Không tìm thấy mã kết bạn này');
     const otherId = String(other._id);
     if (otherId === userId) throw badRequest('Đây là mã của chính bạn');
+    // đã chặn nhau -> không kết bạn được (không nói rõ ai chặn ai)
+    if (await blockedBetween(userId, otherId)) throw forbidden('Không thể kết bạn với người này');
     const reverse = await FriendModel.findOne({ user: userId, friend: otherId });
     if (reverse?.status === 'accepted') return res.json({ status: 'accepted', friend: publicUser(other) });
     if (reverse?.status === 'incoming') {
@@ -108,6 +110,50 @@ router.delete(
     await FriendModel.deleteOne({ user: userId, friend: req.params.id });
     await FriendModel.deleteOne({ user: req.params.id, friend: userId });
     emitToUser(req.params.id, 'friends:changed', {});
+    res.json({ ok: true });
+  }),
+);
+
+/** Báo cho 2 người: cuộc trò chuyện 1-1 giữa họ đổi trạng thái chặn */
+async function pingDirect(a: string, b: string) {
+  const c = await ChatModel.findOne({ type: 'direct', deletedAt: null, 'members.user': { $all: [a, b] } }).select('_id').lean();
+  const payload = { chatId: c ? String(c._id) : '' };
+  emitToUser(a, 'chat:changed', payload);
+  emitToUser(b, 'chat:changed', payload);
+}
+
+/* ---------------- Chặn người dùng ---------------- */
+router.get(
+  '/blocks',
+  ah(async (req, res) => {
+    const items = await BlockModel.find({ user: uid(req) }).populate('blocked', 'name avatarUrl').sort({ createdAt: -1 }).lean();
+    res.json({ items: items.filter((b) => b.blocked).map((b) => ({ ...publicUser(b.blocked as never), since: (b as { createdAt?: Date }).createdAt })) });
+  }),
+);
+
+/** Chặn: huỷ kết bạn, không nhắn tin 1-1 và không gửi lời mời kết bạn cho nhau được nữa */
+router.post(
+  '/blocks',
+  ah(async (req, res) => {
+    const me = uid(req);
+    const { userId } = parse(z.object({ userId: z.string().regex(/^[a-f0-9]{24}$/i) }), req.body);
+    if (userId === me) throw badRequest('Không thể tự chặn chính mình');
+    if (!(await UserModel.exists({ _id: userId }))) throw notFound('Không tìm thấy người dùng');
+    await BlockModel.updateOne({ user: me, blocked: userId }, {}, { upsert: true });
+    await FriendModel.deleteMany({ $or: [{ user: me, friend: userId }, { user: userId, friend: me }] });
+    emitToUser(userId, 'friends:changed', {});
+    emitToUser(me, 'friends:changed', {});
+    await pingDirect(me, userId);
+    res.status(201).json({ ok: true });
+  }),
+);
+
+router.delete(
+  '/blocks/:userId',
+  ah(async (req, res) => {
+    const me = uid(req);
+    await BlockModel.deleteOne({ user: me, blocked: req.params.userId });
+    await pingDirect(me, req.params.userId);
     res.json({ ok: true });
   }),
 );

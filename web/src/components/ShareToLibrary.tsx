@@ -5,6 +5,7 @@ import { errorMessage, get, post } from '@/lib/api';
 import { tr } from '@/lib/i18n';
 import { Toggle } from '@/components/ui';
 import { useResource } from '@/lib/hooks';
+import { uiConfirm } from '@/lib/dialog';
 
 /** Bật/tắt chia sẻ bộ thẻ / bộ câu hỏi lên Thư viện cộng đồng */
 export function ShareToLibrary({ kind, id }: { kind: 'deck' | 'quiz' | 'material'; id: string }) {
@@ -15,7 +16,7 @@ export function ShareToLibrary({ kind, id }: { kind: 'deck' | 'quiz' | 'material
   const on = info.data.item.isPublic;
   const set = async (v: boolean) => {
     // tài liệu: phải xác nhận có quyền chia sẻ (tránh đăng sách/tài liệu có bản quyền)
-    if (v && kind === 'material' && !confirm(tr('Bạn xác nhận tài liệu này do bạn tự soạn hoặc được tác giả cho phép chia sẻ công khai? Không đăng sách, đề thi hay tài liệu có bản quyền của người khác.'))) return;
+    if (v && kind === 'material' && !(await uiConfirm(tr('Bạn xác nhận tài liệu này do bạn tự soạn hoặc được tác giả cho phép chia sẻ công khai? Không đăng sách, đề thi hay tài liệu có bản quyền của người khác.')))) return;
     setBusy(true);
     setError('');
     try {

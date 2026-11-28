@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, AppState, BackHandler, Modal, Pressable, ScrollView, StatusBar, Switch, View } from 'react-native';
+import { AppState, BackHandler, Modal, Pressable, ScrollView, StatusBar, Switch, View } from 'react-native';
 import { Text, TextInput } from '../components/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, type RouteProp } from '@react-navigation/native';
@@ -19,6 +19,7 @@ import { ForecastHint } from '../components/FocusForecast';
 import { Icon, type IconName } from '../components/Icon';
 import { TranslateSheet } from '../components/TranslateSheet';
 import { tr } from '../i18n';
+import { showAlert } from '../components/Dialog';
 
 type Level = 'off' | 'shield' | 'strict';
 const LEVELS: { id: Level; name: string; line: string; icon: IconName }[] = [
@@ -266,7 +267,7 @@ function Running({ session }: { session: FocusSession }) {
     if (autoKey.current === key) return;
     autoKey.current = key;
     if (session.status === 'active' && session.mode === 'pomodoro') void takeBreak();
-    else if (session.status === 'on_break') Alert.alert(tr('Hết giờ nghỉ '), tr('Quay lại mục tiêu: {0}', session.goal), [{ text: tr('Tiếp tục học'), onPress: () => void resume() }, { text: tr('Để sau') }]);
+    else if (session.status === 'on_break') showAlert(tr('Hết giờ nghỉ '), tr('Quay lại mục tiêu: {0}', session.goal), [{ text: tr('Tiếp tục học'), onPress: () => void resume() }, { text: tr('Để sau') }]);
     else if (session.status === 'active' && session.mode === 'custom') setShowEnd(true);
   }, [info.done, session.status, session.segments.length, session.mode, session.goal, takeBreak, resume]);
 
@@ -289,12 +290,12 @@ function Running({ session }: { session: FocusSession }) {
         if (secs >= (session.strict ? 2 : 10)) {
           void appLeave(new Date(left + offsetMs), new Date(Date.now() + offsetMs));
           if (session.strict) {
-            Alert.alert(tr('Đồng hồ đã dừng'), tr('Bạn đã rời FOCUSLY {0}. Thời gian đó không được tính.', fmtDuration(secs)), [
+            showAlert(tr('Đồng hồ đã dừng'), tr('Bạn đã rời FOCUSLY {0}. Thời gian đó không được tính.', fmtDuration(secs)), [
               { text: tr('Học tiếp'), onPress: () => void resume() },
               { text: 'Quick Reset', onPress: () => setRecover('app_leave') },
             ]);
           } else {
-            Alert.alert(tr('Bạn vừa rời ứng dụng'), tr('Bạn đã rời {0}. Có phải bạn bị phân tâm?', fmtDuration(secs)), [
+            showAlert(tr('Bạn vừa rời ứng dụng'), tr('Bạn đã rời {0}. Có phải bạn bị phân tâm?', fmtDuration(secs)), [
               { text: tr('Ghi nguyên nhân'), onPress: () => setShowDistraction(true) },
               { text: 'Quick Reset', onPress: () => setRecover('app_leave') },
               { text: tr('Không'), style: 'cancel' },
@@ -322,7 +323,7 @@ function Running({ session }: { session: FocusSession }) {
   // Chặn nút Back khi đang học
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      Alert.alert(tr('Đang trong phiên học'), tr('Kết thúc phiên trước khi thoát nhé.'));
+      showAlert(tr('Đang trong phiên học'), tr('Kết thúc phiên trước khi thoát nhé.'));
       return true;
     });
     return () => sub.remove();

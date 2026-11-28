@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { ThemeSwitch } from './ThemeSwitch';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/lib/auth';
@@ -85,6 +86,10 @@ export function UserMenu() {
                 </button>
               ))}
             </span>
+          </div>
+          <div className="menu-item menu-lang menu-theme">
+            <span className="grow">{tr('Giao diện')}</span>
+            <ThemeSwitch />
           </div>
           <div className="menu-sep" />
           <button

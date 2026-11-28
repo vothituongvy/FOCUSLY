@@ -7,6 +7,7 @@ import { fromDateInput, toDateInput, toDateTimeInput, WEEKDAYS_VI } from '@/lib/
 import { PRIORITY_LABEL, STATUS_LABEL, type Course, type Goal, type Priority, type Subject, type Task, type TaskStatus } from '@/lib/types';
 import { Modal } from './ui';
 import { tr } from '@/lib/i18n';
+import { uiConfirm } from '@/lib/dialog';
 
 const COLORS = ['#16203a', '#2f6fb3', '#0f7c86', '#1f7a4d', '#a8780b', '#b8402f', '#c2557a', '#7b4fa3', '#5b6475', '#d4a017'];
 const ICONS = ['📘', '📱', '💻', '🇬🇧', '🧮', '🧪', '🎨', '🎵', '📊', '🧠', '✍️', '🌏'];
@@ -77,7 +78,7 @@ export function SubjectForm({ open, onClose, subject }: { open: boolean; onClose
               className="btn ghost"
               style={{ color: 'var(--danger)' }}
               onClick={async () => {
-                if (!confirm(tr('Xoá môn "{0}"? Các khoá học thuộc môn sẽ bị xoá, nhiệm vụ được giữ lại.', subject.name))) return;
+                if (!(await uiConfirm(tr('Xoá môn "{0}"? Các khoá học thuộc môn sẽ bị xoá, nhiệm vụ được giữ lại.', subject.name)))) return;
                 await del(`/subjects/${subject.id}`);
                 await load();
                 onClose();
@@ -131,7 +132,7 @@ export function CourseForm({ open, onClose, subjectId, course }: { open: boolean
               className="btn ghost"
               style={{ color: 'var(--danger)' }}
               onClick={async () => {
-                if (!confirm(tr('Xoá khoá học này?'))) return;
+                if (!(await uiConfirm(tr('Xoá khoá học này?')))) return;
                 await del(`/courses/${course.id}`);
                 await load();
                 onClose();
@@ -216,7 +217,7 @@ export function GoalForm({ open, onClose, goal, defaultSubject }: { open: boolea
               className="btn ghost"
               style={{ color: 'var(--danger)' }}
               onClick={async () => {
-                if (!confirm(tr('Xoá mục tiêu?'))) return;
+                if (!(await uiConfirm(tr('Xoá mục tiêu?')))) return;
                 await del(`/goals/${goal.id}`);
                 await load();
                 onClose();

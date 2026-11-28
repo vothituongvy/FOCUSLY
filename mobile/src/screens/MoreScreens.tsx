@@ -215,7 +215,7 @@ export function AnalyticsScreen() {
               <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: 120, gap: 3 }}>
                 {a!.series.map((x) => (
                   <View key={x.date} style={{ flex: 1, flexDirection: 'row', alignItems: 'flex-end', height: '100%', gap: 1 }}>
-                    <View style={{ flex: 1, height: `${(x.plannedMinutes / max) * 100}%`, backgroundColor: '#d5dbe5', borderRadius: 3 }} />
+                    <View style={{ flex: 1, height: `${(x.plannedMinutes / max) * 100}%`, backgroundColor: colors.neutralBar, borderRadius: 3 }} />
                     <View style={{ flex: 1, height: `${(x.focusMinutes / max) * 100}%`, backgroundColor: colors.marker, borderRadius: 3, borderWidth: 1, borderColor: colors.text }} />
                   </View>
                 ))}

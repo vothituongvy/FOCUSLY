@@ -1,9 +1,10 @@
 import React from 'react';
-import { Alert, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { Text } from './AppText';
 import { LANG, prefSet, setLang, type Lang } from '../i18n';
 import { reloadApp } from '../focusLock';
 import { colors } from '../theme';
+import { showAlert } from './Dialog';
 
 const OPTIONS: { id: Lang; label: string }[] = [
   { id: 'vi', label: 'Tiếng Việt' },
@@ -32,7 +33,7 @@ export function LangSwitch({ compact = false }: { compact?: boolean }) {
               prefSet('reopenTab', 'Profile');
               if (await reloadApp()) return;
               prefSet('reopenTab', '');
-              Alert.alert(
+              showAlert(
                 o.id === 'en' ? 'Language changed' : 'Đã đổi ngôn ngữ',
                 o.id === 'en' ? 'Close and reopen FOCUSLY to switch every label.' : 'Đóng và mở lại FOCUSLY để đổi toàn bộ chữ.',
               );

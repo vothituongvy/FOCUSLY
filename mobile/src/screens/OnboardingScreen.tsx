@@ -88,7 +88,7 @@ function Art({ slide, active }: { slide: Slide; active: boolean }) {
         width: [84, 92, 78][i],
         height: [84, 92, 78][i],
         borderRadius: 24,
-        backgroundColor: i === 1 ? colors.text : '#ffffff',
+        backgroundColor: i === 1 ? colors.text : colors.surface,
         borderWidth: 1,
         borderColor: slide.tone.border,
         alignItems: 'center',
@@ -179,8 +179,8 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
               transform: [{ scale: pressed ? 0.98 : 1 }],
             })}
           >
-            <Text style={{ color: last ? colors.text : '#ffffff', fontWeight: '800', fontSize: 16 }}>{last ? tr('Bắt đầu') : tr('Tiếp')}</Text>
-            <Icon name="chevronRight" size={20} color={last ? colors.text : '#ffffff'} />
+            <Text style={{ color: last ? colors.onMarker : colors.onText, fontWeight: '800', fontSize: 16 }}>{last ? tr('Bắt đầu') : tr('Tiếp')}</Text>
+            <Icon name="chevronRight" size={20} color={last ? colors.onMarker : colors.onText} />
           </Pressable>
         </View>
       </View>

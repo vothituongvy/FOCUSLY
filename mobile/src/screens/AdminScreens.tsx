@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Modal, Platform, Pressable, ScrollView, Switch, View } from 'react-native';
+import { Modal, Platform, Pressable, ScrollView, Switch, View } from 'react-native';
 import { Text, TextInput } from '../components/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -13,13 +13,14 @@ import { HubTiles } from '../components/HubTiles';
 import { tr } from '../i18n';
 import { APP_VERSION } from '../config';
 import { Avatar } from './SocialScreens';
+import { showAlert } from '../components/Dialog';
 
 type Nav = NativeStackNavigationProp<AppStackParams>;
 type FbType = 'bug' | 'idea' | 'other';
 type FbStatus = 'new' | 'in_progress' | 'fixed' | 'wontfix';
 const FB_STATUS: Record<FbStatus, { label: string; color: string; bg: string }> = {
   new: { label: 'Đã nhận', color: colors.text2, bg: colors.surface2 },
-  in_progress: { label: 'Đang xử lý', color: colors.text, bg: colors.marker },
+  in_progress: { label: 'Đang xử lý', color: colors.onMarker, bg: colors.marker },
   fixed: { label: '✓ Đã sửa', color: colors.success, bg: colors.successSoft },
   wontfix: { label: 'Đã phản hồi', color: colors.text2, bg: colors.surface2 },
 };
@@ -341,7 +342,7 @@ export function AdminUsersScreen() {
       }
     };
     if (u.disabled) return void go('');
-    Alert.alert(tr('Khoá tài khoản {0}?', u.name), tr('Người này sẽ bị đăng xuất khỏi mọi thiết bị và không đăng nhập được cho tới khi mở khoá.'), [
+    showAlert(tr('Khoá tài khoản {0}?', u.name), tr('Người này sẽ bị đăng xuất khỏi mọi thiết bị và không đăng nhập được cho tới khi mở khoá.'), [
       { text: tr('Huỷ'), style: 'cancel' },
       { text: tr('Khoá'), style: 'destructive', onPress: () => void go(tr('Vi phạm điều khoản sử dụng')) },
     ]);
@@ -387,7 +388,7 @@ export function AdminLibraryScreen() {
   const res = useApi<{ items: { id: string; title: string; authorName: string; copies: number }[] }>(`/admin/library?kind=${kind}`);
   const [error, setError] = useState('');
   const unpublish = (i: { id: string; title: string }) =>
-    Alert.alert(tr('Gỡ “{0}” khỏi Thư viện?', i.title), tr('Người chia sẻ sẽ nhận thông báo. Bản của họ vẫn còn nguyên.'), [
+    showAlert(tr('Gỡ “{0}” khỏi Thư viện?', i.title), tr('Người chia sẻ sẽ nhận thông báo. Bản của họ vẫn còn nguyên.'), [
       { text: tr('Huỷ'), style: 'cancel' },
       {
         text: tr('Gỡ'),
@@ -433,7 +434,7 @@ export function AdminBroadcastScreen() {
   const [msg, setMsg] = useState('');
   const [error, setError] = useState('');
   const send = () =>
-    Alert.alert(tr('Gửi thông báo?'), active30 ? tr('Tới người dùng hoạt động 30 ngày qua.') : tr('Tới tất cả người dùng.'), [
+    showAlert(tr('Gửi thông báo?'), active30 ? tr('Tới người dùng hoạt động 30 ngày qua.') : tr('Tới tất cả người dùng.'), [
       { text: tr('Huỷ'), style: 'cancel' },
       {
         text: tr('Gửi'),

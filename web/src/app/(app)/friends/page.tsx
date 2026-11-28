@@ -9,6 +9,7 @@ import { useSocketEvent } from '@/lib/socket';
 import { tr } from '@/lib/i18n';
 import { Avatar, Empty, Spinner, Toggle } from '@/components/ui';
 import { Icon } from '@/components/Icon';
+import { uiConfirm } from '@/lib/dialog';
 
 interface Friend {
   id: string;
@@ -33,6 +34,7 @@ export default function FriendsPage() {
   const [msg, setMsg] = useState('');
   const [error, setError] = useState('');
   const [cheerFor, setCheerFor] = useState<string | null>(null);
+  const blocks = useResource<{ items: { id: string; name: string; avatarUrl: string | null }[] }>('/social/blocks');
   useSocketEvent('friends:changed', () => {
     void friends.reload();
     void board.reload();
@@ -44,7 +46,7 @@ export default function FriendsPage() {
     try {
       await fn();
       if (ok) setMsg(ok);
-      await Promise.all([friends.reload(), board.reload()]);
+      await Promise.all([friends.reload(), board.reload(), blocks.reload()]);
     } catch (e) {
       setError(errorMessage(e));
     }
@@ -179,8 +181,19 @@ export default function FriendsPage() {
                 <button className="btn secondary sm" onClick={() => setCheerFor(cheerFor === f.id ? null : f.id)}>
                   {tr('Động viên')}
                 </button>
-                <button className="icon-btn" title={tr('Huỷ kết bạn')} onClick={() => confirm(tr('Huỷ kết bạn với {0}?', f.name)) && run(() => del(`/social/friends/${f.id}`))}>
+                <button className="icon-btn" title={tr('Huỷ kết bạn')} onClick={async () => (await uiConfirm(tr('Huỷ kết bạn với {0}?', f.name))) && run(() => del(`/social/friends/${f.id}`))}>
                   ✕
+                </button>
+                <button
+                  className="btn ghost sm"
+                  style={{ color: 'var(--stop)' }}
+                  title={tr('Chặn')}
+                  onClick={async () =>
+                    (await uiConfirm(tr('Chặn {0}? Hai bạn sẽ không còn là bạn bè, không nhắn tin và không gửi lời mời kết bạn cho nhau được. Bạn có thể bỏ chặn bất cứ lúc nào.', f.name), { okLabel: tr('Chặn'), danger: true })) &&
+                    run(() => post('/social/blocks', { userId: f.id }), tr('Đã chặn {0}', f.name))
+                  }
+                >
+                  {tr('Chặn')}
                 </button>
                 {cheerFor === f.id && (
                   <div className="chips" style={{ width: '100%' }}>
@@ -206,6 +219,22 @@ export default function FriendsPage() {
           </div>
         )}
       </section>
+      {!!blocks.data?.items.length && (
+        <details className="card">
+          <summary style={{ cursor: 'pointer', fontWeight: 700 }}>{tr('Đã chặn ({0})', blocks.data.items.length)}</summary>
+          <div className="col" style={{ gap: 6, marginTop: 12 }}>
+            {blocks.data.items.map((b) => (
+              <div key={b.id} className="list-item">
+                <Avatar name={b.name} url={b.avatarUrl} />
+                <span className="grow truncate">{b.name}</span>
+                <button className="btn secondary sm" onClick={() => run(() => del(`/social/blocks/${b.id}`), tr('Đã bỏ chặn {0}', b.name))}>
+                  {tr('Bỏ chặn')}
+                </button>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
     </div>
   );
 }

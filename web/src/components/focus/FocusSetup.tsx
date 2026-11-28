@@ -10,6 +10,7 @@ import type { FocusSession, Task } from '@/lib/types';
 import { Icon, type IconName } from '@/components/Icon';
 import { ForecastHint } from '@/components/FocusForecast';
 import { LOCALE, tr } from '@/lib/i18n';
+import { uiConfirm } from '@/lib/dialog';
 
 type Mode = 'pomodoro' | 'custom' | 'free';
 
@@ -92,7 +93,7 @@ export function FocusSetup({ initialTaskId, onStarted }: { initialTaskId?: strin
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) {
         const existing = (e.data as { error?: { details?: { session?: FocusSession } } })?.error?.details?.session;
-        if (existing && confirm(tr('Bạn đang có một phiên chưa kết thúc (có thể trên thiết bị khác). Kết thúc phiên cũ và bắt đầu phiên mới?'))) {
+        if (existing && (await uiConfirm(tr('Bạn đang có một phiên chưa kết thúc (có thể trên thiết bị khác). Kết thúc phiên cũ và bắt đầu phiên mới?')))) {
           const { session } = await post<{ session: FocusSession }>('/sessions', { ...body, takeover: true });
           onStarted(session);
         } else if (existing) onStarted(existing);

@@ -34,6 +34,22 @@ const friendSchema = new Schema(
 friendSchema.index({ user: 1, friend: 1 }, { unique: true });
 export const FriendModel = model('Friend', friendSchema);
 
+/* ================= Chặn người dùng ================= */
+const blockSchema = new Schema(
+  {
+    user: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    blocked: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  },
+  jsonOptions,
+);
+blockSchema.index({ user: 1, blocked: 1 }, { unique: true });
+export const BlockModel = model('Block', blockSchema);
+
+/** Một trong hai người đã chặn người kia */
+export async function blockedBetween(a: string, b: string) {
+  return Boolean(await BlockModel.exists({ $or: [{ user: a, blocked: b }, { user: b, blocked: a }] }));
+}
+
 /* ================= Phòng học chung ================= */
 const roomSchema = new Schema(
   {
@@ -162,6 +178,12 @@ const chatMessageSchema = new Schema(
     text: { type: String, default: '', maxlength: 2000 },
     /** ảnh gửi kèm (Cloudinary hoặc /uploads/chat) */
     image: { type: new Schema({ url: String, publicId: String, width: Number, height: Number }, { _id: false }), default: null },
+    /** người đã "xoá ở phía tôi" (tin vẫn còn với người khác) */
+    hiddenFor: { type: [Schema.Types.ObjectId], default: [] },
+    /** người gửi đã thu hồi (xoá cả 2 phía) – hiện "Tin nhắn đã được thu hồi" */
+    recalled: { type: Boolean, default: false },
+    /** tin được chuyển tiếp từ cuộc trò chuyện khác */
+    forwarded: { type: Boolean, default: false },
     /** id do máy gửi sinh ra – gửi lại khi mạng chập chờn không bị trùng */
     clientId: { type: String, default: undefined },
     deletedAt: { type: Date, default: null },

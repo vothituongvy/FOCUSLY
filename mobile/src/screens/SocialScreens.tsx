@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Image, Pressable, Share, Switch, View } from 'react-native';
+import { Image, Pressable, Share, Switch, View } from 'react-native';
 import { Text, TextInput } from '../components/AppText';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -12,6 +12,7 @@ import { Button, Card, Chip, Chips, Empty, Field, H1, H3, Loading, Muted, Progre
 import { Icon } from '../components/Icon';
 import { tr } from '../i18n';
 import { WEB_URL } from '../config';
+import { showAlert } from '../components/Dialog';
 
 type Nav = NativeStackNavigationProp<AppStackParams>;
 
@@ -20,7 +21,7 @@ export function Avatar({ name, url, size = 36 }: { name: string; url?: string | 
   if (url && !broken) return <Image source={{ uri: url }} onError={() => setBroken(true)} style={{ width: size, height: size, borderRadius: size / 2 }} />;
   return (
     <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: colors.markerSoft, alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ fontWeight: '800', color: colors.text }}>{(name.trim().split(' ').pop() ?? '?')[0]?.toUpperCase()}</Text>
+      <Text style={{ fontWeight: '800', color: colors.onMarker }}>{(name.trim().split(' ').pop() ?? '?')[0]?.toUpperCase()}</Text>
     </View>
   );
 }
@@ -50,6 +51,7 @@ export function FriendsScreen() {
   const [msg, setMsg] = useState('');
   const [error, setError] = useState('');
   const [cheerFor, setCheerFor] = useState<string | null>(null);
+  const blocks = useApi<{ items: { id: string; name: string; avatarUrl: string | null }[] }>('/social/blocks');
   useEffect(
     () =>
       onSocket('friends:changed', () => {
@@ -64,7 +66,7 @@ export function FriendsScreen() {
     try {
       await fn();
       if (ok) setMsg(ok);
-      await Promise.all([friends.reload(), board.reload()]);
+      await Promise.all([friends.reload(), board.reload(), blocks.reload()]);
     } catch (e) {
       setError(errorMessage(e));
     }
@@ -153,7 +155,7 @@ export function FriendsScreen() {
               </View>
               <Pressable
                 onPress={() =>
-                  Alert.alert(tr('Huỷ kết bạn với {0}?', f.name), '', [
+                  showAlert(tr('Huỷ kết bạn với {0}?', f.name), '', [
                     { text: tr('Huỷ'), style: 'cancel' },
                     { text: tr('Huỷ kết bạn'), style: 'destructive', onPress: () => void run(() => api(`/social/friends/${f.id}`, { method: 'DELETE' })) },
                   ])
@@ -171,6 +173,17 @@ export function FriendsScreen() {
             <View style={{ flexDirection: 'row', gap: 8 }}>
               <Button small icon="chat" title={tr('Nhắn tin')} onPress={() => run(() => api<{ item: { id: string } }>('/chats/direct', { method: 'POST', body: { friendId: f.id } }).then((r) => nav.navigate('ChatThread', { chatId: r.item.id })))} style={{ flex: 1 }} />
               <Button small variant="secondary" title={tr('Động viên')} onPress={() => setCheerFor(cheerFor === f.id ? null : f.id)} style={{ flex: 1 }} />
+              <Button
+                small
+                variant="danger"
+                title={tr('Chặn')}
+                onPress={() =>
+                  showAlert(tr('Chặn {0}?', f.name), tr('Hai bạn sẽ không còn là bạn bè, không nhắn tin và không gửi lời mời kết bạn cho nhau được. Bạn có thể bỏ chặn bất cứ lúc nào.'), [
+                    { text: tr('Huỷ'), style: 'cancel' },
+                    { text: tr('Chặn'), style: 'destructive', onPress: () => void run(() => api('/social/blocks', { method: 'POST', body: { userId: f.id } }), tr('Đã chặn {0}', f.name)) },
+                  ])
+                }
+              />
             </View>
             {cheerFor === f.id && (
               <Chips wrap>
@@ -189,6 +202,20 @@ export function FriendsScreen() {
           </Row>
         ))}
       </Card>
+      {!!blocks.data?.items.length && (
+        <Card>
+          <H3>{tr('Đã chặn ({0})', blocks.data.items.length)}</H3>
+          {blocks.data.items.map((b) => (
+            <Row key={b.id} style={{ flexWrap: 'nowrap', paddingVertical: 6 }}>
+              <Avatar name={b.name} url={b.avatarUrl} />
+              <Text style={{ flex: 1, color: colors.text }} numberOfLines={1}>
+                {b.name}
+              </Text>
+              <Button small variant="secondary" title={tr('Bỏ chặn')} onPress={() => run(() => api(`/social/blocks/${b.id}`, { method: 'DELETE' }), tr('Đã bỏ chặn {0}', b.name))} />
+            </Row>
+          ))}
+        </Card>
+      )}
       <Button title={tr('Phòng học chung')} variant="secondary" icon="room" onPress={() => nav.navigate('Rooms')} />
     </Screen>
   );
@@ -396,7 +423,7 @@ export function RoomScreen({ route, navigation }: NativeStackScreenProps<AppStac
         variant="danger"
         title={tr('Rời phòng')}
         onPress={() =>
-          Alert.alert(tr('Rời phòng này?'), '', [
+          showAlert(tr('Rời phòng này?'), '', [
             { text: tr('Huỷ'), style: 'cancel' },
             { text: tr('Rời phòng'), style: 'destructive', onPress: () => void api(`/social/rooms/${id}/leave`, { method: 'POST', body: {} }).then(() => navigation.goBack()) },
           ])

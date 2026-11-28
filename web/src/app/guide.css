@@ -14,7 +14,7 @@
 .guide-points li::marker { color: var(--muted); }
 .guide-steps { list-style: none; padding-left: 0; counter-reset: step; gap: 10px; }
 .guide-steps li { counter-increment: step; display: grid; grid-template-columns: 28px 1fr; gap: 10px; }
-.guide-steps li::before { content: counter(step); width: 26px; height: 26px; border-radius: 50%; background: var(--ink); color: #fff; font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+.guide-steps li::before { content: counter(step); width: 26px; height: 26px; border-radius: 50%; background: var(--ink); color: var(--on-ink); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
 .guide-tip { margin: 0; padding: 10px 14px; border-left: 3px solid var(--marker); background: var(--marker-soft); border-radius: 0 9px 9px 0; font-size: 14.5px; line-height: 1.55; align-self: stretch; }
 @media (max-width: 900px) {
   .guide { grid-template-columns: 1fr; gap: 16px; }

@@ -3,6 +3,10 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Bong bóng chat nổi trên ứng dụng khác (người dùng tự bật trong Cài đặt) -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- Lưu ảnh tin nhắn vào Thư viện ảnh trên Android 9 trở xuống (Android 10+ không cần) -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
 
     <application
       android:name=".MainApplication"
@@ -52,6 +56,16 @@
           android:name="android.appwidget.provider"
           android:resource="@xml/focusly_widget_info" />
       </receiver>
+      <!-- Chia sẻ ảnh tin nhắn sang ứng dụng khác -->
+      <provider
+        android:name="androidx.core.content.FileProvider"
+        android:authorities="${applicationId}.fileprovider"
+        android:exported="false"
+        android:grantUriPermissions="true">
+        <meta-data
+          android:name="android.support.FILE_PROVIDER_PATHS"
+          android:resource="@xml/file_paths" />
+      </provider>
     </application>
 
     <!-- Tìm hộp thoại nhận giọng nói (luyện phát âm) và dịch vụ đọc thành tiếng trên Android 11+ -->

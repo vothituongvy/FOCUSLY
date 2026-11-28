@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Alert, Modal, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { Modal, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { Text } from '../components/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -10,6 +10,7 @@ import { colors } from '../theme';
 import { REASON_LABEL, REASONS, type DistractionReason, type DistractionStats } from '../types';
 import { Button, Card, Chip, Chips, Empty, Field, H1, H3, Muted, ProgressBar, Row, SyncBar, s } from '../components/ui';
 import { LOCALE, tr } from '../i18n';
+import { showAlert } from '../components/Dialog';
 
 const ICON: Record<string, string> = { ...Object.fromEntries(REASONS.map((r) => [r.value, r.icon])), left_app: '' };
 
@@ -110,7 +111,7 @@ export function JournalScreen() {
               <Pressable
                 key={d.id}
                 onLongPress={() =>
-                  Alert.alert(tr('Xoá ghi nhận?'), REASON_LABEL[d.reason], [
+                  showAlert(tr('Xoá ghi nhận?'), REASON_LABEL[d.reason], [
                     { text: tr('Huỷ'), style: 'cancel' },
                     { text: tr('Xoá'), style: 'destructive', onPress: () => void remove('distractions', d.id) },
                   ])

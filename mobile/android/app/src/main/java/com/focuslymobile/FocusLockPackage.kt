@@ -14,6 +14,8 @@ class FocusLockPackage : BaseReactPackage() {
         SpeechModule.NAME -> SpeechModule(reactContext) // đọc thành tiếng + luyện phát âm
         WidgetModule.NAME -> WidgetModule(reactContext) // widget màn hình chính
         NotifyModule.NAME -> NotifyModule(reactContext) // hiện thông báo khi app đang mở
+        ChatHeadModule.NAME -> ChatHeadModule(reactContext) // bong bóng chat nổi ngoài app
+        MediaModule.NAME -> MediaModule(reactContext) // lưu / chia sẻ ảnh tin nhắn
         else -> null
       }
 
@@ -29,6 +31,10 @@ class FocusLockPackage : BaseReactPackage() {
             ReactModuleInfo(WidgetModule.NAME, WidgetModule::class.java.name, false, false, false, false),
         NotifyModule.NAME to
             ReactModuleInfo(NotifyModule.NAME, NotifyModule::class.java.name, false, false, false, false),
+        ChatHeadModule.NAME to
+            ReactModuleInfo(ChatHeadModule.NAME, ChatHeadModule::class.java.name, false, false, false, false),
+        MediaModule.NAME to
+            ReactModuleInfo(MediaModule.NAME, MediaModule::class.java.name, false, false, false, false),
     )
   }
 }

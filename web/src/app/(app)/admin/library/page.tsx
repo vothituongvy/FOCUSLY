@@ -5,6 +5,7 @@ import { errorMessage, post } from '@/lib/api';
 import { useResource } from '@/lib/hooks';
 import { tr } from '@/lib/i18n';
 import { Empty, Spinner } from '@/components/ui';
+import { uiPrompt } from '@/lib/dialog';
 
 type Kind = 'deck' | 'quiz' | 'material';
 interface Item {
@@ -23,7 +24,7 @@ export default function AdminLibraryPage() {
   const res = useResource<{ items: Item[] }>(`/admin/library?kind=${kind}`);
   const [error, setError] = useState('');
   const unpublish = async (i: Item) => {
-    const reason = prompt(tr('Lý do gỡ “{0}” (gửi cho người chia sẻ):', i.title), tr('Nội dung không phù hợp với quy định chia sẻ.'));
+    const reason = await uiPrompt(tr('Lý do gỡ “{0}” (gửi cho người chia sẻ):', i.title), tr('Nội dung không phù hợp với quy định chia sẻ.'));
     if (reason === null) return;
     setError('');
     try {

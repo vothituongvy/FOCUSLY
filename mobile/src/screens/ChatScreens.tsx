@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, AppState, FlatList, Image, Linking, Modal, Pressable, ScrollView, Switch, View } from 'react-native';
+import { ActivityIndicator, AppState, FlatList, Image, Linking, Modal, Pressable, ScrollView, Switch, View } from 'react-native';
 import { pickFile } from '../components/ImportFileSheet';
 import { Text, TextInput } from '../components/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,10 +12,12 @@ import { onSocket } from '../socket';
 import { useAuth } from '../store/auth';
 import { colors } from '../theme';
 import { Button, Chip, Chips, Empty, Field, H1, H3, KeyboardView, Loading, Muted, Row, s } from '../components/ui';
-import { Icon } from '../components/Icon';
+import { Icon, type IconName } from '../components/Icon';
 import { tr } from '../i18n';
 import { Avatar } from './SocialScreens';
 import { setOpenChat } from '../push';
+import { showAlert } from '../components/Dialog';
+import { copyText, saveImageToPhone, shareMessage } from '../media';
 
 type Nav = NativeStackNavigationProp<AppStackParams>;
 interface Member {
@@ -35,8 +37,13 @@ export interface ChatItem {
   muted: boolean;
   unread: number;
   lastMessage: { text: string; at: string; mine: boolean; senderName: string } | null;
+  /** 1-1: 'me' = mình đã chặn người kia, 'them' = người kia chặn mình */
+  blocked?: 'me' | 'them' | null;
+  otherId?: string | null;
 }
 interface Msg {
+  recalled?: boolean;
+  forwarded?: boolean;
   id: string;
   sender: string | null;
   text: string;
@@ -72,7 +79,7 @@ export function ChatAvatar({ chat, size = 44 }: { chat: ChatItem; size?: number 
   if (chat.type === 'direct') return <Avatar name={chat.name} url={chat.avatarUrl} size={size} />;
   return (
     <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: colors.marker, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.text }}>
-      <Icon name="users" size={size * 0.45} color={colors.text} />
+      <Icon name="users" size={size * 0.45} color={colors.onMarker} />
     </View>
   );
 }
@@ -222,7 +229,7 @@ export function NewChatSheet({ mode, onClose, onCreated }: { mode: '' | 'direct'
                 return (
                   <Pressable key={f.id} onPress={() => setPicked((cur) => (on ? cur.filter((x) => x !== f.id) : [...cur, f.id]))} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 }}>
                     <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, borderColor: on ? colors.text : colors.borderStrong, backgroundColor: on ? colors.marker : colors.surface, alignItems: 'center', justifyContent: 'center' }}>
-                      {on && <Text style={{ fontWeight: '800', color: colors.text }}>✓</Text>}
+                      {on && <Text style={{ fontWeight: '800', color: colors.onMarker }}>✓</Text>}
                     </View>
                     <Avatar name={f.name} url={f.avatarUrl} size={32} />
                     <Text style={{ flex: 1, color: colors.text }}>{f.name}</Text>
@@ -250,6 +257,13 @@ export function ChatThreadScreen({ route, navigation }: NativeStackScreenProps<A
   const [error, setError] = useState('');
   const [settings, setSettings] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const [actionsFor, setActionsFor] = useState<Msg | null>(null);
+  const [forwarding, setForwarding] = useState<Msg | null>(null);
+  const [notice, setNotice] = useState('');
+  const flash = (t: string) => {
+    setNotice(t);
+    setTimeout(() => setNotice(''), 2500);
+  };
   const listRef = useRef<FlatList<Msg>>(null);
 
   const markRead = useCallback(() => {
@@ -292,6 +306,10 @@ export function ChatThreadScreen({ route, navigation }: NativeStackScreenProps<A
       onSocket('chat:deleted', (p) => {
         const e = p as { chatId: string; messageId: string };
         if (e.chatId === chatId) setMsgs((cur) => cur.filter((m) => m.id !== e.messageId));
+      }),
+      onSocket('chat:recalled', (p) => {
+        const e = p as { chatId: string; message: Msg };
+        if (e.chatId === chatId) setMsgs((cur) => cur.map((m) => (m.id === e.message.id ? e.message : m)));
       }),
     ];
     const sub = AppState.addEventListener('change', (st) => st === 'active' && void load());
@@ -406,17 +424,20 @@ export function ChatThreadScreen({ route, navigation }: NativeStackScreenProps<A
               <View style={{ gap: 2 }}>
                 {gap && <Muted style={{ alignSelf: 'center', fontSize: 11.5, marginVertical: 4 }}>{new Date(m.at).toLocaleString([], { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric' })}</Muted>}
                 {showName && <Muted style={{ marginLeft: 6, fontSize: 12 }}>{byId.get(m.sender)?.name ?? '?'}</Muted>}
+                {m.recalled && (
+                  <Text
+                    onLongPress={() => setActionsFor(m)}
+                    style={{ alignSelf: mine ? 'flex-end' : 'flex-start', fontStyle: 'italic', color: colors.muted, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.borderStrong, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 8, overflow: 'hidden' }}
+                  >
+                    {mine ? tr('Bạn đã thu hồi một tin nhắn') : tr('Tin nhắn đã được thu hồi')}
+                  </Text>
+                )}
+                {m.forwarded && !m.recalled && <Muted style={{ alignSelf: mine ? 'flex-end' : 'flex-start', fontSize: 11.5, fontStyle: 'italic' }}>↪ {tr('Đã chuyển tiếp')}</Muted>}
                 {(m.image || m.local) && (
                   <Pressable
                     onPress={() => m.image && void Linking.openURL(m.image.url)}
-                    onLongPress={() =>
-                      mine && !m.pending
-                        ? Alert.alert(tr('Xoá ảnh này?'), '', [
-                            { text: tr('Huỷ'), style: 'cancel' },
-                            { text: tr('Xoá'), style: 'destructive', onPress: () => void api(`/chats/${chatId}/messages/${m.id}`, { method: 'DELETE' }).catch(() => undefined) },
-                          ])
-                        : undefined
-                    }
+                    onLongPress={() => !m.pending && !m.failed && setActionsFor(m)}
+                    delayLongPress={300}
                     accessibilityLabel={tr('Ảnh')}
                     style={{ alignSelf: mine ? 'flex-end' : 'flex-start', opacity: m.pending ? 0.55 : 1 }}
                   >
@@ -428,17 +449,11 @@ export function ChatThreadScreen({ route, navigation }: NativeStackScreenProps<A
                   </Pressable>
                 )}
                 {!!m.text && isEmojiOnly(m.text) ? (
-                  <Text style={{ alignSelf: mine ? 'flex-end' : 'flex-start', fontSize: 38, lineHeight: 46, opacity: m.pending ? 0.55 : 1 }}>{m.text}</Text>
+                  <Text onLongPress={() => !m.pending && !m.failed && setActionsFor(m)} style={{ alignSelf: mine ? 'flex-end' : 'flex-start', fontSize: 38, lineHeight: 46, opacity: m.pending ? 0.55 : 1 }}>{m.text}</Text>
                 ) : !!m.text && (
                 <Pressable
-                  onLongPress={() =>
-                    mine && !m.pending
-                      ? Alert.alert(tr('Xoá tin nhắn này?'), m.text.slice(0, 80), [
-                          { text: tr('Huỷ'), style: 'cancel' },
-                          { text: tr('Xoá'), style: 'destructive', onPress: () => void api(`/chats/${chatId}/messages/${m.id}`, { method: 'DELETE' }).catch(() => undefined) },
-                        ])
-                      : undefined
-                  }
+                  onLongPress={() => !m.pending && !m.failed && setActionsFor(m)}
+                  delayLongPress={300}
                   style={{
                     alignSelf: mine ? 'flex-end' : 'flex-start',
                     maxWidth: '82%',
@@ -453,7 +468,7 @@ export function ChatThreadScreen({ route, navigation }: NativeStackScreenProps<A
                     opacity: m.pending ? 0.55 : 1,
                   }}
                 >
-                  <Text selectable style={{ color: colors.text, fontSize: 15, lineHeight: 21 }}>
+                  <Text style={{ color: mine ? colors.onMarker : colors.text, fontSize: 15, lineHeight: 21 }}>
                     {m.text}
                   </Text>
                 </Pressable>
@@ -472,6 +487,25 @@ export function ChatThreadScreen({ route, navigation }: NativeStackScreenProps<A
         />
         )}
         {!!error && <Text style={[s.error, { paddingHorizontal: 12 }]}>{error}</Text>}
+        {!!notice && <Muted style={{ paddingHorizontal: 12, paddingBottom: 4 }}>{notice}</Muted>}
+        {chat.blocked ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface2 }}>
+            <Text style={{ flex: 1, color: colors.text2 }}>{chat.blocked === 'me' ? tr('Bạn đã chặn người này. Hai bạn không nhắn tin cho nhau được.') : tr('Bạn không thể trả lời cuộc trò chuyện này.')}</Text>
+            {chat.blocked === 'me' && (
+              <Button
+                small
+                variant="secondary"
+                title={tr('Bỏ chặn')}
+                onPress={() =>
+                  void api(`/social/blocks/${chat.otherId}`, { method: 'DELETE' })
+                    .then(load)
+                    .catch((e) => setError(errorMessage(e)))
+                }
+              />
+            )}
+          </View>
+        ) : (
+        <>
         {emojiOpen && (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface }}>
             {EMOJIS.map((e) => (
@@ -497,10 +531,52 @@ export function ChatThreadScreen({ route, navigation }: NativeStackScreenProps<A
             onPress={() => send()}
             style={{ width: 46, height: 46, borderRadius: 12, backgroundColor: colors.marker, alignItems: 'center', justifyContent: 'center', opacity: text.trim() ? 1 : 0.45 }}
           >
-            <Icon name="send" size={20} color={colors.text} />
+            <Icon name="send" size={20} color={colors.onMarker} />
           </Pressable>
         </View>
+        </>
+        )}
       </KeyboardView>
+      <MessageActions
+        msg={actionsFor}
+        mine={actionsFor?.sender === me}
+        onClose={() => setActionsFor(null)}
+        onForward={(m) => setForwarding(m)}
+        onCopy={(m) => (copyText(m.text), flash(tr('Đã sao chép')))}
+        onSave={(m) =>
+          void saveImageToPhone(m.image!.url)
+            .then(() => flash(tr('Đã lưu ảnh vào Thư viện ảnh (FOCUSLY)')))
+            .catch((e) => setError(errorMessage(e)))
+        }
+        onShare={(m) => void shareMessage(m).catch((e) => setError(errorMessage(e)))}
+        onHide={(m) =>
+          showAlert(tr('Xoá ở phía bạn?'), tr('Tin nhắn chỉ mất ở máy bạn, người kia vẫn thấy.'), [
+            { text: tr('Huỷ'), style: 'cancel' },
+            {
+              text: tr('Xoá ở phía tôi'),
+              style: 'destructive',
+              onPress: () =>
+                void api(`/chats/${chatId}/messages/${m.id}?for=me`, { method: 'DELETE' })
+                  .then(() => setMsgs((cur) => cur.filter((x) => x.id !== m.id)))
+                  .catch((e) => setError(errorMessage(e))),
+            },
+          ])
+        }
+        onRecall={(m) =>
+          showAlert(tr('Thu hồi tin nhắn?'), tr('Tin sẽ bị xoá ở cả hai phía. Mọi người sẽ thấy “Tin nhắn đã được thu hồi”.'), [
+            { text: tr('Huỷ'), style: 'cancel' },
+            {
+              text: tr('Thu hồi'),
+              style: 'destructive',
+              onPress: () =>
+                void api(`/chats/${chatId}/messages/${m.id}?for=all`, { method: 'DELETE' })
+                  .then(() => setMsgs((cur) => cur.map((x) => (x.id === m.id ? { ...x, recalled: true, text: '', image: null } : x))))
+                  .catch((e) => setError(errorMessage(e))),
+            },
+          ])
+        }
+      />
+      {forwarding && <ForwardSheet msg={forwarding} fromChatId={chatId} onClose={() => setForwarding(null)} onDone={(n) => (setForwarding(null), flash(tr('Đã chuyển tiếp tới {0} cuộc trò chuyện', n)))} />}
       <ChatSettingsSheet
         visible={settings}
         onClose={() => setSettings(false)}
@@ -581,7 +657,7 @@ function ChatSettingsSheet({ visible, onClose, chat, me, onChanged, onLeft }: { 
                       hitSlop={8}
                       accessibilityLabel={tr('Xoá khỏi nhóm')}
                       onPress={() =>
-                        Alert.alert(tr('Xoá {0} khỏi nhóm?', m.name), '', [
+                        showAlert(tr('Xoá {0} khỏi nhóm?', m.name), '', [
                           { text: tr('Huỷ'), style: 'cancel' },
                           { text: tr('Xoá'), style: 'destructive', onPress: () => void run(async () => (await api(`/chats/${chat.id}/members/${m.id}`, { method: 'DELETE' }), await reloadChat())) },
                         ])
@@ -596,7 +672,7 @@ function ChatSettingsSheet({ visible, onClose, chat, me, onChanged, onLeft }: { 
                 variant="danger"
                 title={tr('Rời nhóm')}
                 onPress={() =>
-                  Alert.alert(tr('Rời nhóm này?'), '', [
+                  showAlert(tr('Rời nhóm này?'), '', [
                     { text: tr('Huỷ'), style: 'cancel' },
                     { text: tr('Rời nhóm'), style: 'destructive', onPress: () => void api(`/chats/${chat.id}/members/${me}`, { method: 'DELETE' }).then(onLeft) },
                   ])
@@ -604,8 +680,155 @@ function ChatSettingsSheet({ visible, onClose, chat, me, onChanged, onLeft }: { 
               />
             </>
           )}
+          {chat.type === 'direct' && chat.otherId && chat.blocked !== 'them' && (
+            <Button
+              variant={chat.blocked === 'me' ? 'secondary' : 'danger'}
+              title={chat.blocked === 'me' ? tr('Bỏ chặn {0}', chat.name) : tr('Chặn {0}', chat.name)}
+              onPress={() =>
+                chat.blocked === 'me'
+                  ? void run(() => api(`/social/blocks/${chat.otherId}`, { method: 'DELETE' }).then(reloadChat))
+                  : showAlert(tr('Chặn {0}?', chat.name), tr('Hai bạn sẽ không còn là bạn bè, không nhắn tin và không gửi lời mời kết bạn cho nhau được. Bạn có thể bỏ chặn bất cứ lúc nào.'), [
+                      { text: tr('Huỷ'), style: 'cancel' },
+                      { text: tr('Chặn'), style: 'destructive', onPress: () => void run(() => api('/social/blocks', { method: 'POST', body: { userId: chat.otherId } }).then(reloadChat)) },
+                    ])
+              }
+            />
+          )}
           {!!error && <Text style={s.error}>{error}</Text>}
         </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
+/** Bảng thao tác khi giữ lâu một tin nhắn */
+function MessageActions({
+  msg,
+  mine,
+  onClose,
+  onForward,
+  onCopy,
+  onSave,
+  onShare,
+  onHide,
+  onRecall,
+}: {
+  msg: Msg | null;
+  mine: boolean;
+  onClose: () => void;
+  onForward: (m: Msg) => void;
+  onCopy: (m: Msg) => void;
+  onSave: (m: Msg) => void;
+  onShare: (m: Msg) => void;
+  onHide: (m: Msg) => void;
+  onRecall: (m: Msg) => void;
+}) {
+  if (!msg) return null;
+  const items: [IconName, string, (m: Msg) => void, boolean?][] = msg.recalled
+    ? [['trash', tr('Xoá ở phía tôi'), onHide, true]]
+    : [
+        ['share', tr('Chuyển tiếp'), onForward],
+        ...(msg.text ? [['copy', tr('Sao chép'), onCopy] as [IconName, string, (m: Msg) => void]] : []),
+        ...(msg.image ? [['download', tr('Lưu ảnh vào máy'), onSave] as [IconName, string, (m: Msg) => void]] : []),
+        ['send', tr('Chia sẻ sang ứng dụng khác'), onShare],
+        ['trash', tr('Xoá ở phía tôi'), onHide, true],
+        ...(mine ? [['undo', tr('Thu hồi (xoá cả 2 phía)'), onRecall, true] as [IconName, string, (m: Msg) => void, boolean]] : []),
+      ];
+  return (
+    <Modal visible transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
+      <Pressable onPress={onClose} style={{ flex: 1, backgroundColor: 'rgba(12,10,6,0.45)', justifyContent: 'flex-end' }}>
+        <Pressable style={{ backgroundColor: colors.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingTop: 10, paddingBottom: 26, paddingHorizontal: 12 }}>
+          <View style={{ alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.borderStrong, marginBottom: 10 }} />
+          {!!(msg.text || msg.image) && !msg.recalled && (
+            <Text numberOfLines={2} style={{ color: colors.muted, paddingHorizontal: 8, paddingBottom: 8 }}>
+              {msg.image ? `📷 ${tr('Ảnh')}${msg.text ? ' · ' : ''}` : ''}
+              {msg.text}
+            </Text>
+          )}
+          {items.map(([icon, label, fn, danger]) => (
+            <Pressable
+              key={label}
+              onPress={() => {
+                onClose();
+                setTimeout(() => fn(msg), 120);
+              }}
+              accessibilityRole="button"
+              style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 13, paddingHorizontal: 10, borderRadius: 12, backgroundColor: pressed ? colors.surface2 : 'transparent' })}
+            >
+              <Icon name={icon} size={21} color={danger ? colors.danger : colors.text} />
+              <Text style={{ fontSize: 16, color: danger ? colors.danger : colors.text, fontWeight: '600' }}>{label}</Text>
+            </Pressable>
+          ))}
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+/** Chọn cuộc trò chuyện để chuyển tiếp */
+function ForwardSheet({ msg, fromChatId, onClose, onDone }: { msg: Msg; fromChatId: string; onClose: () => void; onDone: (n: number) => void }) {
+  const chats = useApi<{ items: ChatItem[] }>('/chats');
+  const [picked, setPicked] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const list = (chats.data?.items ?? []).filter((c) => !c.blocked);
+  const go = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      const r = await api<{ sent: string[]; failed: { error: string }[] }>('/chats/forward', { method: 'POST', body: { fromChatId, messageId: msg.id, toChatIds: picked } });
+      if (!r.sent.length) throw new Error(r.failed[0]?.error ?? tr('Chưa chuyển tiếp được'));
+      onDone(r.sent.length);
+    } catch (e) {
+      setError(errorMessage(e));
+      setBusy(false);
+    }
+  };
+  return (
+    <Modal visible animationType="slide" onRequestClose={onClose}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
+        <Row style={{ flexWrap: 'nowrap', padding: 16 }}>
+          <View style={{ flex: 1 }}>
+            <H1>{tr('Chuyển tiếp')}</H1>
+          </View>
+          <Pressable onPress={onClose} hitSlop={10} accessibilityLabel={tr('Đóng')}>
+            <Icon name="x" size={24} color={colors.text} />
+          </Pressable>
+        </Row>
+        <Text numberOfLines={3} style={{ marginHorizontal: 16, padding: 12, borderRadius: 12, backgroundColor: colors.surface2, color: colors.text2, overflow: 'hidden' }}>
+          {msg.image ? `📷 ${tr('Ảnh')}${msg.text ? ' · ' : ''}` : ''}
+          {msg.text}
+        </Text>
+        <ScrollView contentContainerStyle={{ padding: 16, gap: 2 }}>
+          {!chats.data ? (
+            <Loading />
+          ) : list.length === 0 ? (
+            <Empty text={tr('Không có cuộc trò chuyện nào.')} />
+          ) : (
+            list.map((c) => {
+              const on = picked.includes(c.id);
+              return (
+                <Pressable
+                  key={c.id}
+                  onPress={() => setPicked((p) => (on ? p.filter((x) => x !== c.id) : p.length < 10 ? [...p, c.id] : p))}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, borderRadius: 12, backgroundColor: on ? colors.markerSoft : 'transparent' }}
+                >
+                  <ChatAvatar chat={c} size={40} />
+                  <Text style={{ flex: 1, color: colors.text, fontWeight: '600' }} numberOfLines={1}>
+                    {c.name}
+                  </Text>
+                  <View style={{ width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: on ? colors.marker : colors.borderStrong, backgroundColor: on ? colors.marker : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
+                    {on && <Icon name="check" size={14} color={colors.onMarker} />}
+                  </View>
+                </Pressable>
+              );
+            })
+          )}
+        </ScrollView>
+        <View style={{ padding: 16, gap: 8 }}>
+          {!!error && <Text style={s.error}>{error}</Text>}
+          <Button variant="marker" title={picked.length ? tr('Gửi tới {0} cuộc trò chuyện', picked.length) : tr('Chọn nơi nhận')} disabled={!picked.length} loading={busy} onPress={go} />
+        </View>
       </SafeAreaView>
     </Modal>
   );

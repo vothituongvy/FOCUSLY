@@ -10,6 +10,7 @@ import { DistractionModal } from '@/components/DistractionModal';
 import { Empty, Spinner } from '@/components/ui';
 import { Icon } from '@/components/Icon';
 import { tr } from '@/lib/i18n';
+import { uiConfirm } from '@/lib/dialog';
 
 const CATEGORY: Record<string, string> = { digital: tr('Kỹ thuật số'), internal: tr('Bên trong'), external: tr('Bên ngoài') };
 const ICON: Record<string, string> = { ...Object.fromEntries(REASONS.map((r) => [r.value, r.icon])), left_app: '' };
@@ -193,7 +194,7 @@ export default function JournalPage() {
                   <button
                     className="icon-btn"
                     onClick={async () => {
-                      if (!confirm(tr('Xoá ghi nhận này?'))) return;
+                      if (!(await uiConfirm(tr('Xoá ghi nhận này?')))) return;
                       await del(`/distractions/${d.id}`);
                       void list.reload();
                       void stats.reload();

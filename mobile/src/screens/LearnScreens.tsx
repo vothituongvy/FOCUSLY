@@ -345,7 +345,7 @@ export function QuizTakeScreen({ route, navigation }: NativeStackScreenProps<App
                     style={{ flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderRadius: 10, padding: 10, borderColor: on ? colors.primary : colors.border, backgroundColor: on ? colors.primary50 : colors.surface }}
                   >
                     <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: on ? colors.text : colors.borderStrong, backgroundColor: on ? colors.marker : colors.surface, alignItems: 'center', justifyContent: 'center' }}>
-                      {on && <Text style={{ fontWeight: '800', color: colors.text, fontSize: 12 }}>✓</Text>}
+                      {on && <Text style={{ fontWeight: '800', color: colors.onMarker, fontSize: 12 }}>✓</Text>}
                     </View>
                     <Text style={{ flex: 1, color: colors.text }}>
                       {String.fromCharCode(65 + k)}. {o}

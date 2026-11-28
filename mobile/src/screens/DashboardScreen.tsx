@@ -30,7 +30,7 @@ function spoken(minutes: number) {
 }
 
 /** Thẻ đầu trang: tím chàm, chữ trắng, điểm nhấn vàng */
-const HERO = { bg: '#fff7d9', border: '#f4e3a3', muted: '#857c66' };
+const HERO = { bg: colors.hero, border: colors.heroBorder, muted: colors.muted };
 
 function spokenShort(minutes: number) {
   const m = Math.max(0, Math.round(minutes));
@@ -87,7 +87,7 @@ function DayRuler({ sessions }: { sessions: FocusSession[] }) {
                 bottom: 8,
                 left: x(g.from),
                 width: Math.max(3, x(g.to) - x(g.from)),
-                backgroundColor: g.type === 'break' ? '#d5dbe5' : colors.marker,
+                backgroundColor: g.type === 'break' ? colors.neutralBar : colors.marker,
                 borderRadius: 2,
               }}
             />
@@ -123,7 +123,7 @@ function Metric({
   return (
     <Paper style={{ flex: 1, minHeight: 138, backgroundColor: tint.bg, borderRadius: 14, borderWidth: 1, borderColor: tint.border, padding: 14, gap: 8 }} radius={14}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <View style={{ width: 34, height: 34, borderRadius: 11, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ width: 34, height: 34, borderRadius: 11, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' }}>
           <Icon name={icon} size={19} color={tint.ink} />
         </View>
         <Text style={{ flex: 1, fontSize: 13, color: colors.text2, fontWeight: '600' }} numberOfLines={2}>
@@ -233,12 +233,12 @@ export function DashboardScreen() {
               {Math.min(100, Math.round((focusMin / Math.max(1, target)) * 100))}%
             </Text>
           </View>
-          <ProgressBar value={focusMin / Math.max(1, target)} color={colors.marker} track="#f3e8c2" />
+          <ProgressBar value={focusMin / Math.max(1, target)} color={colors.marker} track={colors.track} />
           <Text style={{ fontSize: 15, lineHeight: 22, color: colors.text }}>{headline}</Text>
           <DayRuler sessions={todaySessions} />
           {active ? (
             <Pressable onPress={() => nav.navigate('Focus')} accessibilityRole="button" style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}>
-              <View style={{ backgroundColor: '#ffffff', borderColor: HERO.border, borderWidth: 1, borderRadius: 12, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <View style={{ backgroundColor: colors.surface, borderColor: HERO.border, borderWidth: 1, borderRadius: 12, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 <Icon name="focus" size={24} />
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontWeight: '700', color: colors.text }}>
@@ -299,8 +299,8 @@ export function DashboardScreen() {
                       </Muted>
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.text, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12 }}>
-                      <Icon name="play" size={15} color="#fff" />
-                      <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>{tr('Học')}</Text>
+                      <Icon name="play" size={15} color={colors.onText} />
+                      <Text style={{ color: colors.onText, fontWeight: '700', fontSize: 13 }}>{tr('Học')}</Text>
                     </View>
                   </Pressable>
                 ))}
@@ -323,7 +323,7 @@ export function DashboardScreen() {
                           pct={Math.max(2, (d.focusMinutes / max) * 82)}
                           style={{
                             width: '78%',
-                            backgroundColor: today ? colors.text : met ? colors.marker : '#d5dbe5',
+                            backgroundColor: today ? colors.text : met ? colors.marker : colors.neutralBar,
                             borderWidth: met || today ? 1 : 0,
                             borderColor: colors.text,
                             borderTopLeftRadius: 3,

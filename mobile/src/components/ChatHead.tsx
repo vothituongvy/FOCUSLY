@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Dimensions, Image, PanResponder, Pressable, View } from 'react-native';
+import { Animated, Dimensions, PanResponder, Pressable, View } from 'react-native';
+import { Icon } from './Icon';
 import { Text } from './AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api } from '../api/client';
@@ -192,9 +193,8 @@ export function ChatHead({ route, onOpen, onOpenAI }: { route: string; onOpen: (
     <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }}>
       {showAI && (
         <Bubble start={{ x: W - SIZE - 10, y: H - insets.bottom - SIZE - 170 }} label={tr('FOCUSLY AI – chạm để hỏi Trợ lý AI')} onPress={onOpenAI} onDismiss={() => setAiOff(true)}>
-          <View style={{ width: SIZE - 4, height: SIZE - 4, borderRadius: (SIZE - 4) / 2, backgroundColor: colors.marker, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-            <Image source={require('../assets/logo-mark.png')} style={{ width: 30, height: 30 }} resizeMode="contain" />
-            <Text style={{ fontSize: 8.5, fontWeight: '900', color: colors.text, marginTop: -1, letterSpacing: 0.3 }}>AI</Text>
+          <View style={{ width: SIZE - 4, height: SIZE - 4, borderRadius: (SIZE - 4) / 2, backgroundColor: '#1f2a44', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.marker }}>
+            <Icon name="ai" size={26} color={colors.marker} strokeWidth={2} />
           </View>
         </Bubble>
       )}

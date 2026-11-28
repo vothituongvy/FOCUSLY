@@ -91,7 +91,7 @@ export function TranslateSheet({ visible, onClose }: { visible: boolean; onClose
             disabled={busy || !text.trim()}
             style={{ backgroundColor: colors.text, opacity: busy || !text.trim() ? 0.5 : 1, borderRadius: 10, paddingVertical: 12, alignItems: 'center' }}
           >
-            {busy ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '800' }}>{tr('Dịch')}</Text>}
+            {busy ? <ActivityIndicator color={colors.onText} /> : <Text style={{ color: colors.onText, fontWeight: '800' }}>{tr('Dịch')}</Text>}
           </Pressable>
 
           <ScrollView contentContainerStyle={{ gap: 8 }} keyboardShouldPersistTaps="handled">

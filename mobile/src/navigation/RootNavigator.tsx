@@ -1,13 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, View } from 'react-native';
-import { NavigationContainer, DefaultTheme, createNavigationContainerRef } from '@react-navigation/native';
+import { NavigationContainer, DarkTheme, DefaultTheme, createNavigationContainerRef } from '@react-navigation/native';
 import { ChatHead } from '../components/ChatHead';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { BottomTabBar, createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../store/auth';
 import { useSession } from '../store/session';
-import { colors, fonts } from '../theme';
+import { colors, fonts, isDark } from '../theme';
 import { Loading } from '../components/ui';
 import { Icon, type IconName } from '../components/Icon';
 import { ForgotPasswordScreen, LoginScreen, RegisterScreen } from '../screens/AuthScreens';
@@ -168,7 +168,7 @@ export function RootNavigator() {
       ref={navRef}
       onReady={() => setRoute(navRef.getCurrentRoute()?.name ?? '')}
       onStateChange={() => setRoute(navRef.getCurrentRoute()?.name ?? '')}
-      theme={{ ...DefaultTheme, colors: { ...DefaultTheme.colors, background: colors.bg, primary: colors.primary } }}
+      theme={isDark ? { ...DarkTheme, colors: { ...DarkTheme.colors, background: colors.bg, card: colors.board, text: colors.text, border: colors.border, primary: colors.marker } } : { ...DefaultTheme, colors: { ...DefaultTheme.colors, background: colors.bg, primary: colors.primary } }}
     >
       {status === 'authed' ? (
         <AppStack.Navigator

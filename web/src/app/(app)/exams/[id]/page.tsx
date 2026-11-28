@@ -9,6 +9,7 @@ import { tr } from '@/lib/i18n';
 import { Modal, Progress, Spinner } from '@/components/ui';
 import { ExamForm, type ExamBase } from '@/components/ExamForm';
 import { Icon } from '@/components/Icon';
+import { uiConfirm } from '@/lib/dialog';
 
 interface PlanDay {
   date: string;
@@ -82,7 +83,7 @@ export default function ExamPage() {
           <button className="btn secondary" onClick={() => setEditing(true)}>
             <Icon name="edit" size={16} /> {tr('Sửa')}
           </button>
-          <button className="btn ghost" onClick={() => confirm(tr('Xoá kỳ thi này?')) && del(`/exams/${id}`).then(() => router.push('/exams'))}>
+          <button className="btn ghost" onClick={async () => (await uiConfirm(tr('Xoá kỳ thi này?'))) && del(`/exams/${id}`).then(() => router.push('/exams'))}>
             {tr('Xoá')}
           </button>
         </div>

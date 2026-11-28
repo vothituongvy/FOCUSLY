@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { Text, TextInput } from '../components/AppText';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -11,6 +11,7 @@ import { colors } from '../theme';
 import { Button, Card, Chip, Chips, Empty, Field, H1, H3, Loading, Muted, ProgressBar, Row, Screen, s } from '../components/ui';
 import { MonthCalendar } from '../components/MonthCalendar';
 import { tr } from '../i18n';
+import { showAlert } from '../components/Dialog';
 
 type Nav = NativeStackNavigationProp<AppStackParams>;
 interface Topic {
@@ -186,7 +187,7 @@ export function ExamDetailScreen({ route, navigation }: NativeStackScreenProps<A
         variant="danger"
         title={tr('Xoá kỳ thi')}
         onPress={() =>
-          Alert.alert(tr('Xoá kỳ thi này?'), '', [
+          showAlert(tr('Xoá kỳ thi này?'), '', [
             { text: tr('Huỷ'), style: 'cancel' },
             { text: tr('Xoá'), style: 'destructive', onPress: () => void api(`/exams/${e.id}`, { method: 'DELETE' }).then(() => navigation.goBack()) },
           ])

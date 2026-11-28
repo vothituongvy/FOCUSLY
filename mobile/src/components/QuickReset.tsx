@@ -119,7 +119,7 @@ export function QuickReset({
             <Animated.View
               style={{ width: 200, height: 200, borderRadius: 100, backgroundColor: colors.marker, borderWidth: 2, borderColor: colors.text, alignItems: 'center', justifyContent: 'center', transform: [{ scale }] }}
             >
-              <Text style={{ color: colors.text, fontSize: 21, fontWeight: '800' }}>{PHASES[phase]}</Text>
+              <Text style={{ color: colors.onMarker, fontSize: 21, fontWeight: '800' }}>{PHASES[phase]}</Text>
             </Animated.View>
             <Pressable onPress={() => setStep('goal')}>
               <Text style={{ color: '#9aa0c7' }}>{tr('Bỏ qua')}</Text>

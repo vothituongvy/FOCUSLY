@@ -181,7 +181,7 @@ export function AIChatScreen({ route }: { route: { params?: { materialId?: strin
               {m.role === 'assistant' ? (
                 <RichText text={m.content} />
               ) : m.content.startsWith('📎 ') && m.attachments?.length ? null : m.content ? (
-                <Text selectable style={{ color: colors.text, lineHeight: 21 }}>{m.content}</Text>
+                <Text selectable style={{ color: m.role === 'user' ? colors.onMarker : colors.text, lineHeight: 21 }}>{m.content}</Text>
               ) : null}
               {m.role === 'assistant' && !!conv?.id && (
                 <Feedback kind="answer" origin={m.origin || 'brain'} text={conv.messages?.[i - 1]?.content} initial={m.vote ?? 0} conversationId={conv.id} index={i} />
@@ -237,7 +237,7 @@ export function AIChatScreen({ route }: { route: { params?: { materialId?: strin
             onPress={() => send()}
             style={{ width: 46, height: 46, borderRadius: 12, backgroundColor: colors.marker, alignItems: 'center', justifyContent: 'center', opacity: busy || (!input.trim() && !files.length) ? 0.45 : 1 }}
           >
-            <Icon name="send" size={20} color={colors.text} />
+            <Icon name="send" size={20} color={colors.onMarker} />
           </Pressable>
         </View>
       </KeyboardView>
@@ -415,7 +415,7 @@ export function AICoachScreen() {
                   style={{ flexDirection: 'row', gap: 10, alignItems: 'center', paddingVertical: 10, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border, opacity: disabled ? 0.55 : 1 }}
                 >
                   <View style={{ width: 24, height: 24, borderRadius: 7, borderWidth: 2, borderColor: on ? colors.text : colors.borderStrong, backgroundColor: on ? colors.marker : colors.surface, alignItems: 'center', justifyContent: 'center' }}>
-                    {on && <Icon name="check" size={14} color={colors.text} />}
+                    {on && <Icon name="check" size={14} color={colors.onMarker} />}
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={{ color: colors.text, fontWeight: '600' }}>{p.title}</Text>

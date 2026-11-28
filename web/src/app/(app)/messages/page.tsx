@@ -10,6 +10,7 @@ import { useAuth } from '@/lib/auth';
 import { tr } from '@/lib/i18n';
 import { Avatar, Empty, Modal, Spinner, Toggle } from '@/components/ui';
 import { Icon } from '@/components/Icon';
+import { uiConfirm } from '@/lib/dialog';
 
 interface ChatMember {
   id: string;
@@ -28,8 +29,13 @@ interface ChatItem {
   muted: boolean;
   unread: number;
   lastMessage: { text: string; at: string; mine: boolean; senderName: string } | null;
+  /** trò chuyện 1-1: 'me' = mình đã chặn người kia, 'them' = người kia chặn mình */
+  blocked?: 'me' | 'them' | null;
+  otherId?: string | null;
 }
 interface Msg {
+  recalled?: boolean;
+  forwarded?: boolean;
   id: string;
   sender: string | null;
   text: string;
@@ -172,6 +178,9 @@ function Thread({ chatId, onBack, onChanged }: { chatId: string; onBack: () => v
   const [error, setError] = useState('');
   const [settings, setSettings] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const [menuFor, setMenuFor] = useState<string | null>(null);
+  const [forwarding, setForwarding] = useState<Msg | null>(null);
+  const [notice, setNotice] = useState('');
   const box = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -217,6 +226,7 @@ function Thread({ chatId, onBack, onChanged }: { chatId: string; onBack: () => v
   });
   useSocketEvent<{ chatId: string }>('chat:changed', (e) => e.chatId === chatId && void load());
   useSocketEvent<{ chatId: string; messageId: string }>('chat:deleted', (e) => e.chatId === chatId && setMsgs((cur) => cur.filter((m) => m.id !== e.messageId)));
+  useSocketEvent<{ chatId: string; message: Msg }>('chat:recalled', (e) => e.chatId === chatId && setMsgs((cur) => cur.map((m) => (m.id === e.message.id ? e.message : m))));
 
   const older = async () => {
     const first = msgs[0];
@@ -266,6 +276,73 @@ function Thread({ chatId, onBack, onChanged }: { chatId: string; onBack: () => v
       setMsgs((cur) => cur.map((m) => (m.clientId === clientId ? { ...m, pending: false, failed: true } : m)));
       setError(errorMessage(e));
     }
+  };
+
+  const flash = (t: string) => {
+    setNotice(t);
+    setTimeout(() => setNotice(''), 2500);
+  };
+  const hideForMe = async (m: Msg) => {
+    setMenuFor(null);
+    if (!(await uiConfirm(tr('Xoá tin nhắn ở phía bạn? Người kia vẫn thấy tin này.'), { okLabel: tr('Xoá ở phía tôi'), danger: true }))) return;
+    try {
+      await del(`/chats/${chatId}/messages/${m.id}?for=me`);
+      setMsgs((cur) => cur.filter((x) => x.id !== m.id));
+      onChanged();
+    } catch (e) {
+      setError(errorMessage(e));
+    }
+  };
+  const recall = async (m: Msg) => {
+    setMenuFor(null);
+    if (!(await uiConfirm(tr('Thu hồi tin nhắn với mọi người? Mọi người sẽ thấy “Tin nhắn đã được thu hồi”.'), { okLabel: tr('Thu hồi'), danger: true }))) return;
+    try {
+      await del(`/chats/${chatId}/messages/${m.id}?for=all`);
+      setMsgs((cur) => cur.map((x) => (x.id === m.id ? { ...x, recalled: true, text: '', image: null } : x)));
+      onChanged();
+    } catch (e) {
+      setError(errorMessage(e));
+    }
+  };
+  const imageFile = async (url: string) => {
+    const blob = await (await fetch(url)).blob();
+    const ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+    return new File([blob], `focusly-${Date.now()}.${ext}`, { type: blob.type || 'image/jpeg' });
+  };
+  const saveImage = async (url: string) => {
+    setMenuFor(null);
+    try {
+      const f = await imageFile(url);
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(f);
+      a.download = f.name;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    } catch {
+      window.open(url, '_blank', 'noopener');
+    }
+  };
+  const share = async (m: Msg) => {
+    setMenuFor(null);
+    try {
+      if (m.image?.url) {
+        const f = await imageFile(m.image.url).catch(() => null);
+        if (f && navigator.canShare?.({ files: [f] })) return void (await navigator.share({ files: [f], text: m.text || undefined }));
+        if (navigator.share) return void (await navigator.share({ url: m.image.url, text: m.text || undefined }));
+        await navigator.clipboard.writeText(m.image.url);
+      } else {
+        if (navigator.share) return void (await navigator.share({ text: m.text }));
+        await navigator.clipboard.writeText(m.text);
+      }
+      flash(tr('Trình duyệt chưa hỗ trợ chia sẻ – đã sao chép để bạn dán vào ứng dụng khác'));
+    } catch (e) {
+      if ((e as Error)?.name !== 'AbortError') setError(errorMessage(e));
+    }
+  };
+  const copy = async (m: Msg) => {
+    setMenuFor(null);
+    await navigator.clipboard.writeText(m.text).catch(() => undefined);
+    flash(tr('Đã sao chép'));
   };
 
   const addEmoji = (e: string) => {
@@ -318,6 +395,12 @@ function Thread({ chatId, onBack, onChanged }: { chatId: string; onBack: () => v
             <div key={m.id} className="col" style={{ gap: 2 }}>
               {gap && <div className="msg-time">{new Date(m.at).toLocaleString([], { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric' })}</div>}
               {showName && <span className="small muted" style={{ marginLeft: 6 }}>{byId.get(m.sender)?.name ?? '?'}</span>}
+              {m.recalled ? (
+                <div className={`bubble ${mine ? 'user' : 'assistant'} recalled`}>{mine ? tr('Bạn đã thu hồi một tin nhắn') : tr('Tin nhắn đã được thu hồi')}</div>
+              ) : (
+              <div className={`msg-line ${mine ? 'mine' : ''} ${menuFor === m.id ? 'menu-open' : ''}`}>
+              <div className="col msg-content">
+              {m.forwarded && <span className="msg-fwd">↪ {tr('Đã chuyển tiếp')}</span>}
               {(m.image || m.localUrl) && (
                 <a href={m.image?.url ?? m.localUrl} target="_blank" rel="noreferrer" className={`msg-image ${mine ? 'mine' : ''} ${m.pending ? 'pending' : ''}`} title={new Date(m.at).toLocaleString()}>
                   <img src={m.image?.url ?? m.localUrl} alt={tr('Ảnh')} loading="lazy" width={m.image?.width ?? undefined} height={m.image?.height ?? undefined} />
@@ -327,6 +410,29 @@ function Thread({ chatId, onBack, onChanged }: { chatId: string; onBack: () => v
                 <div className={`bubble ${mine ? 'user' : 'assistant'} ${m.pending ? 'pending' : ''} ${/^\p{Extended_Pictographic}{1,3}$/u.test(m.text.trim()) ? 'emoji-only' : ''}`} title={new Date(m.at).toLocaleString()}>
                   {m.text}
                 </div>
+              )}
+              </div>
+              {!m.pending && !m.failed && (
+                <span className="msg-actions">
+                  <button className="icon-btn" onClick={() => setMenuFor(menuFor === m.id ? null : m.id)} aria-label={tr('Tuỳ chọn tin nhắn')} aria-expanded={menuFor === m.id} title={tr('Tuỳ chọn')}>
+                    ⋯
+                  </button>
+                  {menuFor === m.id && (
+                    <>
+                      <div className="emoji-backdrop" onClick={() => setMenuFor(null)} />
+                      <div className={`msg-menu ${mine ? 'left' : 'right'}`} role="menu">
+                        <button role="menuitem" onClick={() => (setMenuFor(null), setForwarding(m))}>↪ {tr('Chuyển tiếp')}</button>
+                        {!!m.text && <button role="menuitem" onClick={() => void copy(m)}>⧉ {tr('Sao chép')}</button>}
+                        {m.image && <button role="menuitem" onClick={() => void saveImage(m.image!.url)}>⬇ {tr('Lưu ảnh')}</button>}
+                        <button role="menuitem" onClick={() => void share(m)}>⤴ {tr('Chia sẻ')}</button>
+                        <button role="menuitem" className="danger" onClick={() => void hideForMe(m)}>🗑 {tr('Xoá ở phía tôi')}</button>
+                        {mine && <button role="menuitem" className="danger" onClick={() => void recall(m)}>↺ {tr('Thu hồi (xoá cả 2 phía)')}</button>}
+                      </div>
+                    </>
+                  )}
+                </span>
+              )}
+              </div>
               )}
               {m.failed && (
                 <button className="small error-text" style={{ alignSelf: 'flex-end', background: 'none', border: 0, cursor: 'pointer' }} onClick={() => (m.file ? sendImage(m.file, m) : send(m.text, m))}>
@@ -343,6 +449,26 @@ function Thread({ chatId, onBack, onChanged }: { chatId: string; onBack: () => v
         })}
       </div>
       {error && <p className="error-text small">{error}</p>}
+      {notice && <p className="small muted" role="status">{notice}</p>}
+      {chat.blocked ? (
+        <div className="msg-blocked">
+          {chat.blocked === 'me' ? (
+            <>
+              <span>{tr('Bạn đã chặn người này. Hai bạn không nhắn tin cho nhau được.')}</span>
+              <button className="btn secondary sm" onClick={async () => {
+                try {
+                  await del(`/social/blocks/${chat.otherId}`);
+                  await load();
+                } catch (e) {
+                  setError(errorMessage(e));
+                }
+              }}>{tr('Bỏ chặn')}</button>
+            </>
+          ) : (
+            <span>{tr('Bạn không thể trả lời cuộc trò chuyện này.')}</span>
+          )}
+        </div>
+      ) : (
       <form
         className="row chat-input"
         onSubmit={(e) => {
@@ -407,6 +533,8 @@ function Thread({ chatId, onBack, onChanged }: { chatId: string; onBack: () => v
           <Icon name="send" size={16} /> {tr('Gửi')}
         </button>
       </form>
+      )}
+      {forwarding && <ForwardModal msg={forwarding} fromChatId={chatId} onClose={() => setForwarding(null)} onDone={(n) => (setForwarding(null), flash(tr('Đã chuyển tiếp tới {0} cuộc trò chuyện', n)), onChanged())} />}
 
       <ChatSettings open={settings} onClose={() => setSettings(false)} chat={chat} me={me ?? ''} onChanged={(c) => (setChat(c), onChanged())} onLeft={() => (onChanged(), onBack())} />
     </>
@@ -475,7 +603,7 @@ function ChatSettings({ open, onClose, chat, me, onChanged, onLeft }: { open: bo
                       {m.id === me ? tr('Bạn') : m.name} {m.admin && <span className="small muted">({tr('quản trị')})</span>}
                     </span>
                     {chat.isAdmin && m.id !== me && (
-                      <button className="icon-btn" title={tr('Xoá khỏi nhóm')} onClick={() => confirm(tr('Xoá {0} khỏi nhóm?', m.name)) && run(async () => (await del(`/chats/${chat.id}/members/${m.id}`), await get(`/chats/${chat.id}/messages?limit=1`).then((r) => ({ item: (r as { chat: ChatItem }).chat }))))}>
+                      <button className="icon-btn" title={tr('Xoá khỏi nhóm')} onClick={async () => (await uiConfirm(tr('Xoá {0} khỏi nhóm?', m.name))) && run(async () => (await del(`/chats/${chat.id}/members/${m.id}`), await get(`/chats/${chat.id}/messages?limit=1`).then((r) => ({ item: (r as { chat: ChatItem }).chat }))))}>
                         ✕
                       </button>
                     )}
@@ -483,12 +611,76 @@ function ChatSettings({ open, onClose, chat, me, onChanged, onLeft }: { open: bo
                 ))}
               </div>
             </div>
-            <button className="btn danger" onClick={() => confirm(tr('Rời nhóm này?')) && api(`/chats/${chat.id}/members/${me}`, { method: 'DELETE' }).then(() => (onClose(), onLeft()))}>
+            <button className="btn danger" onClick={async () => (await uiConfirm(tr('Rời nhóm này?'))) && api(`/chats/${chat.id}/members/${me}`, { method: 'DELETE' }).then(() => (onClose(), onLeft()))}>
               {tr('Rời nhóm')}
             </button>
           </>
         )}
+        {chat.type === 'direct' && chat.otherId && chat.blocked !== 'them' && (
+          <button
+            className={`btn ${chat.blocked === 'me' ? 'secondary' : 'danger'}`}
+            onClick={async () => {
+              if (chat.blocked === 'me') return void run(async () => (await del(`/social/blocks/${chat.otherId}`), onClose(), onLeft()));
+              if (!(await uiConfirm(tr('Chặn {0}? Hai bạn sẽ không còn là bạn bè, không nhắn tin và không gửi lời mời kết bạn cho nhau được. Bạn có thể bỏ chặn bất cứ lúc nào.', chat.name), { okLabel: tr('Chặn'), danger: true }))) return;
+              void run(async () => (await post('/social/blocks', { userId: chat.otherId }), onClose(), onLeft()));
+            }}
+          >
+            {chat.blocked === 'me' ? tr('Bỏ chặn {0}', chat.name) : tr('Chặn {0}', chat.name)}
+          </button>
+        )}
         {error && <p className="error-text">{error}</p>}
+      </div>
+    </Modal>
+  );
+}
+
+/** Chọn cuộc trò chuyện để chuyển tiếp tin */
+function ForwardModal({ msg, fromChatId, onClose, onDone }: { msg: Msg; fromChatId: string; onClose: () => void; onDone: (n: number) => void }) {
+  const chats = useResource<{ items: ChatItem[] }>('/chats');
+  const [picked, setPicked] = useState<string[]>([]);
+  const [q, setQ] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const list = (chats.data?.items ?? []).filter((c) => !c.blocked && c.name.toLowerCase().includes(q.trim().toLowerCase()));
+  const go = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      const r = await post<{ sent: string[]; failed: { error: string }[] }>('/chats/forward', { fromChatId, messageId: msg.id, toChatIds: picked });
+      if (!r.sent.length) throw new Error(r.failed[0]?.error ?? tr('Chưa chuyển tiếp được'));
+      onDone(r.sent.length);
+    } catch (e) {
+      setError(errorMessage(e));
+      setBusy(false);
+    }
+  };
+  return (
+    <Modal open onClose={onClose} title={tr('Chuyển tiếp tin nhắn')}>
+      <div className="col" style={{ gap: 12 }}>
+        <div className="fb-quote small">{msg.image ? `📷 ${tr('Ảnh')}${msg.text ? ' · ' : ''}` : ''}{msg.text}</div>
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr('Tìm cuộc trò chuyện…')} aria-label={tr('Tìm cuộc trò chuyện…')} />
+        <div className="col" style={{ gap: 2, maxHeight: 320, overflowY: 'auto' }}>
+          {!chats.data ? (
+            <Spinner />
+          ) : list.length === 0 ? (
+            <p className="muted small">{tr('Không có cuộc trò chuyện nào.')}</p>
+          ) : (
+            list.map((c) => {
+              const on = picked.includes(c.id);
+              return (
+                <label key={c.id} className={`msg-row ${on ? 'active' : ''}`} style={{ cursor: 'pointer' }}>
+                  <input type="checkbox" checked={on} onChange={() => setPicked((p) => (on ? p.filter((x) => x !== c.id) : p.length < 10 ? [...p, c.id] : p))} style={{ width: 18, height: 18 }} />
+                  <ChatAvatar chat={c} />
+                  <span className="grow truncate">{c.name}</span>
+                </label>
+              );
+            })
+          )}
+        </div>
+        {error && <p className="error-text small">{error}</p>}
+        <button className="btn marker" disabled={!picked.length || busy} onClick={go}>
+          ↪ {picked.length ? tr('Gửi tới {0} cuộc trò chuyện', picked.length) : tr('Chọn nơi nhận')}
+        </button>
       </div>
     </Modal>
   );

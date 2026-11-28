@@ -13,6 +13,7 @@ import { Icon } from '@/components/Icon';
 import { tr } from '@/lib/i18n';
 import { ImportFromFile } from '@/components/ImportFromFile';
 import { ShareToLibrary } from '@/components/ShareToLibrary';
+import { uiConfirm } from '@/lib/dialog';
 
 interface DraftCard {
   front: string;
@@ -183,7 +184,7 @@ function DeckInner() {
             className="btn ghost"
             style={{ color: 'var(--danger)' }}
             onClick={async () => {
-              if (!confirm(tr('Xoá bộ thẻ và toàn bộ thẻ bên trong?'))) return;
+              if (!(await uiConfirm(tr('Xoá bộ thẻ và toàn bộ thẻ bên trong?')))) return;
               await del(`/decks/${id}`);
               router.push('/learn');
             }}

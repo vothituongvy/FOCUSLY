@@ -166,11 +166,11 @@ export function Button({
   style?: StyleProp<ViewStyle>;
 }) {
   const v = {
-    primary: { bg: colors.marker, fg: colors.text, border: colors.marker },
+    primary: { bg: colors.marker, fg: colors.onMarker, border: colors.marker },
     secondary: { bg: colors.surface, fg: colors.text, border: colors.borderStrong },
     ghost: { bg: 'transparent', fg: colors.text2, border: 'transparent' },
     danger: { bg: colors.surface, fg: colors.danger, border: '#efc4bb' },
-    marker: { bg: colors.marker, fg: colors.text, border: '#e5b300' },
+    marker: { bg: colors.marker, fg: colors.onMarker, border: '#e5b300' },
   }[variant];
   const press = usePressScale();
   return (
@@ -248,7 +248,7 @@ export function Field({ label, secureTextEntry, ...props }: TextInputProps & { l
 export function Chip({ label, active, onPress }: { label: string; active?: boolean; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: !!active }} style={[s.chip, active && { borderColor: colors.marker, backgroundColor: colors.marker }]}>
-      <Text style={{ color: active ? colors.text : colors.text2, fontWeight: active ? '700' : '500', fontSize: 13.5 }}>{label}</Text>
+      <Text style={{ color: active ? colors.onMarker : colors.text2, fontWeight: active ? '700' : '500', fontSize: 13.5 }}>{label}</Text>
     </Pressable>
   );
 }

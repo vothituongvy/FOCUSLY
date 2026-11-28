@@ -9,6 +9,9 @@ import { ErrorReporter } from '@/components/ErrorReporter';
 import { cookies } from 'next/headers';
 import { tr } from '@/lib/i18n';
 import { LangGate } from '@/components/LangGate';
+import { THEME_BOOT } from '@/lib/theme';
+import { ThemeWatcher } from '@/components/ThemeWatcher';
+import { DialogHost } from '@/components/DialogHost';
 
 // Be Vietnam Pro: thiết kế cho tiếng Việt, dấu rõ ràng ở mọi cỡ chữ
 const vn = Be_Vietnam_Pro({
@@ -35,9 +38,15 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const lang = (await cookies()).get('focusly_lang')?.value === 'en' ? 'en' : 'vi';
   return (
-    <html lang={lang} className={vn.variable}>
+    <html lang={lang} className={vn.variable} suppressHydrationWarning>
+      <head>
+        {/* áp chế độ sáng/tối trước khi trang vẽ – không nháy trắng */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
+      </head>
       <body>
+        <ThemeWatcher />
         {lang === 'en' ? <LangGate>{children}</LangGate> : children}
+        <DialogHost />
         <PwaRegister />
         <ErrorReporter />
       </body>

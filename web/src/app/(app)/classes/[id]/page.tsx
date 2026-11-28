@@ -9,6 +9,7 @@ import { tr } from '@/lib/i18n';
 import type { LearnOverview, Quiz } from '@/lib/types';
 import { Avatar, Empty, Modal, Progress, Spinner } from '@/components/ui';
 import { Icon } from '@/components/Icon';
+import { uiConfirm } from '@/lib/dialog';
 
 interface Assignment {
   id: string;
@@ -90,7 +91,7 @@ export default function ClassPage() {
               </button>
             </>
           )}
-          <button className="btn ghost" onClick={() => confirm(c.isTeacher ? tr('Xoá lớp này?') : tr('Rời lớp này?')) && del(`/classes/${id}`).then(() => router.push('/classes'))}>
+          <button className="btn ghost" onClick={async () => (await uiConfirm(c.isTeacher ? tr('Xoá lớp này?') : tr('Rời lớp này?'))) && del(`/classes/${id}`).then(() => router.push('/classes'))}>
             {c.isTeacher ? tr('Xoá lớp') : tr('Rời lớp')}
           </button>
         </div>
@@ -115,7 +116,7 @@ export default function ClassPage() {
                       <th key={a.id} title={a.title}>
                         <span className="row" style={{ gap: 4 }}>
                           {a.kind === 'deck' ? '🃏' : '📝'} <span className="truncate" style={{ maxWidth: 140 }}>{a.title}</span>
-                          <button className="icon-btn" title={tr('Huỷ giao bài')} onClick={() => confirm(tr('Huỷ bài “{0}”?', a.title)) && del(`/classes/${id}/assignments/${a.id}`).then(() => res.reload())}>
+                          <button className="icon-btn" title={tr('Huỷ giao bài')} onClick={async () => (await uiConfirm(tr('Huỷ bài “{0}”?', a.title))) && del(`/classes/${id}/assignments/${a.id}`).then(() => res.reload())}>
                             ✕
                           </button>
                         </span>
@@ -147,7 +148,7 @@ export default function ClassPage() {
                         </td>
                       ))}
                       <td>
-                        <button className="icon-btn" title={tr('Xoá khỏi lớp')} onClick={() => confirm(tr('Xoá {0} khỏi lớp?', s.name)) && del(`/classes/${id}/members/${s.id}`).then(() => res.reload())}>
+                        <button className="icon-btn" title={tr('Xoá khỏi lớp')} onClick={async () => (await uiConfirm(tr('Xoá {0} khỏi lớp?', s.name))) && del(`/classes/${id}/members/${s.id}`).then(() => res.reload())}>
                           ✕
                         </button>
                       </td>

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, Switch, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, Switch, View } from 'react-native';
+import { chatHeadNative, useChatHeadStatus } from '../chatHead';
 import { Text } from '../components/AppText';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -14,6 +15,7 @@ import { Icon } from '../components/Icon';
 import { LANG, LOCALE, tr } from '../i18n';
 import { refreshPushToken } from '../push';
 import { GUIDE } from '../guide';
+import { showAlert } from '../components/Dialog';
 
 type Nav = NativeStackNavigationProp<AppStackParams>;
 
@@ -177,7 +179,7 @@ export function GuideScreen() {
           <Card key={g.id} style={{ gap: 10 }}>
             <Pressable onPress={() => setOpen(on ? null : g.id)} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               <View style={{ width: 38, height: 38, borderRadius: 11, backgroundColor: on ? colors.marker : colors.markerSoft, alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name={g.icon} size={20} color={colors.text} />
+                <Icon name={g.icon} size={20} color={on ? colors.onMarker : colors.text} />
               </View>
               <Text style={{ flex: 1, fontWeight: '700', fontSize: 16, color: colors.text }}>{g.title}</Text>
               <Icon name={on ? 'chevronLeft' : 'chevronRight'} size={18} color={colors.muted} />
@@ -188,7 +190,7 @@ export function GuideScreen() {
                 {g.steps?.map((st, i) => (
                   <Row key={i} style={{ flexWrap: 'nowrap', alignItems: 'flex-start' }}>
                     <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: colors.marker, alignItems: 'center', justifyContent: 'center' }}>
-                      <Text style={{ fontWeight: '800', color: colors.text, fontSize: 12 }}>{i + 1}</Text>
+                      <Text style={{ fontWeight: '800', color: colors.onMarker, fontSize: 12 }}>{i + 1}</Text>
                     </View>
                     <Text style={{ flex: 1, color: colors.text, lineHeight: 21 }}>{st}</Text>
                   </Row>
@@ -503,9 +505,42 @@ export function NotificationSettingsScreen() {
         </Row>
         <Button title={tr('Lưu')} onPress={saveFields} />
       </Card>
+      <ChatBubbleSettings />
       <SaveLine msg={msg} error={error} />
       <PushCheck />
     </Screen>
+  );
+}
+
+/** Bong bóng chat nổi trên màn hình khi đang dùng app khác (cần quyền "Hiển thị trên ứng dụng khác") */
+function ChatBubbleSettings() {
+  const [st, setSt] = useChatHeadStatus();
+  if (!chatHeadNative) return null;
+  return (
+    <Card>
+      <H3>{tr('Bong bóng chat nổi')}</H3>
+      <Muted>{tr('Khi có tin nhắn mà bạn đang ở ngoài app, ảnh đại diện người nhắn nổi trên màn hình như Messenger/Zalo. Chạm để mở, kéo xuống ✕ để tắt. Vào app là bong bóng tự ẩn.')}</Muted>
+      {st && (
+        <>
+          <ToggleRow
+            title={tr('Hiện bong bóng chat')}
+            hint=""
+            value={st.enabled}
+            onChange={(v) => {
+              chatHeadNative?.setEnabled(v);
+              setSt({ ...st, enabled: v });
+            }}
+          />
+          {st.enabled && !st.permission && (
+            <>
+              <Text style={{ color: colors.danger }}>{tr('Chưa có quyền “Hiển thị trên ứng dụng khác”. Bấm nút dưới, tìm FOCUSLY và bật lên.')}</Text>
+              <Button variant="marker" title={tr('Cấp quyền hiển thị bong bóng')} onPress={() => chatHeadNative?.openPermission()} />
+            </>
+          )}
+          {st.enabled && st.permission && <Muted style={{ color: colors.success }}>{tr('✓ Đã sẵn sàng')}</Muted>}
+        </>
+      )}
+    </Card>
   );
 }
 
@@ -594,10 +629,10 @@ export function SecurityScreen() {
           onPress={async () => {
             try {
               const r = await api<{ revoked: number }>('/users/me/sessions', { method: 'DELETE' });
-              Alert.alert(tr('Xong'), tr('Đã đăng xuất {0} thiết bị.', r.revoked));
+              showAlert(tr('Xong'), tr('Đã đăng xuất {0} thiết bị.', r.revoked));
               void load();
             } catch (e) {
-              Alert.alert(tr('Lỗi'), errorMessage(e));
+              showAlert(tr('Lỗi'), errorMessage(e));
             }
           }}
         />

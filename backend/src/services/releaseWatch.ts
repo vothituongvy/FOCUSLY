@@ -1,23 +1,20 @@
 import { AppMetaModel } from '../models/Social';
 import { UserModel } from '../models/User';
 import { notify } from './notifications';
+import { fetchLatestRelease } from './latestRelease';
 
 /**
  * Theo dõi bản app mới trên GitHub Releases (mỗi 15 phút).
  * Khi có tag mới -> báo cho mọi người dùng (trong app + thông báo đẩy), chạm vào để cập nhật.
  * Lần chạy đầu chỉ ghi nhận bản hiện tại, không báo.
  */
-const REPO = process.env.GITHUB_REPO ?? 'vothituongvy/FOCUSLY';
 let lastCheck = 0;
 
 export async function checkNewRelease(now = Date.now()) {
   if (now - lastCheck < 15 * 60_000) return;
   lastCheck = now;
-  const res = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`, {
-    headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'focusly-api', ...(process.env.GITHUB_TOKEN ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {}) },
-  }).catch(() => null);
-  if (!res?.ok) return;
-  const r = (await res.json()) as { tag_name: string; body: string | null; draft: boolean; prerelease: boolean };
+  const r = await fetchLatestRelease();
+  if (!r) return;
   if (r.draft || r.prerelease) return;
   const prev = await AppMetaModel.findOne({ key: 'release.lastTag' }).lean();
   if (prev?.value === r.tag_name) return;

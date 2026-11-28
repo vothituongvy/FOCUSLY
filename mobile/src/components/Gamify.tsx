@@ -53,8 +53,8 @@ export function DailyQuests() {
             backgroundColor: g.streak.todayDone ? colors.marker : colors.surface,
           }}
         >
-          <Text style={{ fontSize: 28, fontWeight: '800', color: colors.text }}>{g.streak.current}</Text>
-          <Text style={{ fontSize: 11.5, color: colors.text2, textAlign: 'center' }}>{tr('ngày liên tiếp')}</Text>
+          <Text style={{ fontSize: 28, fontWeight: '800', color: g.streak.todayDone ? colors.onMarker : colors.text }}>{g.streak.current}</Text>
+          <Text style={{ fontSize: 11.5, color: g.streak.todayDone ? colors.onMarker : colors.text2, textAlign: 'center' }}>{tr('ngày liên tiếp')}</Text>
         </View>
         <View style={{ flex: 1, gap: 6 }}>
           <Text style={{ fontWeight: '800', color: colors.text }}>

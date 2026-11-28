@@ -11,6 +11,7 @@ import { CourseForm, GoalForm, SubjectForm, TaskForm } from '@/components/PlanFo
 import { Empty, Spinner } from '@/components/ui';
 import { Icon } from '@/components/Icon';
 import { tr } from '@/lib/i18n';
+import { uiConfirm } from '@/lib/dialog';
 
 type View = 'list' | 'calendar' | 'goals';
 type ModalState =
@@ -233,7 +234,7 @@ export default function PlanPage() {
                           className="icon-btn"
                           title={tr('Xoá')}
                           onClick={async () => {
-                            if (!confirm(tr('Xoá "{0}"?', t.title))) return;
+                            if (!(await uiConfirm(tr('Xoá "{0}"?', t.title)))) return;
                             await del(`/tasks/${t.id}`);
                             void reload();
                           }}

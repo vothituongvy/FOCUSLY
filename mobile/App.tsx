@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { AppState, StatusBar } from 'react-native';
+import { AppState, Appearance, StatusBar } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { useAuth } from './src/store/auth';
@@ -7,10 +7,12 @@ import { onUserSynced, useData } from './src/store/data';
 import { useSession } from './src/store/session';
 import { connectSocket, disconnectSocket } from './src/socket';
 import { registerPush } from './src/push';
-import { Alert } from 'react-native';
 import type { FocusSession, User } from './src/types';
-import { onLangChange } from './src/i18n';
+import { onLangChange, prefSet } from './src/i18n';
+import { isDark, wantsDark } from './src/theme';
+import { reloadApp } from './src/focusLock';
 import { checkForUpdate } from './src/updateCheck';
+import { DialogHost, showAlert } from './src/components/Dialog';
 
 /** Khởi động đồng bộ khi đã đăng nhập: SQLite -> push/pull -> realtime socket */
 function useSyncEngine() {
@@ -49,7 +51,7 @@ function useSyncEngine() {
     })();
 
     let unsubPush: () => void = () => undefined;
-    void registerPush((title, body) => Alert.alert(title, body)).then((fn) => (unsubPush = fn));
+    void registerPush((title, body) => showAlert(title, body)).then((fn) => (unsubPush = fn));
 
     const sub = AppState.addEventListener('change', (st) => {
       if (st === 'active') {
@@ -80,11 +82,22 @@ export default function App() {
   // Đổi ngôn ngữ: dựng lại toàn bộ màn hình để chữ đổi ngay
   const [langVersion, setLangVersion] = useState(0);
   useEffect(() => onLangChange(() => setLangVersion((v) => v + 1)), []);
+  // "Theo máy": điện thoại chuyển sáng/tối -> tải lại app để đổi màu theo
+  useEffect(() => {
+    const sub = Appearance.addChangeListener(() => {
+      if (wantsDark() !== isDark) {
+        prefSet('reopenTab', '');
+        void reloadApp();
+      }
+    });
+    return () => sub.remove();
+  }, []);
 
   return (
     <SafeAreaProvider>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <RootNavigator key={langVersion} />
+      <DialogHost />
     </SafeAreaProvider>
   );
 }
