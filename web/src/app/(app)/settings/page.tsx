@@ -468,6 +468,13 @@ function NotificationsTab() {
   const [s, setS] = useState<NotificationSettings | null>(null);
   const [pushAvailable, setPushAvailable] = useState(false);
   const [perm, setPerm] = useState<string>(typeof Notification !== 'undefined' ? Notification.permission : 'unsupported');
+  // nút gửi thử chỉ dành cho quản trị viên
+  const [admin, setAdmin] = useState(false);
+  useEffect(() => {
+    get<{ admin: boolean }>('/admin/me')
+      .then((r) => setAdmin(r.admin))
+      .catch(() => setAdmin(false));
+  }, []);
   const [msg, setMsg] = useState('');
   useEffect(() => {
     void get<{ settings: NotificationSettings; pushAvailable: boolean }>('/notifications/settings').then((r) => {
@@ -534,9 +541,11 @@ function NotificationsTab() {
         </label>
       </div>
       <div className="row">
-        <button className="btn secondary sm" onClick={() => post('/notifications/test').then(() => setMsg(tr('Đã gửi thông báo thử')))}>
-          {tr('Gửi thông báo thử')}
-        </button>
+        {admin && (
+          <button className="btn secondary sm" onClick={() => post('/notifications/test').then(() => setMsg(tr('Đã gửi thông báo thử')))}>
+            {tr('Gửi thông báo thử')}
+          </button>
+        )}
         {msg && <span className="success-text">{msg}</span>}
       </div>
     </div>

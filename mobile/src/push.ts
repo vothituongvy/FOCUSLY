@@ -39,10 +39,28 @@ const opened = (m: PushMsg | null) => {
   else pendingLink = link;
 };
 
+/**
+ * @react-native-firebase/messaging bản 22+ chỉ còn API dạng hàm (getMessaging, getToken…), không còn
+ * `require(...).default`. Gói lại thành object như cũ; hỗ trợ cả bản cũ để không vỡ khi đổi phiên bản.
+ */
 function loadMessaging(): (() => Messaging) | null {
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    return require('@react-native-firebase/messaging').default;
+    const mod = require('@react-native-firebase/messaging');
+    if (typeof mod.getMessaging === 'function') {
+      return () => {
+        const m = mod.getMessaging();
+        return {
+          requestPermission: () => mod.requestPermission(m),
+          getToken: () => mod.getToken(m),
+          onTokenRefresh: (cb: (t: string) => void) => mod.onTokenRefresh(m, cb),
+          onMessage: (cb: (x: PushMsg) => void) => mod.onMessage(m, cb),
+          onNotificationOpenedApp: (cb: (x: PushMsg) => void) => mod.onNotificationOpenedApp(m, cb),
+          getInitialNotification: () => mod.getInitialNotification(m),
+        };
+      };
+    }
+    return typeof mod.default === 'function' ? mod.default : null;
   } catch {
     return null;
   }

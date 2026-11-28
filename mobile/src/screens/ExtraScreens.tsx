@@ -617,6 +617,13 @@ interface PushDiag {
   results: { platform: string; ok: boolean; error?: string }[];
 }
 function PushCheck() {
+  // công cụ kiểm tra / gửi thử chỉ dành cho quản trị viên
+  const [admin, setAdmin] = useState(false);
+  useEffect(() => {
+    api<{ admin: boolean }>('/admin/me')
+      .then((r) => setAdmin(r.admin))
+      .catch(() => setAdmin(false));
+  }, []);
   const [busy, setBusy] = useState(false);
   const [lines, setLines] = useState<{ ok: boolean; text: string }[]>([]);
   const run = async () => {
@@ -650,6 +657,7 @@ function PushCheck() {
       setBusy(false);
     }
   };
+  if (!admin) return null;
   return (
     <Card>
       <H3>{tr('Kiểm tra thông báo đẩy')}</H3>

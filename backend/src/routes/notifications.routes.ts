@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { requireAuth, uid } from '../middleware/auth';
-import { ah, notFound, parse } from '../utils/http';
+import { ah, forbidden, notFound, parse } from '../utils/http';
 import { NotificationModel, PushTokenModel } from '../models/Notification';
 import { UserModel } from '../models/User';
 import { emitToUser } from '../services/realtime';
 import { notify, pushEnabled, diagnosePush } from '../services/notifications';
+import { isAdmin } from './admin.routes';
 
 /** Phase 2 – Notification (in-app + FCM push) */
 const router = Router();
@@ -131,6 +132,7 @@ router.delete(
 router.post(
   '/push-check',
   ah(async (req, res) => {
+    if (!(await isAdmin(uid(req)))) throw forbidden('Chỉ quản trị viên mới dùng được công cụ này');
     res.json(await diagnosePush(uid(req)));
   }),
 );
@@ -139,6 +141,7 @@ router.post(
 router.post(
   '/test',
   ah(async (req, res) => {
+    if (!(await isAdmin(uid(req)))) throw forbidden('Chỉ quản trị viên mới gửi được thông báo thử');
     const n = await notify(uid(req), {
       type: 'system',
       title: 'FOCUSLY đã sẵn sàng 🔔',
