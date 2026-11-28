@@ -27,7 +27,7 @@ import { prefGet, prefSet, tr } from '../i18n';
 import { SessionBar } from '../components/SessionBar';
 import { AppState } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { consumeWidgetAction } from '../native';
+import { consumeNotifyLink, consumeWidgetAction } from '../native';
 import { onPushOpen } from '../push';
 import { openLink } from './links';
 import { ChatsScreen, ChatThreadScreen } from '../screens/ChatScreens';
@@ -74,6 +74,9 @@ function WidgetBridge() {
       const a = await consumeWidgetAction();
       if (a === 'startFocus') nav.navigate('Focus', { quickStart: Date.now() });
       else if (a === 'review') nav.navigate('Review');
+      // chạm vào thông báo do app tự hiện (lúc app đang mở) -> mở đúng màn hình
+      const link = await consumeNotifyLink();
+      if (link) openLink(nav, link);
     };
     void check();
     const sub = AppState.addEventListener('change', (st) => st === 'active' && void check());

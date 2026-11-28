@@ -31,6 +31,14 @@
         android:name="com.google.firebase.messaging.default_notification_channel_id"
         android:value="focusly-default"
         tools:replace="android:value" />
+      <!-- Biểu tượng nhỏ & màu của thông báo đẩy khi app đóng -->
+      <meta-data
+        android:name="com.google.firebase.messaging.default_notification_icon"
+        android:resource="@drawable/ic_stat_focusly" />
+      <meta-data
+        android:name="com.google.firebase.messaging.default_notification_color"
+        android:resource="@color/focusly_notify"
+        tools:replace="android:resource" />
 
       <!-- Widget màn hình chính: phút học hôm nay, thẻ cần ôn, bắt đầu phiên 25 phút -->
       <receiver

@@ -73,3 +73,26 @@ export async function consumeWidgetAction(): Promise<string | null> {
     return null;
   }
 }
+
+/* ---------- Thông báo trên thanh thông báo khi app đang mở ---------- */
+type NotifyNative = { show: (title: string, body: string, channelId: string, link: string | null, tag: string | null) => void; consumeLink: () => Promise<string | null> };
+const notifier: NotifyNative | undefined = Platform.OS === 'android' ? NativeModules.FocuslyNotify : undefined;
+export const localNotifyAvailable = () => Boolean(notifier);
+
+export function showLocalNotification(title: string, body: string, opts: { channel?: 'focusly-default' | 'focusly-chat'; link?: string; tag?: string } = {}) {
+  if (!notifier) return false;
+  try {
+    notifier.show(title, body, opts.channel ?? 'focusly-default', opts.link ?? null, opts.tag ?? null);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function consumeNotifyLink(): Promise<string | null> {
+  try {
+    return (await notifier?.consumeLink()) ?? null;
+  } catch {
+    return null;
+  }
+}

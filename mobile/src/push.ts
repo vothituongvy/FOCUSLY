@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import { api } from './api/client';
+import { showLocalNotification } from './native';
 
 /**
  * PHASE 2 – Push Notification qua Firebase Cloud Messaging (TUỲ CHỌN).
@@ -18,6 +19,12 @@ type Messaging = {
   getInitialNotification?: () => Promise<PushMsg | null>;
 };
 type PushMsg = { notification?: { title?: string; body?: string }; data?: Record<string, string> };
+
+/** Cuộc trò chuyện đang mở trên màn hình (tin của nó không cần hiện thông báo) */
+let openChatId: string | null = null;
+export const setOpenChat = (id: string | null) => {
+  openChatId = id;
+};
 
 /** Người dùng chạm vào thông báo đẩy -> mở đúng màn hình (đường dẫn kiểu web, VD /messages?chat=…) */
 let openHandler: ((link: string) => void) | null = null;
@@ -86,10 +93,14 @@ export async function registerPush(onForeground?: (title: string, body: string) 
     await send(await m.getToken());
     const unsubRefresh = m.onTokenRefresh(send);
     const unsubMsg = m.onMessage((msg) => {
-      // tin nhắn: đã hiện ngay trong app (cuộc trò chuyện đang mở hoặc số chưa đọc)
-      // (tin nhắn khác: số chưa đọc trong app đã cập nhật, không bật hộp thoại làm gián đoạn)
-      if (msg.data?.type === 'chat') return;
-      onForeground?.(msg.notification?.title ?? 'FOCUSLY', msg.notification?.body ?? '');
+      const title = msg.notification?.title ?? 'FOCUSLY';
+      const body = msg.notification?.body ?? '';
+      const isChat = msg.data?.type === 'chat';
+      // đang mở đúng cuộc trò chuyện đó: tin đã hiện trên màn hình, không cần báo
+      if (isChat && msg.data?.chatId && msg.data.chatId === openChatId) return;
+      // app đang mở: Firebase không tự hiện -> tự hiện lên thanh thông báo như Messenger
+      if (showLocalNotification(title, body, { channel: isChat ? 'focusly-chat' : 'focusly-default', link: msg.data?.link, tag: isChat ? `chat-${msg.data?.chatId}` : undefined })) return;
+      if (!isChat) onForeground?.(title, body); // bản app cũ chưa có module: hộp thoại như trước
     });
     const unsubOpen = m.onNotificationOpenedApp?.(opened) ?? (() => undefined);
     void m.getInitialNotification?.().then(opened).catch(() => undefined);

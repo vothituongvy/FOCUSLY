@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- màu điểm nhấn của thông báo (vàng FOCUSLY) -->
+    <color name="focusly_notify">#FFCF2E</color>
+</resources>

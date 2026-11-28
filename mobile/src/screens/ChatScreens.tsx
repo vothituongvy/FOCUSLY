@@ -14,6 +14,7 @@ import { Button, Chip, Chips, Empty, Field, H1, H3, KeyboardView, Loading, Muted
 import { Icon } from '../components/Icon';
 import { tr } from '../i18n';
 import { Avatar } from './SocialScreens';
+import { setOpenChat } from '../push';
 
 type Nav = NativeStackNavigationProp<AppStackParams>;
 interface Member {
@@ -248,6 +249,12 @@ export function ChatThreadScreen({ route, navigation }: NativeStackScreenProps<A
       setError(errorMessage(e));
     }
   }, [chatId, markRead]);
+
+  // đang xem cuộc trò chuyện này -> không bật thông báo cho tin của nó
+  useEffect(() => {
+    setOpenChat(chatId);
+    return () => setOpenChat(null);
+  }, [chatId]);
 
   useEffect(() => {
     void load();
